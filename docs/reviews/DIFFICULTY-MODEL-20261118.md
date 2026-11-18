@@ -239,8 +239,9 @@ decisions in "Direction" are untouched.
   to be done.
 - **Harnesses.** `DurationDifficultyChecks` pins the client reader, the prewarm list and the
   frozen step with mutants; `BotMovementChecks` pins the halved speed surplus. The xunit
-  tests `ArenaDifficultyPolicyTests`, `BotTierDifficultyBandTests`, `BotTierDurationTests` and
-  `DifficultyArmTests` pin the table, the band, the absence of any clock and the arm field.
+  tests `ArenaDifficultyPolicyTests`, `BotTierScalePatchTests` (partial files
+  `BotTierDifficultyBandTests` and `BotTierDurationTests`) and `ArenaAreaServerTests` (partial
+  file `DifficultyArmTests`) pin the table, the band, the absence of any clock and the arm field.
   The skippable APBS integration test needs `ARENA_APBS_TEST_ROOT` and is run natively by
   `tools/ApbsCompatibilityChecks/Verify.ps1`.
 - **Latency of the full reserve.** In addition to the four measurements above: the server

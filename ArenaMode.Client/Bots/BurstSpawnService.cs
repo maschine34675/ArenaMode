@@ -16,7 +16,7 @@ namespace ArenaMode.Bots;
 /// Top-up burst spawner: whenever the alive population drops below the target,
 /// inject bots directly on spawn points we choose ourselves — no wave, no boss
 /// path, none of the engine's placement filters. The ABPS pump is the baseline
-/// pressure; this closes the refill gap after a killing spree and holds the PMC
+/// supply; this closes the refill gap after a killing spree and holds the PMC
 /// floor that makes the arena worth playing.
 /// </summary>
 internal static class BurstSpawnService
@@ -133,7 +133,7 @@ internal static class BurstSpawnService
             var pendingScav = CountPending(RecentScavInjections);
             var projected = alive + pendingPmc + pendingScav;
 
-            // PMCs are the pressure that makes the arena fun; scavs only fill the
+            // PMCs are what makes the arena fun; scavs only fill the
             // rest. Without a separate floor the single "alive" target is met by
             // whatever spawns fastest — which was scavs, every time.
             var pmcFloor = Mathf.Min(ArenaDifficulty.PmcFloor(Settings.PmcFloor.Value), target);
@@ -142,7 +142,7 @@ internal static class BurstSpawnService
             // The target bounds the POPULATION; the PMC floor only decides what
             // the next spawn should be. Skipping the bound whenever PMCs were
             // short worked while the floor sat safely below the target — but
-            // pressure raises the floor, and once it CATCHES the target the
+            // the step's PMC bonus raises the floor, and once it CATCHES the target the
             // bound never fires again: a map asking for ten was carrying
             // fourteen, on a corridor map, with SAIN thinking for all of them.
             // A PMC deficit may still overshoot a little, so a scav-filled map
@@ -161,8 +161,8 @@ internal static class BurstSpawnService
                 ? (_nextPmcIsBear ? WildSpawnType.pmcBEAR : WildSpawnType.pmcUSEC)
                 : WildSpawnType.assault;
 
-            // Baselines are what this line used to hardcode; pressure only
-            // ever raises them, so a raid never starts easier than it did.
+            // The level comes from the fixed policy row of the frozen step
+            // (Gun Game alone ramps); there is no time or streak term.
             var difficulty = ArenaDifficulty.DifficultyFor(wantPmc);
 
             Plugin.ModLogger.LogDebug(

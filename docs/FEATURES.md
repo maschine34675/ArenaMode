@@ -768,10 +768,10 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   | --- | --- | --- |
   | PMC AI level | impossible | hard |
   | Scav AI level (also the Labyrinth boss slot) | hard | normal |
-  | Bot gear level (server band, +/-5 around it) | the map's end level (default 66) | 60 % of it, never below the map's start level |
+  | Bot gear level (server band, +/-5 around it; not written in protected PitFireTeam raids) | the map's end level (default 66) | 60 % of it, never below the map's start level |
   | PMCs added on top of the PMC floor (Deathmatch, Gun Game) | 4 | 2 |
-  | Refill wait between ambient bursts | 0.5 x the map's value | 0.75 x |
-  | Bot speed | the Fast Bots multipliers as set (default 1.5) | half of the surplus over 1.0 (1.5 becomes 1.25) |
+  | Refill wait between ambient bursts (legacy burst path only; participant-count Deathmatch and Gun Game refill through the solo population and do not read it) | 0.5 x the map's value | 0.75 x |
+  | Bot speed | the Fast Bots multipliers as set, capped at 1.5 (default 1.5) | half of the surplus over 1.0 (1.5 becomes 1.25) |
   | Position reports (`HuntPlayer` sweep interval) | as configured | 1.5 x longer |
 
   A PMC floor of 0 still means no forced PMC share, at both steps. The Fast Bots

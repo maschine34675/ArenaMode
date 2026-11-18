@@ -941,7 +941,9 @@ one frozen `[Difficulty] Step` (Maximum default, Reduced) read once on the arm p
 the server. Outside Gun Game every level, the gear band, the PMC bonus, the speed surplus and
 the position-report interval are fixed from the first spawn request; no reader may use the
 elapsed time, the kill streak or a match clock. Every reader takes the frozen value
-(`ArenaDifficulty.Step`), never `Settings.DifficultyStep`. All numbers live in
+(`ArenaDifficulty.Step`), never `Settings.DifficultyStep`; the only exceptions are the single
+arm-path read in `ArenaLocalRaidStartedPatch` and the outside-raid fallback inside
+`ArenaDifficulty.Step`. All numbers live in
 `ArenaDifficultyPolicy`, not at call sites. Gun Game alone ramps over `botTierRampMinutes`.
 The finite Team DM and Domination match clock no longer rides on bot requests, so there is no
 request-size cap and no readiness gate in the prewarm. Existing bots are not re-equipped or
