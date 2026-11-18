@@ -150,3 +150,99 @@ for the client side: fixed values regardless of time and streak, the Gun Game cu
 frozen step, each with a fault that must fail. Harnesses that stub the old pressure API are
 adapted. The native acceptance and the measurements above are recorded in
 `docs/reports/2026-11/`.
+
+## Implementation notes
+
+Written on 2026-11-18 from the code of `feature/difficulty-model`. Everything here comes from
+source, offline harnesses and xunit; nothing has run in a native raid yet. Where the code does
+not do what the text above says, the note is marked **Correction** or **Not implemented**; the
+decisions in "Direction" are untouched.
+
+- **Where the step is frozen.** Client: `ArenaLocalRaidStartedPatch` reads
+  `[Difficulty] Step` once on the arm path, next to the requested mode and after the settings
+  sync, and passes the same value to the arm request and to `ArenaSession.MarkArmed`.
+  `ArenaSession.Difficulty` (nullable) holds it and is cleared wherever the participants are
+  cleared; `ArenaDifficulty.Step` reads it and falls back to the live setting only when no
+  raid is armed or active (the F9 line, harnesses). Server: the router validates `difficulty`
+  before any side effect, `ArenaSessionService` stores it in the session entry at arm, resets
+  it at the four places that reset the participants, and includes it in the replay equality, the
+  answer, the replay answer and `/status`. `GetDifficulty` and `TryGetBotTierContext` read it.
+  The client compares the echo like `participants` and refuses the arm on a mismatch, which is
+  also what an older server (no echo) produces, so client and server must be updated together.
+- **Only the step is frozen on the server.** `botTierStartLevel`, `botTierEndLevel` and
+  `botTierRampMinutes` are read from the live map configuration on every request, as before. The
+  client receives the ramp length in its per-map configuration JSON (fallback 15 minutes) and
+  reads it when it needs it. A configuration changed during a raid could therefore move the two
+  sides apart in Gun Game; freezing them in the session entry is the remedy if that matters.
+- **How early requests get the band.** The raid-start bot preload is sent after
+  `/client/match/local/start` has been answered, and `ArenaStartLocalRaidPatch` moves the
+  session to InRaid in that request's prefix, so no bot request of an armed raid can arrive
+  before the session counts as live. The server therefore added no band outside the exact
+  session binding. The first request sees elapsed time of about the loading time. Outside
+  Gun Game that no longer matters because the band is fixed; Gun Game opens near the start
+  level. This is read from the decompiled client and the patch order, not confirmed in a log.
+  Requests from other sessions, a protected PitFireTeam raid and `scaleBotTier = false` stay
+  native.
+- **Gear band.** `ArenaDifficultyPolicy.GearLevelAt` computes it. The end level is clamped to
+  79 (`MaxGearLevel`) first and Reduced is 60 % of the clamped value, rounded half away from
+  zero, never below the start level. The Gun Game ramp rounds with `Math.Round` default
+  (half to even), so at end level 66 the midpoint is 34 at Maximum and 20 at Reduced.
+  **Correction:** the table row and the Reduced description above write "`botTierStartLevel`
+  (default 40)". The default start level is 1 (`ArenaModeConfig.BotTierStartLevel`). With the
+  shipped defaults the Reduced gear level is round(0.6 x 66) = 40, which is where the 40 came
+  from; with a different start level the floor is that start level.
+- **Team DM and Domination.** Their requests are ordinary requests with the fixed band. The
+  server's request-size cap for finite matches is gone together with the clock, so such a
+  request now generates the native reserve (for example 15 profiles) instead of one. The
+  contract removed the cap; its latency has not been measured (see below).
+- **Prewarm pairs.** `ArenaDifficultyPolicy.PrewarmLevels(active, mode, tacticalSquadIsPmc,
+  step)` decides what `PrewarmPmcProfiles` backs up, as PMC levels:
+
+  | Mode | Maximum | Reduced |
+  | --- | --- | --- |
+  | Deathmatch, Team DM, Domination, Tactical with a PMC squad | impossible | hard |
+  | Gun Game | hard | hard |
+  | Zombies, Tactical with a Scav squad, no active session | none | none |
+
+  **Correction:** the text above says the prewarm covers exactly the PMC levels the step can
+  request. `PmcRequestLevels` does list them (Gun Game at Maximum: hard and impossible), but
+  the prewarm warms only the opening level in Gun Game: the server builds a profile with the
+  band of the moment it is asked, and a profile pooled at second 0 would reach the field
+  minutes later in start-level gear. The step's level is requested fresh once progress reaches
+  0.8. The Tactical squad setting is read live. The prewarm has no readiness gate and does
+  nothing outside an active session.
+- **Preload skip.** The raid-start preload of Team DM and Domination is still skipped
+  (`SkipsProfilePreload`); only its comments changed. Loading time is not measured.
+- **Migration marker.** `[Difficulty] DifficultyRevision` (hidden in the F12 menu, current
+  value 1) makes the migration run once. The five retired entries are no longer bound, so
+  BepInEx neither warns about them nor rewrites them; their lines stay in the `.cfg` file
+  because BepInEx 5.4.23 keeps unbound lines. Its orphaned-entry list is internal, so
+  `ArenaDifficultyMigration.StepFromConfigText` reads the `[Difficulty]` section from the file
+  text. A saved `ScaleDifficulty = false`, or `MaxBotDifficulty` equal to easy, normal or hard,
+  selects Reduced and writes an Info line; an unparseable `MaxBotDifficulty` keeps Maximum. If
+  the file cannot be read the revision is not recorded, so the next start retries. The
+  parser is covered by `ArenaDifficultyMigrationTests`; it has not been run against a real
+  `.cfg` file.
+- **Speed and reports.** The user's multiplier is capped at 1.5 first and only then is the
+  surplus scaled, so Reduced with a setting of 99 gives 1.25. The sweep interval is the per-map
+  value, then the Tactical halving, then the step's factor.
+- **Gun Game progress on the client** is `ArenaMatchService.Current.Elapsed` over the ramp
+  minutes of `GameWorld.LocationId` (the armed map if no world exists yet); without a match or
+  on an exception it counts as 0. The refill wait factor is not ramped in Gun Game: it applies
+  from the first request.
+- **Settings during a raid.** Changing the step in F12 or the web page during an armed or
+  active raid changes nothing for that raid; the F9 panel cannot change it either.
+- **Not implemented: Zombies.** The "Zombies" section above is not in the code of this
+  branch. Zombies are not touched by the step: the composition of 2026-11-15 (slow share
+  75/50/25 %, then 40/20/30 % repeating, flat shooter share) and `MaxAlive` apply at both
+  steps. The slow-share fade, the growing shooter share and the Reduced limit of 24 are still
+  to be done.
+- **Harnesses.** `DurationDifficultyChecks` pins the client reader, the prewarm list and the
+  frozen step with mutants; `BotMovementChecks` pins the halved speed surplus. The xunit
+  tests `ArenaDifficultyPolicyTests`, `BotTierDifficultyBandTests`, `BotTierDurationTests` and
+  `DifficultyArmTests` pin the table, the band, the absence of any clock and the arm field.
+  The skippable APBS integration test needs `ARENA_APBS_TEST_ROOT` and is run natively by
+  `tools/ApbsCompatibilityChecks/Verify.ps1`.
+- **Latency of the full reserve.** In addition to the four measurements above: the server
+  generation time of a Team DM or Domination wave request now that the one-profile cap is
+  gone, in a 20-minute match.

@@ -934,17 +934,19 @@ Participant totals (map screen minus/value/plus, including the player, stored pe
 
 Participant admission: a counted Labyrinth boss slot needs the native boss initialization, and a second failed spawn callback must not release the reservation again. Play-test steps: PARTICIPANTS-REVIEW.md. Menu, server and solo-population details: PARTICIPANT-MENU-REVIEW.md, PARTICIPANT-SERVER-REVIEW.md, SOLO-POPULATION-REVIEW.md.
 
-*(handoff lines 2984-2991)*
+*(difficulty, replaced 2026-11-18)*
 
-Finite independent TDM now linearly scales existing pressure and equipment
-against frozen live-play duration, reaching full curve at 80% (5min -> 4min).
-Assembly/countdown are excluded; streak surge/caps remain. PMC impossible
-starts at 64% absent streak. Existing bots are not retroactively re-equipped.
-Native provider-scoped requests carry the exact arm clock without polling;
-one-profile demands, unused cache-reference exclusion and exact PMC backup
-suppression prevent early equipment stockpiles. Partial hook installation
-leaves generation native. Normal raids/unlimited modes/PFT preserve their
-documented boundaries (unlimited pressure live time, gear server raid time).
+Difficulty (model of 2026-11-18, [DIFFICULTY-MODEL-20261118.md](reviews/DIFFICULTY-MODEL-20261118.md)):
+one frozen `[Difficulty] Step` (Maximum default, Reduced) read once on the arm path and echoed by
+the server. Outside Gun Game every level, the gear band, the PMC bonus, the speed surplus and
+the position-report interval are fixed from the first spawn request; no reader may use the
+elapsed time, the kill streak or a match clock. Every reader takes the frozen value
+(`ArenaDifficulty.Step`), never `Settings.DifficultyStep`. All numbers live in
+`ArenaDifficultyPolicy`, not at call sites. Gun Game alone ramps over `botTierRampMinutes`.
+The finite Team DM and Domination match clock no longer rides on bot requests, so there is no
+request-size cap and no readiness gate in the prewarm. Existing bots are not re-equipped or
+re-rated. Protected PFT raids keep native profile-relative opponent gear and no APBS permit.
+Not yet tested natively; see the contract's implementation notes.
 
 *(handoff lines 5068-5076)*
 

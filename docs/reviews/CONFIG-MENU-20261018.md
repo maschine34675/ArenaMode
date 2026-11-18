@@ -20,7 +20,8 @@ changed, so every existing `com.maschine.ArenaMode.cfg` keeps working.
   them too.
 - Not shown at all: the internal one-time migration markers
   (`General/OptionalMapsMigrated`, `General/OptionalMapsRevision`,
-  `Deathmatch/LegacyRulesMigrated`, `Arena pickups/M60DefaultMigrated`), the
+  `Deathmatch/LegacyRulesMigrated`, `Arena pickups/M60DefaultMigrated`,
+  `Difficulty/DifficultyRevision`), the
   legacy-only `Match/RoundKillTarget` and `Match/RoundTimeLimitSeconds`, and the
   per-map participant totals of `Map participants` (chosen on the map screen).
   The latter had an anonymous `new { Browsable = false }` tag that never worked:
@@ -28,7 +29,7 @@ changed, so every existing `com.maschine.ArenaMode.cfg` keeps working.
   and stops reading tags at the first other object.
 - Absolute counts on a 0..100 range (`Zombie/WaveGrowth`, `Deathmatch/Rounds`)
   are no longer drawn as percentages; real shares (volumes, ShooterPercent,
-  leg-injury reduction, streak pressure, ADS slowdown, strafe smoothing) keep the
+  leg-injury reduction, ADS slowdown, strafe smoothing) keep the
   percentage display.
 
 ## How it works

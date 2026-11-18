@@ -80,9 +80,10 @@ is an original Harmony integration against the installed API. Reference sources:
 ## Ownership and behavior
 
 `ArenaBotTierScalePatch` still chooses the existing Arena anchor and +/-5 level range.
-Finite independent TDM uses its frozen playing clock and reaches the end of the
-configured curve at 80% of match duration. Other solo modes retain server raid
-time. Protected PFT teams and maps with tier scaling disabled remain excluded.
+Since 2026-11-18 the anchor is the difficulty step's gear level, fixed from the first request
+(Maximum: the map's end level, default 66; Reduced: 60 % of it); only Gun Game ramps from
+the start level over the map's ramp minutes on the server raid time, and Team DM no longer
+sends a match clock. See [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md). Protected PFT teams and maps with tier scaling disabled remain excluded.
 
 The adapter replaces only the result of APBS's private synchronous
 `GetRelativePmcBotLevelRange`. APBS still rolls the final level and calculates

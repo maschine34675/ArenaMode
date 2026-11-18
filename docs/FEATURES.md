@@ -754,25 +754,64 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   have targeted guards against the earlier dropped-Surv12/frozen-bot cases.
 - DM/Gun Game refill a fixed selected population. Labyrinth can retain a boss
   slot within that total instead of adding uncontrolled native boss waves.
-- AI pressure includes elapsed time and the player's streak; dying resets the
-  streak contribution, not elapsed pressure. AI difficulty and equipment level
-  are separate controls.
-- For **timed independent Team DM**, time pressure and equipment progression
-  scale to the selected live match duration, reaching their time-based maximum
-  at 80% of the time limit. This is **not** implemented uniformly for every mode:
-  DM, Gun Game and solo Tactical retain their normal elapsed-time ramps.
-- Bot equipment can progress from low to high level through the raid (default
-  level anchors 1→66 over 15 minutes), affecting newly generated bots rather than
-  transforming existing gear. Protected PFT modes bypass that low-level ramp.
-- The normal AI time ramp reaches its maximum after 12 minutes; streak pressure
-  can contribute up to 35% at eight consecutive kills. PMCs progress from hard
-  toward impossible, Scavs from normal toward hard. This affects new bots;
-  Zombies uses its own role/difficulty selection.
+- **One difficulty setting, fixed strength** ([contract](reviews/DIFFICULTY-MODEL-20261118.md),
+  implemented on `feature/difficulty-model`, not yet tested in a native raid).
+  `[Difficulty] Step` has two values: **Maximum** (default) and **Reduced**. It is
+  read once when the raid is armed, sent to the server, echoed back, and frozen
+  until the raid ends; changing it during a raid changes nothing. The F9 panel
+  shows the frozen value read-only. Nothing reads elapsed time, the kill streak
+  or the Team DM clock for difficulty in Deathmatch, Team DM, Domination or
+  Tactical (solo and PitFireTeam): the values below hold from the first spawn
+  request.
+
+  | Lever | Maximum | Reduced |
+  | --- | --- | --- |
+  | PMC AI level | impossible | hard |
+  | Scav AI level (also the Labyrinth boss slot) | hard | normal |
+  | Bot gear level (server band, +/-5 around it) | the map's end level (default 66) | 60 % of it, never below the map's start level |
+  | PMCs added on top of the PMC floor (Deathmatch, Gun Game) | 4 | 2 |
+  | Refill wait between ambient bursts | 0.5 x the map's value | 0.75 x |
+  | Bot speed | the Fast Bots multipliers as set (default 1.5) | half of the surplus over 1.0 (1.5 becomes 1.25) |
+  | Position reports (`HuntPlayer` sweep interval) | as configured | 1.5 x longer |
+
+  A PMC floor of 0 still means no forced PMC share, at both steps. The Fast Bots
+  mutator remains the switch for bot speed; the step only scales its surplus.
+  Hard-coded agility, the Team DM awareness refresh, the Tactical halving of the
+  sweep interval and Deathmatch free-for-all are not part of the step.
+- **Gun Game is the one mode that builds up**, on one ramp: the map's
+  `botTierRampMinutes` (default 15). The server's gear level climbs from the map's
+  start level (default 1) to the step's gear level on its wall clock since the raid
+  went live. The client uses the same ramp length, read from the per-map server
+  configuration (15 if absent), with the match clock: PMCs spawn at hard until 80 %
+  of the ramp and then at the step's level, Scavs at normal until 50 % and then at
+  the step's level, and the PMC bonus is the progress times the step's bonus,
+  rounded. Kills and a finished ladder change nothing. A bot already walking is
+  never re-rated; only newly spawned bots follow the climb.
+- Bot equipment level is a server setting of the map (`botTierStartLevel`,
+  `botTierEndLevel`, `botTierRampMinutes`, `scaleBotTier`). Outside Gun Game only
+  the end level matters (it is the Maximum gear level); `scaleBotTier = false`
+  keeps the opt-out to native levels. It affects newly generated bots, not
+  existing gear. **Protected PFT raids** keep SPT's native profile-relative
+  opponent gear at both steps and receive no APBS permit; the step still decides
+  their AI level, speed and position reports.
+- The pooled PMC profile backup is warmed for exactly the levels the step can
+  request (impossible at Maximum, hard at Reduced; in Gun Game only its opening
+  level, hard). Team DM and Domination no longer carry a match clock on their bot
+  requests; their raid-start profile preload stays skipped until loading time has
+  been measured natively.
+- Zombies are **not** touched by the step in the current code. They keep the
+  composition of 2026-11-15 ([wave composition](reviews/ZOMBIE-FLOW-20261115.md)):
+  slow share 75/50/25 % in waves 1-3, then 40/20/30 % repeating, the configured
+  shooter share unchanged. The escalation by composition and the Reduced limit of
+  24 infected that the contract names are not implemented yet.
+- Saved settings of the old model (`ScaleDifficulty`, `PressureRampMinutes`,
+  `PressureStreakPercent`, `PressurePmcBonus`, `MaxBotDifficulty`) no longer
+  exist. Once, a saved `ScaleDifficulty = false` or a `MaxBotDifficulty` below
+  impossible selects Reduced; everything else keeps Maximum.
 - APBS 2.4.1 has an explicit adapter; unsupported versions retain their own
   equipment-level selection instead of being modified blindly.
 - Fixed participant/faction counts are not increased beyond the selected total
-  by the older pressure-floor settings. No single unified difficulty slider is
-  implemented yet.
+  by the PMC floor or its bonus.
 
 Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 [agility](../ArenaMode.Client/Movement/ArenaBotAgility.cs),

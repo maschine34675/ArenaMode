@@ -134,6 +134,7 @@ Sorted by file name.
 - [Unified Deathmatch menu and lifecycle integration](reviews/DEATHMATCH-MENU-REVIEW.md)
 - [Unified Deathmatch rules and runtime](reviews/DEATHMATCH-MODE-REVIEW.md)
 - [Arena default full-auto fire mode: contract, native seam and verification](reviews/DEFAULT-FIRE-MODE-REVIEW.md)
+- [Difficulty model: one step, fixed strength, scaling only in Gun Game and Zombies](reviews/DIFFICULTY-MODEL-20261118.md)
 - [Direct Arena start: Session.exe picker, handover contract and checks](reviews/DIRECT-START-20261028.md)
 - [Domination follow-up: map-menu performance, pickup separation and ownership rings](reviews/DOMINATION-FOLLOWUP-20261026.md)
 - [Domination monitor projection review (MapPort score monitors)](reviews/DOMINATION-MONITOR-REVIEW-20261026.md)
@@ -143,7 +144,7 @@ Sorted by file name.
 - [Domination control points inside the main score panel](reviews/DOMINATION-SCORE-20261027.md)
 - [Domination on the vanilla maps: The Lab (three points), The Labyrinth (one), the surveyed-slot layout kind and the Customs areas](reviews/DOMINATION-VANILLA-MAPS-20261113.md)
 - [Arena double jump and deliberate ledge jump](reviews/DOUBLE-JUMP-REVIEW.md)
-- [Match-duration difficulty curve and request-scope cache boundary](reviews/DURATION-DIFFICULTY-REVIEW.md)
+- [Match-duration difficulty curve and request-scope cache boundary](reviews/DURATION-DIFFICULTY-REVIEW.md) *(superseded)*
 - [Arena corpse markers in optional DynamicMaps](reviews/DYNAMICMAPS-CORPSE-REVIEW.md)
 - [Arena entry restart hardening: helper launch, drain refusal and normal-EFT recovery](reviews/ENTRY-RESTART-HARDENING-20261028.md)
 - [Optional Equator map integration: admission, migration and GPU acceptance](reviews/EQUATOR-MAP-REVIEW.md) *(superseded)*
@@ -272,7 +273,6 @@ Sorted by file name.
 - [Zombie body culling and bot hot-path switches (four performance toggles)](reviews/ZOMBIE-BODY-CULLING-20261017.md)
 - [Optional Zombie Crowd: behaviour, OFF semantics and ownership](reviews/ZOMBIE-CROWD-REVIEW.md)
 - [Zombie recovery, native planning budget and wave composition](reviews/ZOMBIE-FLOW-20261115.md)
-- [Difficulty model: one step, fixed strength, scaling only in Gun Game and Zombies](reviews/DIFFICULTY-MODEL-20261118.md)
 - [Zombie kit prewarming: capped optional preload and unchanged required work](reviews/ZOMBIE-KIT-WARMUP-REVIEW.md)
 - [Zombie Mode: architecture, native melee suppression, waves, own gear and performance](reviews/ZOMBIE-MODE-REVIEW.md)
 - [Bounded Zombie AI work reduction: hearing and social-search prefixes](reviews/ZOMBIE-PERFORMANCE-REVIEW.md)

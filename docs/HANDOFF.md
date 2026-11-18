@@ -497,6 +497,22 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Difficulty model, 2026-11-18 (branch `feature/difficulty-model`, not merged; [contract](reviews/DIFFICULTY-MODEL-20261118.md)
+with its implementation notes):** implemented in source and covered by xunit and offline harnesses only; nothing has
+run in a native raid. In: one frozen `[Difficulty] Step` (Maximum default, Reduced) sent on the arm path and echoed by
+the server; `ArenaDifficultyPolicy` as the single table; fixed AI level, gear band, PMC bonus, bot speed surplus and
+position-report interval outside Gun Game; the Gun Game ramp over `botTierRampMinutes`; removal of the pressure
+settings with a one-time migration (`Difficulty/DifficultyRevision`), of `ArenaBotDifficultyClockPatch`, `TimedWave`,
+the server's wire-clock branch and the prewarm readiness gate; the prewarm limited to the levels the step requests.
+Not done: the Zombie composition escalation and the Reduced limit of 24 infected (contract section "Zombies"; the
+code is still the composition of 2026-11-15). Four native measurements are owed before the numbers are final:
+(1) impossible against hard under SAIN 4.5.1 with identical gear, which decides the PMC row of Maximum;
+(2) Tactical solo round one, the 250,000 starting money against five opponents at the Maximum band;
+(3) the weakest stock kits in Deathmatch and Team Deathmatch against Maximum;
+(4) whether the native raid timer of a map ends the raid before the 15-minute Gun Game ramp.
+Also unmeasured: the server time per Team DM / Domination wave request now that the one-profile cap is gone, loading
+time with the preload skip, and the migration against a real `.cfg` file. Client and server must be installed together.
+
 **Pre-release polish, 2026-11-13 (in `master`; [contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
 [native report](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)):** done and seen natively except for
 what the report lists as not run: a Domination match to its limit on the new venues, the other two Lab
@@ -997,7 +1013,7 @@ Native coverage still missing (offline or harness coverage only):
   the character preview ([CHARACTER-PREVIEW-REVIEW.md](reviews/CHARACTER-PREVIEW-REVIEW.md));
   exit waymarkers overlapping the status panel (status unknown).
 
-Longer-standing: [FUTURE-WORK.md](FUTURE-WORK.md) (difficulty controls, further bounded
+Longer-standing: [FUTURE-WORK.md](FUTURE-WORK.md) (what remains of the difficulty work, further bounded
 areas, objective modes such as Capture the Flag; its area section records prototype progress
 and links the evidence). Multiplayer with Fika is a concept only
 ([MULTIPLAYER-FIKA-CONCEPT-20261026.md](reports/2026-10/MULTIPLAYER-FIKA-CONCEPT-20261026.md)).

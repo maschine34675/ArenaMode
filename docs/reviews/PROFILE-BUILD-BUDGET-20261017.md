@@ -48,7 +48,9 @@ demselben Hauptthread, unter einem Zeitbudget je Frame:
   werfender Konstruktor lassen die Task dort scheitern, wo die native es täte.
 - Priorität `Low`, damit der Prefix von `ArenaBotDifficultyClockPatch` auf
   derselben Methode (schreibt `conditions` in `TimedWave`-Einträge um) zuerst
-  läuft und seine Liste gesendet wird.
+  läuft und seine Liste gesendet wird. *Stand 2026-11-18: `ArenaBotDifficultyClockPatch`
+  und `TimedWave` gibt es nicht mehr ([DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md));
+  die Priorität bleibt harmlos.*
 - Technik nach Smoothies `ProfileBudget` (CC BY-NC-SA, nur gelesen); eigene
   Umsetzung aus der dekompilierten Methode. Smoothies Nebenpfade (Profile auf
   einem Arbeitsthread, Spawn-Check-Deckel, Job-Scheduler-Budget) sind

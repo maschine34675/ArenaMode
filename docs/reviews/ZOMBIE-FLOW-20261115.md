@@ -50,6 +50,10 @@ These counters do not establish an FPS gain or justify increasing population cap
 
 ## Wave composition
 
+See also [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md): it plans a fade of the
+slow share and a Reduced population limit on top of this composition. As of 2026-11-18 that part
+is not implemented; the text below is what the code does.
+
 The configured shooter chance remains unchanged, including exactly 0% and 100%.
 Among the remaining melee infected, the slow share is 75%, 50% and 25% in waves
 1–3, then repeats 40%, 20%, 30%. The remainder uses the native fast variant.
