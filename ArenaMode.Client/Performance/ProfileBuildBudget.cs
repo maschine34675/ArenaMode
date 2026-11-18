@@ -37,9 +37,8 @@ namespace ArenaMode.Performance;
 /// <see cref="ProfileBuildBudgetPolicy.MayStart"/>; the open-batch count is
 /// kept here.
 ///
-/// Prefix order: <c>Priority.Low</c>, so <c>ArenaBotDifficultyClockPatch</c>'s
-/// prefix on the same method runs first and the conditions list it may have
-/// rewritten is the one that is sent. If another prefix already replaced the
+/// Prefix order: <c>Priority.Low</c>, so another mod's prefix on the same method
+/// runs first and the conditions list it may have rewritten is the one that is sent. If another prefix already replaced the
 /// call (<c>__runOriginal</c> false), this one leaves its result alone rather
 /// than sending a second request.
 ///

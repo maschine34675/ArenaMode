@@ -11,7 +11,7 @@ using System.Reflection;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Stops a Team Deathmatch raid pre-loading three hundred bot profiles it
+/// Stops a Team Deathmatch or Domination raid pre-loading three hundred bot profiles it
 /// will never use.
 ///
 /// At raid start the client hands the server every role its location declares
@@ -29,13 +29,16 @@ namespace ArenaMode.Bots;
 /// asking ShallSpawn, so fourteen silenced boss and follower pairs are ordered
 /// anyway; and NonWavesSpawnScenario builds its pre-start list even when the
 /// non-wave spawner is switched off, adding the assault and marksman pairs on
-/// top — the server cannot silence that half at all. The PMC profiles are the
-/// final irony: ArenaBotDifficultyClockPatch deliberately DELETES the matching
-/// pool entries in THIS mode so every bot is generated fresh against the
-/// current tier, so even the fifteen-per-side that could have been used are
-/// thrown away. That deletion is what makes the mode safe to skip and is also
-/// why Tactical, which spawns its own squads just the same but keeps its pool,
-/// is deliberately not included (see ArenaPopulationPolicy).
+/// top — the server cannot silence that half at all. The PMC profiles are
+/// thrown away with the rest; the step-aware prewarm
+/// (BurstSpawnService.PrewarmPmcProfiles) orders the PMC levels the mode can
+/// ask for once the raid has started, so the first PMC request still finds a
+/// pooled profile. Tactical, which spawns its own squads just the same but
+/// keeps its pool, is deliberately not included (see ArenaPopulationPolicy).
+///
+/// The skip used to rest on a match-clock channel that deleted the pool anyway.
+/// That channel is gone; the skip stays until loading time has been measured
+/// natively with the preload left alone (ArenaPopulationPolicy.SkipsProfilePreload).
 ///
 /// Measured on Customs, one raid per machine: three hundred and thirty-five
 /// profiles, 3.2 s of loading screen on the fast machine and 8.4 s on the one

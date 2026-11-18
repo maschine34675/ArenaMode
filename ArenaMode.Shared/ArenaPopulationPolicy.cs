@@ -53,14 +53,26 @@ public static class ArenaPopulationPolicy
     /// Whether the raid being loaded may skip the client's raid-start profile
     /// preload entirely.
     ///
-    /// Team Deathmatch ONLY, and not simply every mode that owns its
-    /// population. Both it and Tactical spawn their own squads, but only Team
-    /// Deathmatch also throws the pre-generated PMC profiles away: its
-    /// difficulty clock deletes the matching pool entries so each bot is
-    /// generated fresh against the current tier. Tactical draws from that pool
-    /// and would trade the loading screen for a server round trip on every
-    /// squad member — which may well be the better trade, but it is untested,
-    /// and Tactical with PitFireTeam is the least-walked path in the mod.
+    /// Team Deathmatch and Domination only, and not simply every mode that owns
+    /// its population. Both spawn their own faction bots and their pre-generated
+    /// profile pool is not needed at raid start: the generic assault/marksman/PMC
+    /// pairs the client orders in the loading screen are for bots these modes
+    /// never ask for, and the PMC pool is filled after the raid starts by the
+    /// step-aware prewarm (BurstSpawnService.PrewarmPmcProfiles). Tactical
+    /// draws from the preloaded pool and would trade the loading screen for a
+    /// server round trip on every squad member, which may well be the better
+    /// trade, but it is untested, and Tactical with PitFireTeam is the
+    /// least-walked path in the mod.
+    ///
+    /// Why the skip is still here: it used to be safe because a match-clock
+    /// channel deleted the matching pool entries anyway, so nothing was lost.
+    /// That channel is gone (the difficulty is a fixed band now, a pooled
+    /// profile is as good as a fresh one). The skip stays for a different and
+    /// weaker reason, the measured saving on the old code path (about 3 s of
+    /// loading on a fast machine, 8 s on a slow one), and it is kept until
+    /// loading time has been measured natively with the preload left alone.
+    /// Until that measurement exists, do not read the skip as proven correct
+    /// for the current design, only as not yet shown to be wrong.
     ///
     /// Deliberately asked from the ARMED state rather than from IsActive: the
     /// preload runs inside the loading screen, and IsActive is only latched
@@ -82,19 +94,15 @@ public static class ArenaPopulationPolicy
     /// its population and also empties Waves/BossLocationSpawn on the clone.
     /// What ArenaProfilePreloadPatch clears is the GENERIC assault/marksman/PMC
     /// pairs that BotProfileClient/NonWavesSpawnScenario preload regardless of
-    /// the clone's own Waves — Team Deathmatch can throw those away only
-    /// because its difficulty clock (ArenaBotDifficultyClockPatch) deletes the
-    /// matching pool entries anyway, so nothing is lost. Zombie has no such
-    /// clock, and the real cost this mode's own 498-profile native preload
-    /// would add is an entirely different native path
+    /// the clone's own Waves. The real cost this mode's own 498-profile native
+    /// preload would add is an entirely different native path
     /// (BotHalloweenWithZombies.GetProfilesOnStart, decompile-verified) that a
-    /// dedicated client-side prefix replaces directly — see the zombie client
-    /// stage's native event bridge. Clearing the generic pairs here as well
+    /// dedicated client-side prefix replaces directly (see the zombie client
+    /// stage's native event bridge). Clearing the generic pairs here as well
     /// would save nothing Zombie uses and would risk the same kind of silent
     /// bot-side breakage Tactical is excluded to avoid. If a GPU raid later
     /// shows the generic preload is still a measurable cost for Zombie, add it
-    /// here with its own evidence — do not assume it transfers from Team
-    /// Deathmatch's case.
+    /// here with its own evidence.
     /// </summary>
     public static bool SkipsProfilePreload(bool armedForNextRaid, string? armedMap, string? armedMode, string? loadingMap)
         => armedForNextRaid
