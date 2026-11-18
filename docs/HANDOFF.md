@@ -505,7 +505,7 @@ position-report interval outside Gun Game; the Gun Game ramp over `botTierRampMi
 settings with a one-time migration (`Difficulty/DifficultyRevision`), of `ArenaBotDifficultyClockPatch`, `TimedWave`,
 the server's wire-clock branch and the prewarm readiness gate; the prewarm limited to the levels the step requests.
 Zombies: the slow-share fade, the growing shooter share and the Reduced limit of 24 are in source (not run natively;
-the fade and growth are felt from wave 4, the first native Zombie raid at both steps is owed). Deferred, need a
+the shooter share grows from wave 2 and the slow share fades from wave 4, the first native Zombie raid at both steps is owed). Deferred, need a
 native run or a protocol change: Gun Game server gear clock (from the local-start prefix) versus client AI clock (from
 match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (does
 the pool keep stale profiles?); that no bot request of an armed raid precedes the local-start prefix (pinned as native

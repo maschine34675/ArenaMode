@@ -7,6 +7,8 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <SptRoot Condition="'$(SptRoot)' == ''">D:\SPT41</SptRoot>
     <SettingsSource Condition="'$(SettingsSource)' == ''">../../ArenaMode.Client/Config/Settings.cs</SettingsSource>
+    <!-- The historical Settings source of the GPU report predates the difficulty step. -->
+    <DefineConstants Condition="'$(HistoricalSettings)' == 'true'">$(DefineConstants);HISTORICAL_SETTINGS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BepInEx"><HintPath>$(SptRoot)/BepInEx/core/BepInEx.dll</HintPath><Private>true</Private></Reference>

@@ -181,6 +181,7 @@ try
     // read from the file after ~100 Binds, so every Bind that saves (SaveOnConfigSet true, the BepInEx
     // default) must keep the unbound lines (ConfigFile.Save writes OrphanedEntries). A legacy file selects
     // Reduced once, changes no other value, and a second start neither repeats nor loses the choice.
+#if !HISTORICAL_SETTINGS
     int legacyIndex=0;
     foreach (bool saveOnSet in new[]{true,false})
     foreach (var legacy in new[]{("ScaleDifficulty = false\nMaxBotDifficulty = impossible",true),("MaxBotDifficulty = hard",true),
@@ -188,9 +189,12 @@ try
     {
         var legacyPath=Path.Combine(scratch,"legacy-"+(legacyIndex++)+".cfg");
         File.WriteAllText(legacyPath,"[Difficulty]\n"+legacy.Item1+"\n\n[General]\nRespawnMinDistance = 77\n");
-        Settings.Init(new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet});
+        var first=new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet};
+        Settings.Init(first);
         var expectedStep=legacy.Item2?ArenaDifficultyStep.Reduced:ArenaDifficultyStep.Maximum;
         Need(Settings.DifficultyStep.Value==expectedStep,"DIFFICULTY-MIGRATION","Legacy difficulty lines select the step through a real ConfigFile (saveOnSet="+saveOnSet+"): "+legacy.Item1);
+        Need(first.TryGetEntry<int>("Difficulty","DifficultyRevision",out var recorded)&&recorded.Value==ArenaDifficultyMigration.Revision,
+            "DIFFICULTY-MIGRATION-REVISION","The first start records the migration revision.");
         Need(Settings.RespawnMinDistance.Value==77,"DIFFICULTY-MIGRATION-OTHER","The migration changes no other saved value.");
         var again=new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet};
         Settings.Init(again);
@@ -198,7 +202,19 @@ try
         again.Save();
         Settings.Init(new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet});
         Need(Settings.DifficultyStep.Value==expectedStep,"DIFFICULTY-MIGRATION-SAVED","The step survives a save and another start.");
+        // The retired lines stay in the file for good, so only the recorded revision keeps a later
+        // start from selecting Reduced again: a Maximum chosen by hand afterwards has to survive.
+        var hand=new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet};
+        Settings.Init(hand);
+        Settings.DifficultyStep.Value=ArenaDifficultyStep.Maximum;
+        hand.Save();
+        Need(File.ReadAllText(legacyPath).Contains(legacy.Item1.Split('\n')[0]),"DIFFICULTY-MIGRATION-ORPHAN",
+            "The retired lines are still in the saved file, so this case does test the revision.");
+        Settings.Init(new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet});
+        Need(Settings.DifficultyStep.Value==ArenaDifficultyStep.Maximum,"DIFFICULTY-MIGRATION-HANDSET",
+            "A Maximum chosen by hand after the migration survives the next start.");
     }
+#endif
     // Actual Settings.Init against real persisted BepInEx entries, including
     // the boolean written by the already deployed Equator release.
     foreach (var migration in new[]

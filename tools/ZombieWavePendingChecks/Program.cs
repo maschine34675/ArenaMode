@@ -94,7 +94,7 @@ internal static class Program
             ZombieSpawnService.Alive = 24;
             f.Tick(.2f);
             Check(ZombieSpawnService.Dispatched == expectedDispatches, "the alive limit follows the frozen step (Reduced caps 40 at 24, Maximum keeps it)");
-            ZombieSpawnService.Alive = 0; ZombieSpawnService.Pending = 0;
+            ZombieSpawnService.Alive = 0; ZombieSpawnService.Pending = 0; ZombieRoleMix.Draws = 0;
             f.Tick(.5f);
             Check(ZombieRoleMix.Draws > 0 && ZombieRoleMix.LastStep == step, "draws use the step frozen at match start, not the live value");
         }

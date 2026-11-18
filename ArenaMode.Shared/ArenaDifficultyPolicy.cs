@@ -288,9 +288,11 @@ public static class ArenaDifficultyPolicy
         int share = Math.Clamp(configured, 0, 100);
         if (step == ArenaDifficultyStep.Reduced || waveNumber <= 1 || share == 0 || share == 100)
             return share;
+        // Two bounds, one enforcer each: the growth cap holds the share at twice the setting
+        // (and keeps the product small at any wave number), the clamp holds it at 100 %.
         double growth = Math.Min(ZombieShooterGrowthCap - 1d, ZombieShooterGrowthPerWave * ((long)waveNumber - 1));
         int grown = (int)Math.Round(share * (1d + growth), MidpointRounding.AwayFromZero);
-        return Math.Clamp(grown, share, Math.Min(100, share * 2));
+        return Math.Clamp(grown, share, 100);
     }
 
     /// <summary>

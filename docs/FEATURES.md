@@ -219,7 +219,9 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Individual spawn requests default to **0.2 seconds** apart; **20%** of infected
   are pistol-armed shooters by default.
 - Early waves favor slow melee infected; later waves vary the slow/fast mix.
-  The configured shooter chance and population limits remain unchanged.
+  The difficulty step works on top of that (see the difficulty section below):
+  at Maximum the slow share fades and the shooter share grows wave by wave, at
+  Reduced the mix stays and at most 24 infected are alive at once.
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.
 - Optional PFT squad with **1–4 companions**. Surviving members can finish a

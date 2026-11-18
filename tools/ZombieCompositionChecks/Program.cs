@@ -64,13 +64,24 @@ internal static class Program
         // Maximum: the slow share of every wave fades per the policy and the shooter share grows;
         // the role / shooter / melee roll order stays the same, so the buckets are enumerable.
         int[] faded = {75,50,25,35,10,15,20,0,0,5,0};
+        // Written out, not asked of the policy: configured share -> share in waves 1..11
+        // (a tenth of the setting more per wave, rounded half up, twice the setting at wave 11).
+        var grownShares = new (int Percent, int[] Share)[]
+        {
+            (0,   new[]{0,0,0,0,0,0,0,0,0,0,0}),
+            (20,  new[]{20,22,24,26,28,30,32,34,36,38,40}),
+            (37,  new[]{37,41,44,48,52,56,59,63,67,70,74}),
+            (100, new[]{100,100,100,100,100,100,100,100,100,100,100})
+        };
         for (int wave=1; wave<=faded.Length; wave++)
         {
             Check(ZombieCompositionPolicy.SlowPercent(wave, ArenaDifficultyStep.Maximum)==faded[wave-1], "Maximum fades the slow share from wave four");
             Check(ZombieCompositionPolicy.SlowPercent(wave, ArenaDifficultyStep.Reduced)==ZombieCompositionPolicy.SlowPercent(wave), "Reduced keeps the rhythm");
-            foreach (int percent in new[] { 0,20,37,100 })
+            foreach (var (percent, shares) in grownShares)
             {
-                int share = ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, percent, wave);
+                int share = shares[wave-1];
+                Check(ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, percent, wave)==share, "Maximum grows the shooter share by a tenth of the setting per wave");
+                Check(ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Reduced, percent, wave)==percent, "Reduced keeps the shooter share flat");
                 int hard=0, easy=0;
                 for (int shooter=0; shooter<100; shooter++)
                 for (int melee=0; melee<100; melee++)

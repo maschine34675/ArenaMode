@@ -9,7 +9,11 @@ namespace ArenaMode.Config;
 /// </summary>
 internal static class ArenaDifficultyMigration
 {
-    /// <summary>Bumped when a later change needs another one-time rewrite.</summary>
+    /// <summary>
+    /// Bumped when a later change needs another one-time rewrite. The retired lines stay in
+    /// the player's file for good (BepInEx writes unbound lines back on every save), so a
+    /// later revision must not read them again: it would undo a Maximum chosen by hand.
+    /// </summary>
     public const int Revision = 1;
 
     /// <summary>

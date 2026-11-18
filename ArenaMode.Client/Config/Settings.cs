@@ -1640,7 +1640,7 @@ public static class Settings
             "gear level, extra PMCs on top of the PMC floor, bot speed exactly as set, and position reports as configured. " +
             "Reduced: one step down everywhere (PMCs hard, scavs normal, about 60 % gear level, fewer extra PMCs, half of " +
             "the bot speed surplus, position reports 1.5x slower). Either value holds from the first spawn; only Gun Game " +
-            "builds up over the raid. Zombies: Maximum keeps the configured number alive, turns the slow walkers into runners and " +
+            "builds up over the raid. Zombies (their position reports are never slowed): Maximum keeps the configured number alive, turns the slow walkers into runners and " +
             "adds shooters wave by wave; Reduced keeps the mix as it is and allows at most 24 alive at once. Protected PitFireTeam raids keep opponent gear relative " +
             "to your profile at both steps. Frozen when the raid starts.");
 
@@ -1648,9 +1648,10 @@ public static class Settings
             "Internal one-time migration revision of the old Difficulty settings. Preserve the recorded value.");
         if (difficultyRevision.Value < ArenaDifficultyMigration.Revision)
         {
-            // The five retired entries are no longer bound, so BepInEx neither warns about them
-            // nor rewrites them; their saved lines are read once from the file text. BepInEx
-            // keeps unbound lines in the file on every save, so they stay there harmlessly.
+            // The five retired entries are no longer bound, so BepInEx does not warn about them;
+            // their saved lines are read once from the file text. BepInEx writes unbound lines
+            // back on every save, so they stay in the file for good: only the recorded revision
+            // keeps a later start from applying them again (see ArenaDifficultyMigration.Revision).
             // Nothing else in the configuration is touched. A failed read (a locked file) must
             // not record the revision, so the next start retries instead of losing the choice.
             string text = null;
