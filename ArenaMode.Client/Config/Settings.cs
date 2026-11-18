@@ -242,12 +242,8 @@ public static class Settings
     public static ConfigEntry<float> AreaCaptureMaxY { get; private set; }
     public static ConfigEntry<float> AreaCaptureSpawnMinY { get; private set; }
     public static ConfigEntry<float> AreaCaptureSpawnMaxY { get; private set; }
-    public static ConfigEntry<bool> ScaleDifficulty { get; private set; }
+    public static ConfigEntry<ArenaDifficultyStep> DifficultyStep { get; private set; }
     public static ConfigEntry<int> RespawnMinDistance { get; private set; }
-    public static ConfigEntry<int> PressureRampMinutes { get; private set; }
-    public static ConfigEntry<int> PressureStreakPercent { get; private set; }
-    public static ConfigEntry<int> PressurePmcBonus { get; private set; }
-    public static ConfigEntry<BotDifficulty> MaxBotDifficulty { get; private set; }
     public static ConfigEntry<KeyboardShortcut> PanelHotkey { get; private set; }
     public static ConfigEntry<KeyboardShortcut> GiveUpHotkey { get; private set; }
 
@@ -1636,13 +1632,34 @@ public static class Settings
             "weapons a second time in the same raid. The new rungs are warmed in " +
             "the background, so the promotions that follow do not wait for them.");
 
-        ScaleDifficulty = config.Bind(
+        DifficultyStep = config.Bind(
             "Difficulty",
-            "ScaleDifficulty",
-            true,
-            "Let the arena push back harder as the raid goes on and as you go on " +
-            "a run. Off: the fixed difficulties this mod used before.");
+            "Step",
+            ArenaDifficultyStep.Maximum,
+            "How hard the bots are. Maximum: the strongest bots (PMCs at impossible, scavs at hard), the map's full " +
+            "gear level, extra PMCs on top of the PMC floor, bot speed exactly as set, and position reports as configured. " +
+            "Reduced: one step down everywhere (PMCs hard, scavs normal, about 60 % gear level, fewer extra PMCs, half of " +
+            "the bot speed surplus, position reports 1.5x slower). Either value holds from the first spawn; only Gun Game " +
+            "builds up over the raid, and Zombies escalate by wave. Protected PitFireTeam raids keep opponent gear relative " +
+            "to your profile at both steps. Frozen when the raid starts.");
 
+        var difficultyRevision = config.Bind("Difficulty", "DifficultyRevision", 0,
+            "Internal one-time migration revision of the old Difficulty settings. Preserve the recorded value.");
+        if (difficultyRevision.Value < ArenaDifficultyMigration.Revision)
+        {
+            // The five retired entries are no longer bound, so BepInEx neither warns about them
+            // nor rewrites them; their saved lines are read once from the file text and drop out
+            // at the next save. Nothing else in the configuration is touched.
+            string text = null;
+            try { text = System.IO.File.Exists(config.ConfigFilePath) ? System.IO.File.ReadAllText(config.ConfigFilePath) : null; }
+            catch (Exception) { }
+            var legacyStep = ArenaDifficultyMigration.StepFromConfigText(text);
+            if (legacyStep.HasValue)
+            {
+                DifficultyStep.Value = legacyStep.Value;
+                Plugin.ModLogger?.LogInfo("Arena difficulty step set to Reduced from the old difficulty settings.");
+            }            difficultyRevision.Value = ArenaDifficultyMigration.Revision;
+        }
         RespawnMinDistance = config.Bind(
             "General",
             "RespawnMinDistance",
@@ -1651,44 +1668,6 @@ public static class Settings
                 "How far a respawn point has to be from where you died. Points " +
                 "closer than this are only used when nothing else is left.",
                 new AcceptableValueRange<int>(0, 150)));
-
-        PressureRampMinutes = config.Bind(
-            "Difficulty",
-            "PressureRampMinutes",
-            12,
-            new ConfigDescription(
-                "For matches without a time limit: minutes to reach full pressure on the clock alone. " +
-                "Timed Team DM instead reaches full pressure at 80% of its frozen match duration, excluding assembly/countdown. " +
-                "This half only ever climbs — it is what stops a long raid from " +
-                "getting easier as you settle in.",
-                new AcceptableValueRange<int>(1, 60)));
-
-        PressureStreakPercent = config.Bind(
-            "Difficulty",
-            "PressureStreakPercent",
-            35,
-            new ConfigDescription(
-                "How much a kill streak adds on top of the clock, at eight kills " +
-                "without dying. Dying clears this part, never the clock.",
-                new AcceptableValueRange<int>(0, 100)));
-
-        PressurePmcBonus = config.Bind(
-            "Difficulty",
-            "PressurePmcBonus",
-            4,
-            new ConfigDescription(
-                "Extra PMCs kept alive at full pressure, on top of the PMC floor. " +
-                "A heavier mix is the gentlest way to make a raid harder.",
-                new AcceptableValueRange<int>(0, 12)));
-
-        MaxBotDifficulty = config.Bind(
-            "Difficulty",
-            "MaxBotDifficulty",
-            BotDifficulty.impossible,
-            "Ceiling for the scaling. PMCs reach it late in a hot raid; drop this " +
-            "to hard if the top end is too much. Only hard and impossible do " +
-            "anything: this bounds the CLIMB, and anything lower is ignored rather " +
-            "than quietly making the arena easier than it has ever been.");
 
         PanelHotkey = config.Bind(
             "General",

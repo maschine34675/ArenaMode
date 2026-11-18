@@ -63,6 +63,17 @@ public static class ArenaClientConfig
     public static int GetHuntRadius(string map, int fallback = 60)
         => GetMapValue<int?>(map, "huntRadius") ?? fallback;
 
+    /// <summary>
+    /// Minutes the Gun Game build-up takes on this map: the same per-map value the server's gear
+    /// ramp uses (botTierRampMinutes), so client and server share one ramp length. A missing or
+    /// non-positive value falls back to the default.
+    /// </summary>
+    public static int GetBotTierRampMinutes(string map, int fallback = 15)
+    {
+        int? value = GetMapValue<int?>(map, "botTierRampMinutes");
+        return value.HasValue && value.Value > 0 ? value.Value : fallback;
+    }
+
     public static int GetBurstMinAliveBots(string map, int fallback = 12)
         => GetMapValue<int?>(map, "burstMinAliveBots") ?? fallback;
 

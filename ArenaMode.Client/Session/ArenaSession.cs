@@ -154,11 +154,20 @@ public static class ArenaSession
     public static int? Participants { get; private set; }
     public static bool ParticipantBosses { get; private set; }
 
+    /// <summary>
+    /// The difficulty step this raid was armed with, acknowledged by the server and
+    /// frozen until the raid ends. Null outside an armed or active raid. Every difficulty
+    /// consumer reads this, never the live setting, so the AI level and the server's gear
+    /// band of one raid always come from the same step.
+    /// </summary>
+    public static Shared.ArenaDifficultyStep? Difficulty { get; private set; }
+
     private static void ClearParticipants()
     {
         ArenaTeamSideSelection.Reset();
         Participants = null;
         ParticipantBosses = false;
+        Difficulty = null;
         Bots.ArenaSoloPopulation.Reset();
     }
 
@@ -261,7 +270,8 @@ public static class ArenaSession
 
     public static void MarkArmed(string map, string mode, Modes.DeathmatchOptions deathmatch = null,
         int? participants = null, bool participantBosses = false, string teamSide = null,
-        string localProfileId = null, EPlayerSide? nativeSide = null)
+        string localProfileId = null, EPlayerSide? nativeSide = null,
+        Shared.ArenaDifficultyStep difficulty = Shared.ArenaDifficultyStep.Maximum)
     {
         if (Modes.ArenaModeCatalog.NormalizeId(mode) == Modes.ArenaModeCatalog.DeathmatchId && deathmatch == null)
             throw new InvalidOperationException("Deathmatch rules are missing before arming.");
@@ -272,6 +282,7 @@ public static class ArenaSession
         ClearParticipants();
         Participants = participants;
         ParticipantBosses = participantBosses;
+        Difficulty = difficulty;
         DeathmatchSelection = deathmatch;
         ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamCompat.CanPlay(out _));
         unchecked { ArmEpoch++; }

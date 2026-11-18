@@ -419,14 +419,14 @@ public static class ArenaServerClient
 
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
         string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null,
-        int? participants = null)
-        => PostRaidStart(map, mode, out _, pitFireTeamTeam, areaId, areaTeamSize, deathmatchHostility, participants);
+        int? participants = null, ArenaDifficultyStep difficulty = ArenaDifficultyStep.Maximum)
+        => PostRaidStart(map, mode, out _, pitFireTeamTeam, areaId, areaTeamSize, deathmatchHostility, participants, difficulty);
 
     // Return the reason from this exact synchronous attempt, not a process-wide last-error cache.
     // A failed or malformed acknowledgement still owns its uncertain arm until cancellation succeeds.
     internal static bool PostRaidStart(string map, string mode, out string failureReason, bool pitFireTeamTeam = false,
         string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null,
-        int? participants = null)
+        int? participants = null, ArenaDifficultyStep difficulty = ArenaDifficultyStep.Maximum)
     {
         failureReason = "The Arena start settings could not be validated.";
         PendingParticipantBosses = false;
@@ -462,6 +462,8 @@ public static class ArenaServerClient
             if (selectedSize != 0) payload["areaTeamSize"] = selectedSize;
             if (frozenHostility != null) payload["deathmatchHostility"] = frozenHostility;
             if (participants.HasValue) payload["participants"] = participants.Value;
+            string wireDifficulty = ArenaDifficultyPolicy.ToWire(difficulty);
+            payload["difficulty"] = wireDifficulty;
             var body = payload.ToString(Formatting.None);
             var response = RequestHandler.PostJson(Protocol.RaidStartRoute, body);
             var parsed = string.IsNullOrEmpty(response) ? null : JObject.Parse(response);
@@ -475,6 +477,8 @@ public static class ArenaServerClient
                             || ArenaParticipantPolicy.IsSolo(mode)
                             && string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase))
                     : parsed?["participants"] == null || parsed["participants"].Type == JTokenType.Null)
+                && parsed?["difficulty"]?.Type == JTokenType.String
+                && string.Equals(parsed["difficulty"].Value<string>(), wireDifficulty, StringComparison.Ordinal)
                 && (frozenHostility == null || parsed?["deathmatchHostility"]?.Type == JTokenType.String
                     && string.Equals(parsed["deathmatchHostility"].Value<string>(), frozenHostility, StringComparison.Ordinal))
                 && (selectedSize == 0

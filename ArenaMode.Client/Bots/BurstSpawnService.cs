@@ -136,7 +136,7 @@ internal static class BurstSpawnService
             // PMCs are the pressure that makes the arena fun; scavs only fill the
             // rest. Without a separate floor the single "alive" target is met by
             // whatever spawns fastest — which was scavs, every time.
-            var pmcFloor = Mathf.Min(ArenaPressure.PmcFloor(Settings.PmcFloor.Value), target);
+            var pmcFloor = Mathf.Min(ArenaDifficulty.PmcFloor(Settings.PmcFloor.Value), target);
             var wantPmc = alivePmc + pendingPmc < pmcFloor;
 
             // The target bounds the POPULATION; the PMC floor only decides what
@@ -163,12 +163,12 @@ internal static class BurstSpawnService
 
             // Baselines are what this line used to hardcode; pressure only
             // ever raises them, so a raid never starts easier than it did.
-            var difficulty = ArenaPressure.DifficultyFor(wantPmc);
+            var difficulty = ArenaDifficulty.DifficultyFor(wantPmc);
 
             Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
-                + $"— requesting {role} ({difficulty}, pressure {ArenaPressure.Describe()}). "
+                + $"— requesting {role} ({difficulty}, difficulty {ArenaDifficulty.Describe()}). "
                 + $"Others alive: {DescribeRoles()}");
 
             if (wantPmc)
@@ -179,7 +179,7 @@ internal static class BurstSpawnService
             SpawnPair(spawner, zone, role, difficulty, wantPmc);
 
             _nextAttemptAt = Time.time
-                + ArenaPressure.BurstCooldown(ArenaClientConfig.GetBurstCooldownSeconds(map));
+                + ArenaDifficulty.BurstCooldown(ArenaClientConfig.GetBurstCooldownSeconds(map));
         }
         catch (Exception ex)
         {

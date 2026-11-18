@@ -1213,7 +1213,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _squadRequested = BurstSpawnService.SpawnSquad(
             TeamEnemyCount,
             asPmc: Settings.TacticalSquadIsPmc.Value,
-            difficulty: ArenaPressure.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
+            difficulty: ArenaDifficulty.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
             observer: bot =>
             {
                 if (bot == null)
@@ -2997,7 +2997,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         int planned = BurstSpawnService.SpawnSquad(
             expected,
             asPmc: Settings.TacticalSquadIsPmc.Value,
-            difficulty: ArenaPressure.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
+            difficulty: ArenaDifficulty.DifficultyFor(Settings.TacticalSquadIsPmc.Value),
             observer: bot =>
             {
                 if (bot == null)

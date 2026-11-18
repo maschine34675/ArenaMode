@@ -80,7 +80,7 @@ internal static class ArenaSoloPopulation
             bool boss = population.BossEnabled && bosses == 0 && !population.BossPending;
             int normalCapacity = population.Capacity - (population.BossEnabled ? 1 : 0);
             bool pmc = !boss && pmcs + population.PendingPmc
-                < Math.Min(normalCapacity, ArenaPressure.PmcFloor(Settings.PmcFloor.Value));
+                < Math.Min(normalCapacity, ArenaDifficulty.PmcFloor(Settings.PmcFloor.Value));
             if (!population.TryReserve(alive, bosses, boss, pmc, Time.realtimeSinceStartup, out var ticket)) return;
             var role = boss ? (population.NextBossIsKilla ? WildSpawnType.bossKillaAgro : WildSpawnType.bossTagillaAgro)
                 : pmc ? (_nextBear ? WildSpawnType.pmcBEAR : WildSpawnType.pmcUSEC) : WildSpawnType.assault;
@@ -100,7 +100,7 @@ internal static class ArenaSoloPopulation
                 population.Settle(ticket);
                 return true;
             }
-            BurstSpawnService.SpawnManagedBot(role, ArenaPressure.DifficultyFor(pmc), Arrive, Current, Begin,
+            BurstSpawnService.SpawnManagedBot(role, ArenaDifficulty.DifficultyFor(pmc), Arrive, Current, Begin,
                 handed => population.DispatchFinished(ticket, handed),
                 (bot, retired, original) =>
                 {

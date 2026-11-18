@@ -1,4 +1,5 @@
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT;
 using System;
@@ -86,6 +87,10 @@ internal static class ArenaHostility
         // end, and the player waiting it out is the whole cost.
         if (Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode)
             interval = Mathf.Max(2f, interval / 2f);
+
+        // The difficulty step stretches the interval last, after the per-map value and the
+        // Tactical halving, so Reduced reports the player's position less often everywhere.
+        interval *= (float)ArenaDifficultyPolicy.ReportIntervalFactor(ArenaDifficulty.Step);
 
         _nextSweepAt = Time.time + Mathf.Max(1f, interval);
 

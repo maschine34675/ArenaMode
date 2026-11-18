@@ -115,6 +115,10 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             // not make the client create a different mode than the protected
             // location clone the server just armed.
             var requestedMode = Settings.SelectedGameModeId;
+            // The difficulty step is read exactly once here, after the settings sync, and travels to the
+            // server and into ArenaSession.MarkArmed as this value. A later F12 or F9 edit selects the
+            // next raid and changes neither the AI level nor the server's gear band of this one.
+            var requestedDifficulty = Settings.DifficultyStep.Value;
             // Read once before the native asynchronous load. A later F12 edit
             // selects the next match, never a different side halfway through loading.
             string requestedTeamSide = Settings.TeamDeathmatchSide?.Value;
@@ -166,7 +170,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
                 throw new InvalidOperationException("Arena participant spawn protection is unavailable; restart after updating the client.");
             if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode, out var armFailure,
                     ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize,
-                    hostility, participants))
+                    hostility, participants, requestedDifficulty))
                 throw new InvalidOperationException(armFailure);
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
@@ -175,7 +179,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
 
             ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch,
                 participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide,
-                requestedProfileId, requestedNativeSide);
+                requestedProfileId, requestedNativeSide, requestedDifficulty);
             Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, requestedMode, ArenaSession.ArmEpoch);
             Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 
