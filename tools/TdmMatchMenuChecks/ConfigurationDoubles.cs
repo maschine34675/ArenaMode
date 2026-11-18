@@ -96,6 +96,7 @@ namespace BepInEx.Configuration
     public sealed class ConfigFile
     {
         public bool SaveOnConfigSet = true, ThrowSave;
+        public string ConfigFilePath = ""; // the migration reads the saved text; none in the fixture
         public int Saves;
         public readonly System.Collections.Generic.Dictionary<string, object> Stored = new();
         public ConfigEntry<T> Bind<T>(string section, string key, T value, string description)

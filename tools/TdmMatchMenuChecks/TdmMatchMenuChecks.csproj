@@ -41,6 +41,8 @@
     <Compile Include="$(ProductionRulesView)" Link="Production/ArenaTdmMatchRulesView.cs" />
     <Compile Include="$(ProductionModeView)" Link="Production/ArenaModeSelectionView.cs" />
     <Compile Include="$(ProductionSettings)" Link="Production/Settings.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Config/ArenaDifficultyMigration.cs" Link="Production/ArenaDifficultyMigration.cs" />
     <Compile Include="../../ArenaMode.Client/Kits/ArenaKitChoice.cs" Link="Production/ArenaKitChoice.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />

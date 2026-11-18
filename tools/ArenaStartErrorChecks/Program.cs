@@ -81,7 +81,7 @@ internal static class Program
         Need(failure == GenericRefusal, "success reply reason cannot disguise identity rejection");
 
         Reset();
-        RequestHandler.Post = (_, body) => new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["reason"] = Refusal }.ToString();
+        RequestHandler.Post = (_, body) => new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"], ["reason"] = Refusal }.ToString();
         Need(ArenaServerClient.PostRaidStart("factory4_day", "tactical", out failure), "exact valid acknowledgement succeeds");
         Need(failure == null, "successful start has no failure reason");
 

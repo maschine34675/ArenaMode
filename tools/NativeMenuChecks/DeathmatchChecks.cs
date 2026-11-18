@@ -16,7 +16,7 @@ internal static partial class Program
                 if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
                 var sent = JObject.Parse(body);
                 Settings.FreeForAll = !ffa;
-                return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"],
+                return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["difficulty"] = sent["difficulty"],
                     ["participants"] = sent["participants"], ["participantBosses"] = false,
                     ["deathmatchHostility"] = sent["deathmatchHostility"] }.ToString();
             };
@@ -29,7 +29,7 @@ internal static partial class Program
             ConfigureAreaNegotiation(); Select(); Settings.GameMode.Value = "deathmatch"; Settings.FreeForAll = true;
             Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"],
+                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"],
                     ["participants"] = JObject.Parse(body)["participants"], ["participantBosses"] = false,
                     ["deathmatchHostility"] = echo }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
