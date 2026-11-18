@@ -272,6 +272,7 @@ Sorted by file name.
 - [Zombie body culling and bot hot-path switches (four performance toggles)](reviews/ZOMBIE-BODY-CULLING-20261017.md)
 - [Optional Zombie Crowd: behaviour, OFF semantics and ownership](reviews/ZOMBIE-CROWD-REVIEW.md)
 - [Zombie recovery, native planning budget and wave composition](reviews/ZOMBIE-FLOW-20261115.md)
+- [Difficulty model: one step, fixed strength, scaling only in Gun Game and Zombies](reviews/DIFFICULTY-MODEL-20261118.md)
 - [Zombie kit prewarming: capped optional preload and unchanged required work](reviews/ZOMBIE-KIT-WARMUP-REVIEW.md)
 - [Zombie Mode: architecture, native melee suppression, waves, own gear and performance](reviews/ZOMBIE-MODE-REVIEW.md)
 - [Bounded Zombie AI work reduction: hearing and social-search prefixes](reviews/ZOMBIE-PERFORMANCE-REVIEW.md)
