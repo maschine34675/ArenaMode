@@ -497,29 +497,27 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Difficulty model, 2026-11-18 (branch `feature/difficulty-model`, not merged; [contract](reviews/DIFFICULTY-MODEL-20261118.md)
-with its implementation notes):** implemented in source and covered by xunit and offline harnesses only; nothing has
-run in a native raid. In: one frozen `[Difficulty] Step` (Maximum default, Reduced) sent on the arm path and echoed by
-the server; `ArenaDifficultyPolicy` as the single table; fixed AI level, gear band, PMC bonus, bot speed surplus and
-position-report interval outside Gun Game; the Gun Game ramp over `botTierRampMinutes`; removal of the pressure
-settings with a one-time migration (`Difficulty/DifficultyRevision`), of `ArenaBotDifficultyClockPatch`, `TimedWave`,
-the server's wire-clock branch and the prewarm readiness gate; the prewarm limited to the levels the step requests.
-Zombies: the slow-share fade, the growing shooter share and the Reduced limit of 24 are in source (not run natively;
-the shooter share grows from wave 2 and the slow share fades from wave 4, the first native Zombie raid at both steps is owed). Deferred, need a
-native run or a protocol change: Gun Game server gear clock (from the local-start prefix) versus client AI clock (from
-match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (confirmed
-natively on 2026-11-19: the pool keeps stale profiles; addressed in source by `ArenaGunGameFreshGearPatch`,
-which drops unused pooled PMC profiles more than 5 levels below the ramp (a first native pass with 10 left the end of
-the ramp at 55..65 against 61..71), native re-check owed: PMC levels in the band and 61..71
-after the end of the ramp); that no bot request of an armed raid precedes the local-start prefix (pinned as native
-by a test, confirm in the first native log). Four native measurements are owed before the numbers are final:
-(1) impossible against hard under SAIN 4.5.1 with identical gear, which decides the PMC row of Maximum;
-(2) Tactical solo round one, the 250,000 starting money against five opponents at the Maximum band;
-(3) the weakest stock kits in Deathmatch and Team Deathmatch against Maximum;
-(4) whether the native raid timer of a map ends the raid before the 15-minute Gun Game ramp.
-Also unmeasured: the server time per Team DM / Domination wave request now that the one-profile cap is gone, loading
-time with the preload skip. Client and server must be installed together; an older client against a new server runs at
-Maximum (Debug line in the server log).
+**Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
+pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
+[native report](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):** done and accepted natively on GPU-2 (dev
+build `72273354`, client and server DLL only, still installed). In: one frozen `[Difficulty] Step` (Maximum default,
+Reduced) sent on the arm path and echoed by the server; `ArenaDifficultyPolicy` as the single table; fixed AI level,
+gear band, PMC bonus, bot speed surplus and position-report interval outside Gun Game; the Gun Game ramp over
+`botTierRampMinutes` with `ArenaGunGameFreshGearPatch` dropping pooled PMC profiles more than 5 levels below it;
+Zombies following the step through their composition and, at Reduced, a limit of 24; removal of the pressure
+settings with a one-time migration, of `ArenaBotDifficultyClockPatch`, `TimedWave`, the server's wire-clock branch
+and the prewarm readiness gate. Seen natively: both steps in Deathmatch, Tactical and Zombies, Maximum in Team DM,
+Domination, Gun Game and a protected PitFireTeam raid, an ordinary raid, the frozen step, the old `.cfg`, the bot
+speed at both steps, the 60-minute raid timer on a ported map, `impossible` against `hard` and `hard` against
+`normal` value by value. Not run natively: Zombie waves beyond the first (fade and shooter growth are harness-only),
+Gun Game at Reduced and its scav switch, a long Team DM or Domination match with the full reserve per request,
+loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
+maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a
+long match; the menu row ALIVE AT ONCE shows the setting while Reduced applies 24; Tactical's round-one kit without
+a purchase is the cheapest one (.366 EKO, penetration 30) against class 5 and 6 plates; the server's gear clock
+starts with the local-start request and the client's AI clock with the match (the server is ahead by the loading
+time), and `botTier*` are read live on the server. Client and server must be installed together; an older client
+against a new server runs at Maximum (Debug line in the server log).
 
 **Pre-release polish, 2026-11-13 (in `master`; [contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
 [native report](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)):** done and seen natively except for

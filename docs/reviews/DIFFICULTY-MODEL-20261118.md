@@ -131,15 +131,26 @@ quotas, recovery, planning budget, no health or damage scaling.
 7. Normal raids are unaffected: every reader stays behind the active-session gate.
 8. An old saved configuration loads without a warning and without changing any other value.
 
-## Native measurements before the numbers are final
+## Native measurements
 
-- `impossible` against `hard` under SAIN 4.5.1 with identical gear: decides the PMC row of
-  `Maximum`.
-- Tactical solo, round one: the 250,000 starting money against five opponents at the
-  `Maximum` band.
-- The weakest stock kits in Deathmatch and Team Deathmatch against `Maximum`.
-- Whether the native raid timer of the map ends the raid before `botTierRampMinutes`
-  (ArenaMapPort maps list 15 minutes): decides whether the Gun Game ramp must be shorter.
+The four measurements this contract asked for ran on SPT-GPU-2 on 2026-11-18 and 2026-11-19
+([report](../reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):
+
+- `impossible` against `hard` under SAIN 4.5.1: 27 of the 1093 values the game applied to a
+  bot differ. `impossible` sees further and wider, aims for the head more often, strafes
+  faster and carries the higher SAIN difficulty modifier; it only forgets an enemy sooner.
+  Aiming, scatter and shooting values are identical. The PMC row of `Maximum` stays
+  `impossible`. For scavs, `hard` against `normal` came out the same way. The values were
+  read from the running game instead of timing fights with identical gear: one timed sample
+  showed that weapon and line of sight dominate such a number.
+- Tactical solo, round one, and the weakest stock kits: every kit tested (drifter and
+  vanguard, which the 250,000 buy, the default kit spartan, and reaper as a top reference)
+  killed `Maximum` bots within a few rounds, on small samples. The starting money is
+  unchanged.
+- The raid timer: ArenaMode's `raidTimeMinutes` (60) applies on a ported map as well, so
+  the Gun Game ramp of 15 minutes fits.
+- Not asked for, found on the way: pooled bot profiles made the Gun Game gear ramp lag by
+  up to nine minutes ("Stale pooled gear in Gun Game" in the implementation notes).
 
 ## Verification
 
@@ -153,10 +164,11 @@ adapted. The native acceptance and the measurements above are recorded in
 
 ## Implementation notes
 
-Written on 2026-11-18 from the code of `feature/difficulty-model`. Everything here comes from
-source, offline harnesses and xunit; nothing has run in a native raid yet. Where the code does
-not do what the text above says, the note is marked **Correction** or **Not implemented**; the
-decisions in "Direction" are untouched.
+Written on 2026-11-18 from the code of `feature/difficulty-model` (source, offline harnesses
+and xunit) and extended on 2026-11-19 with what the native runs on GPU-2 showed
+([report](../reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)); a note says so where it rests
+on a native observation. Where the code does not do what the text above says, the note is
+marked **Correction** or **Not implemented**; the decisions in "Direction" are untouched.
 
 - **Where the step is frozen.** Client: `ArenaLocalRaidStartedPatch` reads
   `[Difficulty] Step` once on the arm path, next to the requested mode and after the settings
@@ -187,8 +199,9 @@ decisions in "Direction" are untouched.
   level. This is read from the decompiled client and the patch order, not confirmed in a log.
   Requests from other sessions, a protected PitFireTeam raid and `scaleBotTier = false` stay
   native. An armed session that is not yet InRaid also stays native; a test pins that, so a
-  wrong ordering would show as native-level profiles and not as a silent guess. The first
-  native raid must confirm the order (first `GenerateBotWave` after the local-start prefix).
+  wrong ordering would show as native-level profiles and not as a silent guess. The native
+  raids of 2026-11-19 agree: the first opponents of Tactical, Deathmatch, Team DM and
+  Domination were already in the fixed band (61..71 at Maximum, 35..45 at Reduced).
 - **Gear band.** `ArenaDifficultyPolicy.GearLevelAt` computes it. The end level is clamped to
   79 (`MaxGearLevel`) first and Reduced is 60 % of the clamped value, rounded half away from
   zero, never below the start level. The Gun Game ramp rounds with `Math.Round` default
@@ -274,8 +287,10 @@ decisions in "Direction" are untouched.
   backup loader and the request itself; and a pooled profile can still sit up to 5 levels
   below the centre (the lower edge of the band). Checks:
   `GunGameFreshGearChecks` (the real patch against host stubs, 53 mutants) and
-  `ArenaDifficultyPolicyTests`. Slack 5 has not run natively yet; a native Gun Game raid must show PMC levels in the
-  band throughout and 61..71 after the end of the ramp.
+  `ArenaDifficultyPolicyTests`. Slack 5 ran natively on 2026-11-19 (build 72273354, the same
+  raid): 40 purge lines and no warning; the last bot with an opening level spawned at minute
+  3.2, afterwards no bot spawned more than 6.8 levels below the centre of its spawn moment,
+  and from minute 15 every new bot was in 61..71.
 - **Gun Game progress on the client** is `ArenaMatchService.Current.Elapsed` over the ramp
   minutes of `GameWorld.LocationId` (the armed map if no world exists yet); without a match or
   on an exception it counts as 0. The refill wait factor is not ramped in Gun Game: it applies
@@ -303,4 +318,6 @@ decisions in "Direction" are untouched.
   `tools/ApbsCompatibilityChecks/Verify.ps1`.
 - **Latency of the full reserve.** In addition to the four measurements above: the server
   generation time of a Team DM or Domination wave request now that the one-profile cap is
-  gone, in a 20-minute match.
+  gone, in a 20-minute match. Two short native raids (Team DM over 2.5 minutes, Domination
+  over 1.5) showed 0 to 2 ms on the server for the start requests and 0.2 to 1.2 s of
+  preparation per replacement on the client, with full teams; the long match was not run.

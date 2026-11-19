@@ -288,6 +288,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [Difficulty model on GPU-2: acceptance per mode and step, impossible against hard under SAIN, stock kits against Maximum bots, the Gun Game gear ramp before and after the pool purge](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)
 - [Selectable Translocator development verification](reports/2026-11/GPU-TRANSLOCATOR-20261115.md)
 - [Factory Translocator collision diagnosis and verification](reports/2026-11/GPU-TRANSLOCATOR-COLLISION-20261116.md)
 - [Jump reliability, slide transitions and sprint-jump hip fire: native validation](reports/2026-11/GPU-MOVEMENT-TRANSITIONS-20261115.md)
