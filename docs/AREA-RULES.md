@@ -983,7 +983,9 @@ Participant admission: a counted Labyrinth boss slot needs the native boss initi
 Difficulty (model of 2026-11-18, [DIFFICULTY-MODEL-20261118.md](reviews/DIFFICULTY-MODEL-20261118.md)):
 one frozen `[Difficulty] Step` (Maximum default, Reduced) read once on the arm path and echoed by
 the server. Outside Gun Game every level, the gear band, the PMC bonus, the speed surplus and
-the position-report interval are fixed from the first spawn request; no reader may use the
+the position-report interval are fixed from the first spawn request (the one exception is the
+gear band of the first two rounds of solo Tactical, which follows the acknowledged round and
+has the start level as its floor); no reader may use the
 elapsed time, the kill streak or a match clock. Every reader takes the frozen value
 (`ArenaDifficulty.Step`), never `Settings.DifficultyStep`; the only exceptions are the single
 arm-path read in `ArenaLocalRaidStartedPatch` and the outside-raid fallback inside

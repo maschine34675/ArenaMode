@@ -75,9 +75,11 @@ the server logs the same range). So:
 
 - Round 1: the free cheapest starter, or one of the five cheapest kits (drifter, vanguard, wraith, reverend,
   minuteman reach 250,000; warlord costs 251,000).
-- Round 2: at best 575,000 (no purchase in round 1, five kills and the win: 250k + 5 x 35k + 150k), which is
-  the first kit of the top third (reaper 555k); the realistic path (a 250k kit bought and a won round) has
-  about 330,000, the middle of the catalogue (shadow 292k, crusader 338k).
+- Round 2: at best 575,000 (no purchase in round 1, five kills and the win: 250k + 5 x 35k + 150k), which
+  reaches reaper (555k), the fourth of the seven dearest kits (outlaw, 577k, is just out of reach). The
+  realistic path (a 250k kit bought, a won round and, **assuming five kills**: 0 + 150k + 5 x 35k = 325k,
+  about 330,000) is the middle of the catalogue (shadow 292k, crusader 338k); with fewer
+  kills it is lower (two kills: 220k).
 - Round 3: the first realistic round for the 500k+ kits; the top two (658k, 669k) at the earliest at round 3.
 
 So rounds 1 and 2 are what a starter budget and a mid-catalogue budget face, and round 3, where the top kits
@@ -104,7 +106,10 @@ The server only learns the round from the client, so the design has two failure 
    purge aims at the previous band, the purge budget runs out and one Warning says the band does not match the
    round. The resend of the same `seq` gets a `Duplicate` reply that counts as an ack, so this normally heals
    within seconds; a late ack that raises the acknowledged round moves the centre and starts that centre's
-   purge budget fresh.
+   purge budget fresh. The cost of this shape, in numbers: the batch the miss path returns after the first purge is
+   at the **server's** band, outside the client's, so the second demand purges it too (budget 2) and costs one more
+   15-profile round trip; the third demand is served and the Warning appears (`TacticalFreshGearChecks`, `Budget()`,
+   "the lost-ack shape"). Two extra batches inside the 45 s assembly window at most.
 
 **The invariant that always holds, in both shapes: the band is never above the step's full gear level.** A lost
 message can make a round softer or cost a purge; it cannot make anything harder than the step already is.
@@ -186,7 +191,8 @@ Harmony prefix on `BotProfileClient.CreateProfile(BotCreationData, CancellationT
 on its own mode; Gun Game's file is not touched and `GunGameFreshGearChecks` stays green unchanged. In an
 exact active solo Tactical raid (not a protected team) with a PMC squad and `Applies` true it removes the
 **unused** pooled profiles of exactly the demanded (role, difficulty) whose level is outside
-`[max(1, centre - 5), centre + 5]` (`IsTacticalGearOutOfBand`), both sides, because the band moves up from round 1
+`ArenaDifficultyPolicy.GearBand(centre)` = `[max(1, centre - 5), centre + 5]` (`IsTacticalGearOutOfBand`; the
+server patch writes the very same function's result, so the two cannot drift), both sides, because the band moves up from round 1
 to 3. `centre` is `ArenaTacticalOpening.CurrentGearLevel`, the level of the **acknowledged** round, so a lost
 report keeps client and server on the same stage. The native miss path then asks the server for a fresh batch at
 the band it now writes. Nothing else is touched: no other role or difficulty, no assigned profile, no scav role,
@@ -268,6 +274,12 @@ bot's `Profile.Info.Level` once per round (`uibridge_bots`, `uibridge_inspect`).
 
 ## Open
 
+- **The one unproven dependency of the purge (release gate):** that a miss makes the server answer with a batch at
+  the band it holds **now**. Gun Game's native run measured it for its clock-driven band
+  ([DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md)); Tactical changes the band by event and has no
+  native run yet. The native level read of rounds 2 and 3 (acceptance above) is therefore a release gate, as is the
+  measured latency of the first fresh batch after a purge (the eager purge is built only if it exceeds a few
+  seconds).
 - Native acceptance (above) is outstanding; the server and client halves are installed together only after it.
 - **Scav squads**: the server writes the stage band for them, the client neither purges nor announces
   (their gear barely follows the level and a batch is 45); a pooled scav batch can serve many rounds. Accepted

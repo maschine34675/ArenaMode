@@ -816,7 +816,8 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   never re-rated; only newly spawned bots follow the climb.
 - Bot equipment level is a server setting of the map (`botTierStartLevel`,
   `botTierEndLevel`, `botTierRampMinutes`, `scaleBotTier`). Outside Gun Game only
-  the end level matters (it is the Maximum gear level); `scaleBotTier = false`
+  the end level matters (it is the Maximum gear level), except in the first two rounds of
+  solo Tactical, where the start level is also the floor of the lighter opening; `scaleBotTier = false`
   keeps the opt-out to native levels. It affects newly generated bots, not
   existing gear. **Protected PFT raids** keep SPT's native profile-relative
   opponent gear at both steps and receive no APBS permit; the step still decides
