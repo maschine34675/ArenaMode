@@ -14,8 +14,15 @@ internal static partial class RewardOfflineSession
             if (!HasActive(root)) return;
             var reference = ReadReference(root, ActivePath(root));
             var lease = ReadLease(root, LeasePath(root, reference.SessionId));
-            if (Hash(lease) != reference.LeaseHash || !RewardRuntimeFiles.SameRoot(root, lease.RuntimeRoot))
+            if (Hash(lease) != reference.LeaseHash)
                 throw new RewardDataException("offline-recovery-lease-mismatch");
+            // Only the folder differs: another installation recorded this session (the install was moved or copied).
+            if (!RewardRuntimeFiles.SameRoot(root, lease.RuntimeRoot))
+                throw new RewardOfflineException(
+                    $"The active Arena session {lease.SessionId} was recorded by the SPT installation in \"{lease.RuntimeRoot}\", "
+                    + $"but this installation is in \"{root}\". Only that installation can finish this Arena session. "
+                    + $"Start SPT from \"{lease.RuntimeRoot}\" once (or move this folder back), let the session finish, then move it again. "
+                    + "Nothing was changed.", new RewardDataException("offline-recovery-lease-mismatch"));
             string directory = SessionDirectory(root, lease.SessionId);
             string activationProof = Path.Combine(directory, "activation.json");
             bool hasActivation = RewardRuntimeFiles.Exists(root, activationProof);
@@ -138,7 +145,11 @@ internal static partial class RewardOfflineSession
             if (HasActive(root)) throw new IOException("Offline ownership retirement was not durable.");
         }
         catch (Exception exception) when (exception is not RewardOfflineException)
-        { throw new RewardOfflineException("Offline Arena recovery is incomplete; normal startup stopped without replacing a profile.", exception); }
+        {
+            // The console prints only this message, not the inner exception: carry the reason so the player can report it.
+            string reason = exception is RewardDataException ? exception.Message : exception.GetType().Name;
+            throw new RewardOfflineException($"Offline Arena recovery is incomplete ({reason}); normal startup stopped without replacing a profile.", exception);
+        }
     }
 
     // A failed new Build may not have replaced the previous session's private
@@ -175,6 +186,8 @@ internal static partial class RewardOfflineSession
         var entries = Directory.EnumerateFileSystemEntries(directory).Take(4097).ToArray();
         if (entries.Length > 4096) throw new RewardDataException("offline-history-capacity");
         var pending = new List<RewardOfflineLease>();
+        var skippedFolders = new SortedSet<string>(StringComparer.Ordinal);
+        int skippedForeign = 0;
         foreach (string entry in entries)
         {
             RewardStartupFiles.RequireLocalPath(root, entry);
@@ -191,11 +204,20 @@ internal static partial class RewardOfflineSession
                 continue;
             }
             var lease = ReadLease(root, path);
-            if (lease.SessionId != Path.GetFileName(entry) || !RewardRuntimeFiles.SameRoot(root, lease.RuntimeRoot))
+            if (lease.SessionId != Path.GetFileName(entry))
                 throw new RewardDataException("offline-history-binding-mismatch");
+            // Every lease stores the absolute folder of the installation that wrote it, so after a move or copy all
+            // old sessions are foreign. A finished one needs nothing from its recorded folder (its checks bind by
+            // session id and lease hash); an unfinished one can only be finished by that installation.
+            bool foreign = !RewardRuntimeFiles.SameRoot(root, lease.RuntimeRoot);
             if (ReadDiscard(root, lease) is { } discard)
             {
-                if (!DiscardCompleted(root, lease, discard)) pending.Add(lease);
+                if (!DiscardCompleted(root, lease, discard))
+                {
+                    if (foreign) throw ForeignUnfinished(root, lease);
+                    pending.Add(lease);
+                }
+                else if (foreign) { skippedForeign++; skippedFolders.Add(lease.RuntimeRoot); }
                 continue;
             }
             string completionPath = Path.Combine(entry, "completion.json");
@@ -209,12 +231,16 @@ internal static partial class RewardOfflineSession
                     if (completion.Schema != 1 || completion.SessionId != lease.SessionId
                         || completion.ClosureHash != RewardIdentity.Hash(RewardRuntimeFiles.Json(closure)))
                         throw new RewardDataException("offline-completion-invalid");
+                    if (foreign) { skippedForeign++; skippedFolders.Add(lease.RuntimeRoot); }
                     continue;
                 }
             }
             else if (RewardRuntimeFiles.Exists(root, completionPath)) throw new RewardDataException("offline-completion-without-closure");
+            if (foreign) throw ForeignUnfinished(root, lease);
             pending.Add(lease);
         }
+        if (skippedForeign != 0)
+            ArenaContext.Logger?.Debug($"[ArenaMode] Skipped {skippedForeign} finished Arena session(s) recorded by another installation folder ({string.Join(", ", skippedFolders)}).");
         if (pending.Count > 1) throw new RewardDataException("offline-multiple-unclosed-sessions");
         if (HasActive(root))
         {
@@ -228,6 +254,14 @@ internal static partial class RewardOfflineSession
         bool activated = RewardRuntimeFiles.Exists(root, Path.Combine(SessionDirectory(root, recovered.SessionId), "activation.json"));
         RewardRuntimeFiles.WriteNew(root, ActivePath(root), new RewardOfflineReference(1, recovered.SessionId, Hash(recovered), activated));
     }
+
+    private static RewardOfflineException ForeignUnfinished(string root, RewardOfflineLease lease) => new(
+        $"Arena session {lease.SessionId} was recorded by the SPT installation in \"{lease.RuntimeRoot}\", but this installation is in \"{root}\". "
+        + "Only that installation can finish this Arena session. "
+        + $"Start SPT from \"{lease.RuntimeRoot}\" once (or move this folder back), let the session finish, then move it again. "
+        + $"If that installation is gone for good, moving \"user\\arena-rewards\\offline-sessions\\{lease.SessionId}\" out of this installation lets SPT start; "
+        + "the Arena results and reward setting changes of that session that were never returned are lost. Nothing was changed.",
+        new RewardDataException("offline-history-binding-mismatch"));
 
     private static bool ProcessStillAlive(RewardOfflineActivation activation)
     {

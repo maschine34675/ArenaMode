@@ -392,7 +392,16 @@ public sealed partial class RewardOfflineSessionTests
     {
         internal const string Id = "0123456789abcdef01234567";
         private readonly string _home = Path.Combine(Path.GetTempPath(), "ArenaMode.Offline.Tests", Guid.NewGuid().ToString("N"));
-        internal string Root => Path.Combine(_home, "normal");
+        private string? _movedRoot;
+        internal string Root => _movedRoot ?? Path.Combine(_home, "normal");
+        // Simulates moving the whole installation: every lease keeps the old absolute folder it was written under.
+        internal string MoveRoot()
+        {
+            string old = Root;
+            _movedRoot = Path.Combine(_home, "moved");
+            Directory.Move(old, _movedRoot);
+            return old;
+        }
         internal string Private => Path.Combine(_home, "private");
         internal string ProfilePath => Path.Combine(Root, "user", "profiles", Id + ".json");
         internal string Profile => File.ReadAllText(ProfilePath);

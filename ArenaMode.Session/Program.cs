@@ -83,7 +83,10 @@ namespace ArenaMode.SessionHelper
                 catch (Exception ex)
                 {
                     _log.Error("direct start unavailable: " + ex.Message);
-                    failureNotice = ex is HelperException ? ex.Message : "Arena could not start. Check helper.log.";
+                    // Nothing has been started or changed when the window itself fails to open.
+                    failureNotice = (ex is HelperException ? ex.Message : "The Arena start window could not be opened.")
+                        + " Nothing was changed. Try again; if it keeps happening, report it with the details below."
+                        + "\n\nDetails: " + Path.Combine(root, ArenaSessionContract.HelperLogFileName) + "\nCode: direct-start-unavailable";
                     return false;
                 }
             };

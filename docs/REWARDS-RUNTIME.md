@@ -127,6 +127,19 @@ reward-only failure reporting.
 
 ### Lost reward authority
 
+**Offline-session history after a move.** Every lease in `user/arena-rewards/offline-sessions`
+records the absolute folder of the installation that wrote it, so after a move all old
+sessions look foreign. `RecoverMissingPointer` skips a finished session (completed
+discard, or `closed.json` plus a valid `completion.json`) whatever folder it records and logs
+one Debug line with the count; the profile pass then archives the old enrollment
+(`install-root-changed`). An unfinished foreign session never becomes the active
+pointer: startup stops with a message naming the session, both folders and the way out
+(finish it from the recorded installation, or move the session folder away and lose its
+unreturned results). A stale `offline-active.json` whose lease records another folder
+stops with its own message. A session folder name that differs from the lease's session id
+still stops as `offline-history-binding-mismatch`. The generic "recovery is incomplete"
+message carries the reason code in parentheses.
+
 The ledger lives in the profile (`com.maschine.ArenaMode.rewards`), its authority
 beside it in `user/arena-rewards/<profileId>/`, bound to the installation root. The
 two can part: SPT's profile wipe builds a new profile (same `info.id`, no extension

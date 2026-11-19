@@ -172,7 +172,7 @@ public sealed class OfflineSessionHelperTests
     [Fact]
     public void UnheldRefusalDoesNotReadProofOrWaitForExit()
     {
-        Assert.Throws<HelperException>(() => HelperOfflineSession.CompleteStop(() => Reply(false, false),
+        Assert.ThrowsAny<HelperException>(() => HelperOfflineSession.CompleteStop(() => Reply(false, false),
             () => throw new Exception("must not use old proof"), _ => throw new Exception("must not await old exit"),
             () => throw new Exception("must not retry refusal"), _ => { }));
     }
@@ -539,11 +539,215 @@ public sealed class OfflineSessionHelperTests
         var refused = Assert.Throws<HelperException>(() => runner.RequireForeignSessionClosed(other));
         Assert.Contains(area.Source, refused.Message);
         Assert.Contains("cannot be read", refused.Message);
+        Assert.Contains("no longer exists", refused.Message);
+        Assert.Contains("move it back", refused.Message);
+        Assert.Equal("foreign-session-unreadable", refused.Code);
         Assert.Contains(area.Tree, refused.Message);
         Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
         // stop-server (no caller) reads the owner's records too; with no server running it has nothing to stop and must not throw.
         Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(null!));
         Assert.True(Directory.Exists(area.Tree));
+    }
+
+    // ---- the whole SPT folder was moved: the kept tree names a folder that no longer exists ----
+
+    // A move renames the installation folder, so its records (offline-sessions, offline-active.json) go along and the
+    // tree lease still names the old path.
+    private static string MoveInstallation(Area area)
+    {
+        string moved = Path.Combine(area.Root, "moved");
+        Directory.Move(area.Source, moved);
+        return moved;
+    }
+
+    private static string MovedSessionDirectory(string moved) => Path.Combine(moved, "user", "arena-rewards", "offline-sessions", Session);
+
+    [Fact]
+    public void AMovedInstallationWithAFinishedSessionIsNotBlockedByTheFolderItLeft()
+    {
+        using var area = new Area();
+        area.Close();
+        string moved = MoveInstallation(area);
+        HelperRunner runner = RunnerFor(area);
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(moved));
+        runner.RequireForeignSessionClosed(moved);
+        Assert.False(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, moved));
+        Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree));
+    }
+
+    [Fact]
+    public void AMovedInstallationWithADiscardedSessionIsNotBlockedEither()
+    {
+        using var area = new Area();
+        area.Discard();
+        string moved = MoveInstallation(area);
+        Assert.True(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, moved));
+    }
+
+    [Fact]
+    public void AMovedInstallationWhoseSessionIsNotFinishedInItsOwnRecordsIsRefusedWithTheMovedExplanation()
+    {
+        foreach (string state in new[] { "nothing", "closed-without-completion", "still-active" })
+        {
+            using var area = new Area();
+            if (state == "closed-without-completion") area.Close(completed: false);
+            if (state == "still-active") { area.Close(); area.Active(true); }
+            string moved = MoveInstallation(area);
+            var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, moved));
+            Assert.Equal("moved-session-unfinished", refused.Code);
+            Assert.Contains("was moved", refused.Message);
+            Assert.Contains("\"" + area.Source + "\"", refused.Message); // the folder it was started from
+            Assert.Contains(moved, refused.Message);
+            Assert.Contains("Move the folder back", refused.Message);
+            Assert.Contains("Nothing was changed.", refused.Message);
+            Assert.Throws<HelperException>(() => RunnerFor(area).RequireForeignSessionClosed(moved));
+            Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
+        }
+    }
+
+    [Fact]
+    public void ACopyOfTheLeaseThatIsNotByteIdenticalIsNotTakenForTheSession()
+    {
+        using var area = new Area();
+        area.Close();
+        string moved = MoveInstallation(area);
+        // Same session id, same meaning, other bytes: the copy proves nothing about the session the tree was built for.
+        File.WriteAllBytes(Path.Combine(MovedSessionDirectory(moved), "lease.json"), Bytes(area.Lease with { Port = 6971 }));
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, moved));
+        Assert.Equal("moved-session-unfinished", refused.Code);
+        File.WriteAllBytes(Path.Combine(MovedSessionDirectory(moved), "lease.json"), [.. Bytes(area.Lease), (byte)' ']);
+        Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, moved));
+    }
+
+    [Fact]
+    public void AReadableRecordingInstallationAlwaysKeepsTheDecisionEvenIfACopyOfItsRecordsSaysClosed()
+    {
+        using var area = new Area();
+        area.Close();
+        string copy = Path.Combine(area.Root, "copy");
+        CopyDirectory(area.Source, copy); // a copied (not moved) installation: the original still exists
+        File.Delete(Path.Combine(area.SessionDirectory, "closed.json"));
+        File.Delete(Path.Combine(area.SessionDirectory, "completion.json"));
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, copy));
+        Assert.Contains("has not been closed", refused.Message); // the original's records win: that session is still open there
+        Assert.Equal("foreign-session-open", refused.Code);
+        Assert.Contains(area.Source, refused.Message);
+        // and once the original has closed it, the copy may go on
+        area.Close();
+        Assert.False(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, copy));
+    }
+
+    [Fact]
+    public void AVanishedInstallationWithoutACopyOfTheSessionStaysRefusedAndSaysWhatToDo()
+    {
+        using var area = new Area();
+        area.Close();
+        string other = OtherInstallation(area);
+        Directory.Delete(area.Source, true);
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other));
+        Assert.Equal("foreign-session-unreadable", refused.Code);
+        Assert.Contains("no longer exists", refused.Message);
+        Assert.Contains("move it back", refused.Message);
+        Assert.Contains(area.Tree, refused.Message);
+    }
+
+    [Fact]
+    public void AnInstallationWhoseRecordsFolderIsGoneIsNotCalledGone()
+    {
+        using var area = new Area();
+        area.Close();
+        string other = OtherInstallation(area);
+        // The folder is still there (records wiped, or a fresh SPT at the old path): only its records are missing.
+        Directory.Delete(Path.Combine(area.Source, "user", "arena-rewards", "offline-sessions"), true);
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other));
+        Assert.Equal("foreign-session-unreadable", refused.Code);
+        Assert.Contains("records are missing", refused.Message);
+        Assert.DoesNotContain("no longer exists", refused.Message);
+        Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
+    }
+
+    // A real rebuild over the kept tree of a moved installation: the junctions of the old tree point into the folder
+    // that left (dangling) or at a folder that is still there. The first must go, the second must stay untouched.
+    [Fact]
+    public void BuildOverTheKeptTreeOfAMovedInstallationSucceedsAndRemovesLinksWithoutTouchingTheirTargets()
+    {
+        using var area = new Area();
+        area.Close();
+        string keep = Path.Combine(area.Root, "keep-target");
+        Directory.CreateDirectory(keep);
+        File.WriteAllText(Path.Combine(keep, "important.txt"), "do not delete");
+        string vanishing = Path.Combine(area.Source, "SPT_Data", "old-database");
+        Directory.CreateDirectory(vanishing);
+        File.WriteAllText(Path.Combine(vanishing, "items.json"), "old");
+        string danglingLink = Path.Combine(area.Tree, "SPT_Data", "database");
+        string keptLink = Path.Combine(area.Tree, "SPT_Data", "images");
+        Directory.CreateDirectory(Path.Combine(area.Tree, "SPT_Data"));
+        var box = new HelperSandbox(area.Runtime, _ => { });
+        box.CreateJunction(danglingLink, vanishing);
+        box.CreateJunction(keptLink, keep);
+        string moved = MoveInstallation(area);
+        Assert.False(Directory.Exists(vanishing));
+        WriteRuntimeFiles(moved);
+
+        try
+        {
+            var result = HelperServerTree.Build(LegacyRequest(moved), 6970, area.Runtime, "test", DateTime.UtcNow, _ => { });
+
+            Assert.Equal(area.Tree, result.TreePath);
+            Assert.Equal("do not delete", File.ReadAllText(Path.Combine(keep, "important.txt"))); // the link went, never its target
+            Assert.True(File.Exists(Path.Combine(area.Tree, ArenaSessionContract.MarkerFileName)));
+            Assert.False(File.Exists(Path.Combine(area.Tree, HelperOfflineSession.LeaseFile))); // the old session's private copy is gone
+        }
+        finally { box.DeleteTree(area.Tree); } // the new junctions point into the moved folder, which Dispose removes first
+    }
+
+    [Fact]
+    public void BuildOverTheKeptTreeOfAMovedInstallationWithAnUnfinishedSessionIsRefusedWithTheSameExplanationAsTheEarlyGuard()
+    {
+        using var area = new Area();
+        string moved = MoveInstallation(area);
+        WriteRuntimeFiles(moved);
+        var refused = Assert.Throws<HelperException>(() => HelperServerTree.Build(LegacyRequest(moved), 6970, area.Runtime, "test", DateTime.UtcNow, _ => { }));
+        Assert.Contains("was moved", refused.Message);
+        Assert.True(File.Exists(Path.Combine(area.Tree, HelperOfflineSession.LeaseFile)));
+    }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (string file in Directory.GetFiles(source)) File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+        foreach (string directory in Directory.GetDirectories(source)) CopyDirectory(directory, Path.Combine(destination, Path.GetFileName(directory)));
+    }
+
+    private static void WriteRuntimeFiles(string runtime)
+    {
+        foreach (string name in new[] { "SPT.Server.exe", "SPT.Server.dll", "SPT.Server.deps.json", "SPT.Server.runtimeconfig.json" })
+            File.WriteAllText(Path.Combine(runtime, name), name == "SPT.Server.exe" ? "MZ" : "x");
+        File.WriteAllText(Path.Combine(runtime, "sptLogger.json"),
+            "{\"loggers\":[{\"type\":\"File\",\"filePath\":\"./user/logs/spt/\",\"filePattern\":\"spt-%DATE%.log\"}]}");
+        string data = Path.Combine(runtime, "SPT_Data");
+        Directory.CreateDirectory(Path.Combine(data, "configs"));
+        File.WriteAllText(Path.Combine(data, "configs", "http.json"), "{\"ip\":\"127.0.0.1\",\"port\":6969,\"backendIp\":\"127.0.0.1\",\"backendPort\":6969}");
+        Directory.CreateDirectory(Path.Combine(data, "database")); File.WriteAllText(Path.Combine(data, "database", "items.json"), "items");
+        Directory.CreateDirectory(Path.Combine(data, "images")); File.WriteAllText(Path.Combine(data, "images", "a.png"), "png");
+        Directory.CreateDirectory(Path.Combine(runtime, "user", "profiles"));
+        File.WriteAllText(Path.Combine(runtime, "user", "profiles", Profile + ".json"), "{\"profile\":1}");
+        Directory.CreateDirectory(Path.Combine(runtime, "user", "mods", "ArenaMode"));
+        File.WriteAllText(Path.Combine(runtime, "user", "mods", "ArenaMode", "maschine-ArenaMode.Server.dll"), "arena");
+    }
+
+    private static HelperRequest LegacyRequest(string runtime)
+    {
+        var fields = new Dictionary<string, object?>
+        {
+            ["schema"] = 1, ["direction"] = "enter", ["gamePid"] = 1234, ["gameExe"] = Path.Combine(runtime, "EscapeFromTarkov.exe"), ["gameDir"] = runtime,
+            ["gameArgs"] = new List<object?> { "-token=" + Profile, "-config={'BackendUrl':'https://127.0.0.1:6969','Version':'live','MatchingVersion':'live'}", "-force-gfx-jobs" },
+            ["profileId"] = Profile, ["sptRuntimeDir"] = runtime, ["policyHash"] = "3755e0db97983440",
+            ["serverMods"] = new List<object?> { new Dictionary<string, object?>
+                { ["guid"] = "com.maschine.ArenaMode", ["folder"] = Path.Combine(runtime, "user", "mods", "ArenaMode") } },
+        };
+        Assert.True(HelperRequest.TryParse(ArenaMiniJson.Write(fields), "enter", out var request, out var error), error);
+        return request;
     }
 
     [SkippableFact]

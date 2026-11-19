@@ -84,6 +84,18 @@ it for a helper run, launch with `ARENAMODE_SESSION_DEBUG=1` in its environment;
 the watchdog inherits that setting. This does not change copy/delete safety,
 profile handling or the game's separate DeveloperMode setting.
 
+Every dialog of the helper has the same shape: what happened in plain words;
+whether the profile was changed, claimed ("Your profile was not changed.") only for
+a refusal the normal server said it can continue from or a failure before that
+server was asked to stop; what the player can do next; where the details are
+(`Details:` is the full `helper.log` path, `SPT server log folder:` is
+`<SPT folder>\user\logs\spt` where the server refused); and last a `Code:` line for
+reports. The code is `stage/reason` for a declined entry (the same text as the
+`Arena entry declined:` log line, e.g. `preflight-save/save-not-confirmed`),
+otherwise a fixed word such as `entry-paused` or `start-failed`. Dialog texts come
+from `HelperRunner.EnterFailureNotice`, `HelperOfflineSession.WaitingDialogText` and
+`HelperRewardReturn.*DialogText`; log lines are unchanged.
+
 ## Session save refusals
 
 An authenticated entry/return rejected by the drain/save sequence emits one

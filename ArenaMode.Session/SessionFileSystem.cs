@@ -31,6 +31,12 @@ namespace ArenaMode.SessionHelper
     /// </summary>
     public class HelperException : Exception
     {
+        /// <summary>A short reference code the player can quote in a report; null when the failure has none of its own.</summary>
+        public string Code { get; set; }
+
+        /// <summary>True when the failure comes from a refusal by the SPT server, whose log has the reason.</summary>
+        public bool PointsToServerLog { get; set; }
+
         public HelperException(string message) : base(message)
         {
         }
@@ -959,7 +965,8 @@ namespace ArenaMode.SessionHelper
 
             // This guard also covers callers other than HelperRunner. Results must have been
             // durably returned by the stopped-server path before any old user data is removed.
-            if (!HelperOfflineSession.RequireClosedBeforeRebuild(root))
+            // The caller runtime lets a kept tree of a moved installation be judged by its own records (see RecordsRoot).
+            if (!HelperOfflineSession.RequireClosedBeforeRebuild(root, source))
                 HelperRewardTransfer.RequireDrainedBeforeRebuild(root);
             PrepareTree(box, tree, binaries);
 

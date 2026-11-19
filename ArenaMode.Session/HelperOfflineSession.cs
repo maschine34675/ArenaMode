@@ -35,6 +35,32 @@ namespace ArenaMode.SessionHelper
                 "The SPT server saved your profile and is shutting down because Arena entry could not be prepared (see its log). "
                 + "Arena was not started and nothing was copied. Start SPT again to continue.")
             {
+                Code = Reason; PointsToServerLog = true;
+            }
+        }
+
+        /// <summary>
+        /// The normal server answered the Arena entry with a refusal. <see cref="Code"/> is the stage and the reason category
+        /// of the reply ("preflight-save/save-not-confirmed"); <see cref="Category"/> is the category alone. When
+        /// <see cref="Resumed"/> is true the server confirmed it can continue unchanged. The message is the log line.
+        /// </summary>
+        internal sealed class EntryDeclinedException : HelperException
+        {
+            internal readonly string Category;
+            internal readonly bool Resumed;
+
+            internal EntryDeclinedException(string code, string category, bool resumed) : base(resumed
+                ? "Arena entry was declined; the normal server confirmed it can continue."
+                : "Normal SPT refused Arena entry; no profile was copied.")
+            {
+                Code = code; Category = category; Resumed = resumed; PointsToServerLog = true;
+            }
+
+            /// <summary>The refusal after which the normal server confirmed it can continue; code from <see cref="DeclineCode"/>.</summary>
+            internal static EntryDeclinedException ResumableFrom(string code)
+            {
+                code = code ?? "unknown-stage/see-server-log";
+                return new EntryDeclinedException(code, CategoryOf(code), true);
             }
         }
 
@@ -88,19 +114,19 @@ namespace ArenaMode.SessionHelper
                 return new Entry { Grant = ReadGrant(request, normal, DateTime.UtcNow), CanResumeNormal = true };
             }
 
-            internal void StopNormal(HelperHttpEndpoint normal, Action<string> log)
+            internal void StopNormal(HelperHttpEndpoint normal, Action<string> log, string helperLog = null)
             {
                 using (Process server = HelperProcesses.TryOpen(Grant.ServerPid))
                 {
                     RequireProcess(server, Grant.ServerPid, Grant.ServerStarted, Path.Combine(Grant.Source, HelperLayout.ServerExeName));
                     RequireListener(server, normal.ServerHost, normal.ServerPort);
                     log("Saving and stopping normal SPT before the Arena profile is copied.");
+                    string declined = null;
                     CanResumeNormal = CompleteStop(() => Send(this), () => RequireReady(), milliseconds => server.WaitForExit(milliseconds),
-                        () => MessageBox(IntPtr.Zero,
-                            "Arena is waiting for SPT to finish saving.\n\nKeep the server open. Retry, or cancel and check helper.log.",
-                            "ArenaMode - entry paused", 0x50035) == 4, log);
+                        () => MessageBox(IntPtr.Zero, WaitingDialogText(helperLog), "ArenaMode - entry paused", 0x50035) == 4, log,
+                        code => declined = code);
                     if (CanResumeNormal)
-                        throw new HelperException("Arena entry was declined; the normal server confirmed it can continue.");
+                        throw EntryDeclinedException.ResumableFrom(declined);
                     ReadyStopped = true;
                 }
             }
@@ -167,8 +193,10 @@ namespace ArenaMode.SessionHelper
         // Exit after an HTTP loss is insufficient: final native readback must have
         // published matching immutable Ready evidence. A held process is never killed.
         // True means an explicit safe refusal, not permission to build/copy. False means Ready + exit.
+        // declinedCode receives the stage and reason category ("preflight-save/save-not-confirmed") of a refusal that allows
+        // the normal server to continue, so the caller can tell the player why.
         internal static bool CompleteStop(Func<Dictionary<string, object>> send, Action requireReady,
-            Func<int, bool> awaitExit, Func<bool> retry, Action<string> log)
+            Func<int, bool> awaitExit, Func<bool> retry, Action<string> log, Action<string> declinedCode = null)
         {
             while (true)
             {
@@ -186,9 +214,10 @@ namespace ArenaMode.SessionHelper
                 if (reply != null && !Bool(reply, "accepted") && !Bool(reply, "held"))
                 {
                     log("Arena entry declined: " + DescribeReply(reply));
-                    if (AllowsNormalResume(reply)) return true;
+                    if (AllowsNormalResume(reply)) { if (declinedCode != null) declinedCode(DeclineCode(reply)); return true; }
                     if (ArenaMiniJson.GetString(reply, "reason") == ServerStoppingException.Reason) throw new ServerStoppingException();
-                    throw new HelperException("Normal SPT refused Arena entry; no profile was copied.");
+                    string code = DeclineCode(reply);
+                    throw new EntryDeclinedException(code, CategoryOf(code), false);
                 }
                 try
                 {
@@ -197,7 +226,7 @@ namespace ArenaMode.SessionHelper
                 }
                 catch (Exception) { }
                 log("Arena entry paused; preserving the original server and saved handoff evidence.");
-                if (!retry()) throw new HelperException("Arena entry paused. The original server was not force-closed and no profile was copied.");
+                if (!retry()) throw new HelperException("Arena entry paused. The original server was not force-closed and no profile was copied.") { Code = "entry-paused" };
             }
         }
 
@@ -210,7 +239,11 @@ namespace ArenaMode.SessionHelper
                 && reply.TryGetValue("reason", out reason) && reason is string && (string)reason == "return-not-ready";
         }
 
-        internal static string DescribeReply(Dictionary<string, object> reply)
+        /// <summary>
+        /// The reference code of a refusal: the stage and the reason category, both from closed lists so that arbitrary wire
+        /// text never reaches a log or a dialog ("preflight-save/save-not-confirmed").
+        /// </summary>
+        internal static string DeclineCode(Dictionary<string, object> reply)
         {
             string stage = ArenaMiniJson.GetString(reply, "stage");
             switch (stage)
@@ -228,9 +261,28 @@ namespace ArenaMode.SessionHelper
                 case "return-profile-save-not-confirmed": detail = "save-not-confirmed"; break;
                 default: detail = "see-server-log"; break;
             }
+            return stage + "/" + detail;
+        }
+
+        /// <summary>The reason category of a <see cref="DeclineCode"/> (the part after the slash).</summary>
+        internal static string CategoryOf(string code)
+        {
+            int slash = code == null ? -1 : code.IndexOf('/');
+            return slash < 0 ? "see-server-log" : code.Substring(slash + 1);
+        }
+
+        // The dialog while the server has not yet answered that it is ready; it names helper.log in full.
+        internal static string WaitingDialogText(string helperLog)
+            => "Arena is waiting for SPT to finish saving your profile.\n\n"
+                + "This can take a moment. Keep the SPT server open and choose Retry to keep waiting. "
+                + "Cancel stops Arena; no profile is copied and SPT is not force-closed."
+                + (helperLog == null ? string.Empty : "\n\nDetails: " + helperLog) + "\nCode: entry-waiting";
+
+        internal static string DescribeReply(Dictionary<string, object> reply)
+        {
             int requests = ArenaMiniJson.GetInt(reply, "activeRequests", -1);
             int updates = ArenaMiniJson.GetInt(reply, "activeUpdates", -1);
-            return stage + "/" + detail + "; active requests=" + Count(requests) + "; active updates=" + Count(updates)
+            return DeclineCode(reply) + "; active requests=" + Count(requests) + "; active updates=" + Count(updates)
                 + "; normal resume=" + AllowsNormalResume(reply);
         }
 
@@ -303,15 +355,15 @@ namespace ArenaMode.SessionHelper
                 || lease.NormalStarted != grant.ServerStarted || !SameArguments(lease.Arguments, grant.Arguments)) throw Refused();
         }
 
-        internal static Lease ReadOriginal(string source, string session)
+        internal static Lease ReadOriginal(string source, string session, string records = null)
         {
             if (!Hex(session, 32)) throw Refused();
-            var lease = ParseLease(Read(Path.Combine(source, "user", "arena-rewards", "offline-sessions", session, "lease.json")));
+            var lease = ParseLease(Read(Path.Combine(records ?? source, "user", "arena-rewards", "offline-sessions", session, "lease.json")));
             if (lease.SessionId != session || !HelperPathSafety.PathsEqual(lease.Source, source)) throw Refused();
             return lease;
         }
 
-        internal static Lease ReadBoundPrivate(string tree)
+        internal static Lease ReadBoundPrivate(string tree, string callerRuntime = null)
         {
             string path = Path.Combine(tree, LeaseFile);
             HelperRewardControlTransfer.RequirePlainPath(path, false);
@@ -321,7 +373,8 @@ namespace ArenaMode.SessionHelper
             catch (HelperException) { return ReadMarkerBoundPrivate(tree); }
             catch (FormatException) { return ReadMarkerBoundPrivate(tree); }
             catch (DecoderFallbackException) { return ReadMarkerBoundPrivate(tree); }
-            if (!HelperPathSafety.PathsEqual(lease.Private, tree) || !Same(lease.Bytes, ReadOriginal(lease.Source, lease.SessionId).Bytes)) throw Refused();
+            if (!HelperPathSafety.PathsEqual(lease.Private, tree)
+                || !Same(lease.Bytes, ReadOriginal(lease.Source, lease.SessionId, RecordsRoot(lease, callerRuntime)).Bytes)) throw Refused();
             return lease;
         }
 
@@ -336,9 +389,9 @@ namespace ArenaMode.SessionHelper
             return lease;
         }
 
-        internal static Lease ReadPrivate(string tree, HelperRequest request = null)
+        internal static Lease ReadPrivate(string tree, HelperRequest request = null, string callerRuntime = null)
         {
-            var lease = ReadBoundPrivate(tree);
+            var lease = ReadBoundPrivate(tree, callerRuntime);
             HelperMarker marker; string error;
             if (!HelperMarker.TryParse(Utf8.GetString(Read(Path.Combine(tree, ArenaSessionContract.MarkerFileName))), out marker, out error)) throw Refused();
             RequireMarker(lease, marker);
@@ -395,32 +448,32 @@ namespace ArenaMode.SessionHelper
                 || Utc(activation, "privateStartedUtc") != started) throw Refused();
         }
 
-        internal static bool RequireClosed(Lease lease)
+        internal static bool RequireClosed(Lease lease, string records = null)
         {
-            if (IsDiscarded(lease)) { RequireRetired(lease); return false; }
-            byte[] closureBytes = Read(Path.Combine(SessionDirectory(lease), "closed.json"), 524288);
+            if (IsDiscarded(lease, records)) { RequireRetired(lease, records); return false; }
+            byte[] closureBytes = Read(Path.Combine(SessionDirectory(lease, records), "closed.json"), 524288);
             var closure = Parse(closureBytes, 6);
             if (Int(closure, "schema") != 1 || Text(closure, "sessionId") != lease.SessionId || Text(closure, "leaseHash") != lease.Hash) throw Refused();
-            var completion = Parse(Read(Path.Combine(SessionDirectory(lease), "completion.json")), 3);
+            var completion = Parse(Read(Path.Combine(SessionDirectory(lease, records), "completion.json")), 3);
             if (Int(completion, "schema") != 1 || Text(completion, "sessionId") != lease.SessionId
                 || Text(completion, "closureHash") != Hash(closureBytes)) throw Refused();
-            RequireRetired(lease);
+            RequireRetired(lease, records);
             return Bool(closure, "activated");
         }
 
-        private static void RequireRetired(Lease lease)
+        private static void RequireRetired(Lease lease, string records = null)
         {
             // A newer session may already have a Ready pointer when the old tree is rebuilt.
-            if (Exists(ActivePath(lease.Source)))
+            if (Exists(ActivePath(records ?? lease.Source)))
             {
-                var active = Reference(Read(ActivePath(lease.Source)));
+                var active = Reference(Read(ActivePath(records ?? lease.Source)));
                 if (Text(active, "sessionId") == lease.SessionId) throw Refused();
             }
         }
 
-        internal static bool IsDiscarded(Lease lease)
+        internal static bool IsDiscarded(Lease lease, string records = null)
         {
-            string directory = SessionDirectory(lease);
+            string directory = SessionDirectory(lease, records);
             string path = Path.Combine(directory, "discarded.json");
             if (!Exists(path)) return false;
             byte[] bytes = Read(path, 8192);
@@ -458,15 +511,18 @@ namespace ArenaMode.SessionHelper
             string foreign = ForeignSource(tree, callerRuntime);
             try
             {
-                var lease = ReadBoundPrivate(tree);
-                bool activated = RequireClosed(lease);
-                if (IsDiscarded(lease)) { RequirePrivateAbsent(lease); return true; }
+                var lease = ReadBoundPrivate(tree, callerRuntime);
+                // Whose records judge the session: the recording installation's, or after a move the caller's copy of them.
+                string records = RecordsRoot(lease, callerRuntime);
+                bool activated = RequireClosed(lease, records);
+                if (IsDiscarded(lease, records)) { RequirePrivateAbsent(lease); return true; }
                 // A stopped, never-activated failed Build may not yet have a marker.
-                if (activated || Exists(Path.Combine(tree, ArenaSessionContract.MarkerFileName))) ReadPrivate(tree);
+                if (activated || Exists(Path.Combine(tree, ArenaSessionContract.MarkerFileName))) ReadPrivate(tree, null, callerRuntime);
             }
             catch (Exception ex) when (foreign != null)
             {
-                throw new HelperException(ForeignSessionRefusal(foreign, tree, ex), ex);
+                throw new HelperException(ForeignSessionRefusal(foreign, tree, ex, callerRuntime), ex)
+                    { Code = ForeignRefusalCode(foreign, tree, callerRuntime) };
             }
             try { HelperRewardTransfer.RequireDrainedBeforeRebuild(runtimeRoot); }
             catch (HelperException ex) when (foreign != null)
@@ -532,6 +588,25 @@ namespace ArenaMode.SessionHelper
             return null;
         }
 
+        /// <summary>
+        /// The installation whose session records judge <paramref name="lease"/>: normally the one it names. Only when that
+        /// installation's records folder is gone (the folder was moved, not copied) and the caller holds a byte-identical
+        /// copy of the lease under its own offline-sessions folder, the caller's records stand in for it. A readable
+        /// recording installation always keeps the decision, so a copied folder never overrules the original.
+        /// </summary>
+        internal static string RecordsRoot(Lease lease, string callerRuntime)
+        {
+            if (callerRuntime == null || HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return lease.Source;
+            if (!IsUnreadable(lease.Source)) return lease.Source;
+            try
+            {
+                if (Same(lease.Bytes, Read(Path.Combine(callerRuntime, "user", "arena-rewards", "offline-sessions", lease.SessionId, "lease.json"))))
+                    return callerRuntime;
+            }
+            catch (Exception) { }
+            return lease.Source;
+        }
+
         private static string ForeignSource(string tree, string callerRuntime)
         {
             if (callerRuntime == null) return null;
@@ -549,17 +624,44 @@ namespace ArenaMode.SessionHelper
             RequireClosedBeforeRebuild(runtimeRoot, callerRuntime);
         }
 
-        internal static string ForeignSessionRefusal(string foreign, string tree, Exception reason)
+        private static bool IsUnreadable(string installation)
+            => !Directory.Exists(Path.Combine(installation, "user", "arena-rewards", "offline-sessions"));
+
+        /// <summary>True when the caller holds a copy of the kept session's lease: its folder was moved here from the recorded one.</summary>
+        private static bool CallerHoldsSessionCopy(string tree, string callerRuntime)
+        {
+            if (callerRuntime == null) return false;
+            try
+            {
+                var lease = ParseLease(Read(Path.Combine(tree, LeaseFile)));
+                return Exists(Path.Combine(callerRuntime, "user", "arena-rewards", "offline-sessions", lease.SessionId, "lease.json"));
+            }
+            catch (Exception) { return false; }
+        }
+
+        internal static string ForeignRefusalCode(string foreign, string tree, string callerRuntime)
+            => !IsUnreadable(foreign) ? "foreign-session-open"
+                : CallerHoldsSessionCopy(tree, callerRuntime) ? "moved-session-unfinished" : "foreign-session-unreadable";
+
+        internal static string ForeignSessionRefusal(string foreign, string tree, Exception reason, string callerRuntime = null)
         {
             // A session that is merely not closed has its records; a missing closed.json is the normal sign of that and says nothing
             // about the installation. Only a vanished installation or a wiped records folder cannot be read at all.
-            bool unreadable = !Directory.Exists(Path.Combine(foreign, "user", "arena-rewards", "offline-sessions"));
+            bool unreadable = IsUnreadable(foreign);
             string detail = reason == null || string.IsNullOrEmpty(reason.Message) ? string.Empty : " (" + reason.Message + ")";
+            // Only the records folder decides readability; the wording must not claim the folder is gone when it is still there
+            // (a wiped records folder, or a fresh SPT installed at the old path).
+            string gone = Directory.Exists(foreign) ? "whose Arena session records are missing" : "which no longer exists";
+            if (unreadable && CallerHoldsSessionCopy(tree, callerRuntime))
+                return "This SPT folder (" + callerRuntime + ") was moved: the last Arena session was started from \"" + foreign + "\", " + gone + ","
+                    + " and this folder's own records do not show that session as finished" + detail + ". Move the folder back to \"" + foreign + "\","
+                    + " start SPT there once so the session can finish, then move it again. If that is not possible, the leftover Arena folder \"" + tree
+                    + "\" can be deleted by hand; Arena results of that session that were never returned are lost with it. Nothing was changed.";
             if (unreadable)
-                return "The last Arena session belongs to the SPT installation at " + foreign + ", whose session records cannot be read"
-                    + " (it was moved, deleted or is offline)" + detail + ". Make it available again and finish the session there. If it is gone for good,"
-                    + " the private session folder " + tree + " can be deleted by hand; Arena results of that session that were never returned are lost with it."
-                    + " Nothing was changed.";
+                return "The last Arena session was started from the SPT folder \"" + foreign + "\", " + gone + " (it was moved, deleted or is offline),"
+                    + " so its session records cannot be read" + detail + ". If SPT was moved, move it back to that place and finish the session there."
+                    + " If that folder is gone for good, the private session folder \"" + tree + "\" can be deleted by hand;"
+                    + " Arena results of that session that were never returned are lost with it. Nothing was changed.";
             return "The last Arena session belongs to the SPT installation at " + foreign + " and has not been closed there, or its records cannot be verified"
                 + detail + ". Start that installation's SPT and return to the normal session there (or finish its Arena session), then start Arena here again."
                 + " Nothing was changed.";
@@ -662,7 +764,8 @@ namespace ArenaMode.SessionHelper
         internal static string MarkerTime(DateTime time) => time.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
         internal static string Hash(byte[] bytes) { using (var hash = SHA256.Create()) return BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }
         internal static string ActivePath(string source) => Path.Combine(source, "user", "arena-rewards", "offline-active.json");
-        private static string SessionDirectory(Lease lease) => Path.Combine(lease.Source, "user", "arena-rewards", "offline-sessions", lease.SessionId);
+        private static string SessionDirectory(Lease lease, string records = null)
+            => Path.Combine(records ?? lease.Source, "user", "arena-rewards", "offline-sessions", lease.SessionId);
         private static bool Exists(string path) { HelperRewardControlTransfer.RequirePlainPath(path, false); FileAttributes attributes; return HelperFileSystem.TryGetAttributes(path, out attributes); }
         private static byte[] Read(string path, int maximum = 32768, bool requirePlain = true)
         {
@@ -718,6 +821,6 @@ namespace ArenaMode.SessionHelper
         { if (left.Length != right.Length) return false; for (int i = 0; i < left.Length; i++) if (left[i] != right[i]) return false; return true; }
         private static bool Hex(string text, int length)
         { if (text == null || text.Length != length) return false; foreach (char c in text) if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'f')) return false; return true; }
-        private static HelperException Refused() => new HelperException("Offline Arena session proof is missing or changed; the session and profiles were retained for safe recovery.");
+        private static HelperException Refused() => new HelperException("Offline Arena session proof is missing or changed; the session and profiles were retained for safe recovery.") { Code = "session-proof-changed" };
     }
 }
