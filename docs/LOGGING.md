@@ -16,6 +16,11 @@ optional grenades or spare magazines that did not fit are Debug. A no-contest
 round and a kit without any reserve stay Warning: there the round has no valid
 result or the player fights on the loaded magazine alone.
 
+A start whose rewards are paused is not gameplay either: it is one Warning per start that
+names the reason code ("Arena rewards are paused for this start: ...", see
+[Rewards paused at start](REWARDS-RUNTIME.md#rewards-paused-at-start)), never Debug. A
+withheld reward once stayed hidden behind a Debug line for 14 days.
+
 The difficulty model follows this rule: the server's gear-band line (`Bot gear band on ...`,
 mode, step and level) and the client's per-spawn level lines are Debug. The step is not an
 Info topic; the only Info line is the one-time `Arena difficulty step set to Reduced from the

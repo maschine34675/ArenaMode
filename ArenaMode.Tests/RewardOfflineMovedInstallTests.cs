@@ -168,10 +168,10 @@ public sealed partial class RewardOfflineSessionTests
         using var f = new Fixture();
         f.Start(); f.Owner!.Dispose(); f.Owner = null;
         var e = Assert.Throws<RewardOfflineException>(() => f.Recover(s => { if (s == "closure") throw new IOException("interrupt"); }));
-        Assert.Equal("Offline Arena recovery is incomplete (IOException); normal startup stopped without replacing a profile.", e.Message);
+        Assert.Equal("Offline Arena recovery is incomplete (IOException); the Arena session was left untouched and is retried at the next start.", e.Message);
         File.Delete(Path.Combine(SessionFolder(f, f.Lease!.SessionId), "activation.json"));
         File.Delete(Path.Combine(f.Private, RewardOfflineSession.StateFile));
         e = Assert.Throws<RewardOfflineException>(() => f.Recover());
-        Assert.Equal("Offline Arena recovery is incomplete (offline-activation-proof-missing); normal startup stopped without replacing a profile.", e.Message);
+        Assert.Equal("Offline Arena recovery is incomplete (offline-activation-proof-missing); the Arena session was left untouched and is retried at the next start.", e.Message);
     }
 }

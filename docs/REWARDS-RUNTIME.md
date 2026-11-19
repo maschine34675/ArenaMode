@@ -89,10 +89,12 @@ missing or malformed old consent/history is never repaired by the default.
 Explicit OFF, enrollment identities, journals and prior payments remain intact.
 No default is applied by a live route or a private server.
 
-The shared coordination path stays fail-closed for real contention only: a
-`.startup.lock` that is still busy after two minutes, a held `.server.lock`, a live
-private owner, a recorded Arena session that cannot be resolved and cancellation stop startup, because another process may still own
-settlement and native profile loading would race it. A reward folder that merely
+The shared coordination path stops SPT only where another process may still be writing
+(see [Startup failure policy](#startup-failure-policy)): a `.startup.lock` that is
+still busy after two minutes, a held `.server.lock`, a live or unverifiable private
+Arena process, a private Arena tree and cancellation stop startup, because that
+process may still own settlement and native profile loading would race it. A reward
+folder that merely
 cannot be used does not: when the SPT folder or one of its parents is a link
 (junction, symbolic link, mount point, cloud placeholder), when access is denied or
 the path is unavailable, a process that reaches the install by the same path hits the
@@ -125,6 +127,75 @@ stopped by the reward lock (SPT's own port check still applies); the old behavio
 refused that start. Other refused reward cases continue through the existing
 reward-only failure reporting.
 
+### Startup failure policy
+
+Reward problems never stop SPT, except when a live second writer is proven or cannot be
+excluded. `ArenaRewardStartup.OnLoadAsync` sorts every failure into one of two classes.
+
+**Hard (SPT does not start).** Only these:
+
+- `.startup.lock` still busy after two minutes: a live helper or server holds it.
+- `.server.lock` held: another server, or a live private Arena owner.
+- A private tree (`arena-session.json`, the lease file or `offline-active.json` present
+  or unreadable) when the admission fails unexpectedly: a private server must never
+  continue as a normal one. This includes a malformed `arena-session.json`.
+- `offline-private-process-still-running`: the private Arena process is alive.
+  `offline-private-process-unverifiable`: its liveness cannot be read ("unreadable is not
+  proof of death").
+- `offline-owner-changed-during-recovery`: the active pointer changed under both locks,
+  so someone else writes it.
+- A private server marker (`arena-session.json`) or lease file appearing under this
+  folder while recovery runs.
+- Any unknown failure while taking `.server.lock` itself, and cancellation.
+- `RewardColaRecoveryException`: a Tarkova Cola payment may exist while its companion
+  write is unfinished; going on would let the Cola mod's own progress make that
+  unfinishable. See [Tarkova Cola compatibility](TARKOVA-COLA-COMPAT.md). This is the one
+  stop that is about files, not about a second writer.
+
+**Soft (SPT starts, rewards pause).** Everything else: about fifty data and consistency
+codes of the offline recovery (`offline-activation-proof-missing`,
+`offline-consent-conflict`, `offline-multiple-unclosed-sessions`, an inbox conflict, ...),
+a session recorded by another installation folder (moved or copied install), file errors
+that persist after three attempts 500 ms apart, native profiles that were already loaded
+(`native-startup-boundary-unavailable`), and unexpected admission failures on a plain tree
+(`reward-admission-<code>`). A new `RewardOfflineException` is soft by default; a check
+that can mean "someone else is writing" must set `LiveWriter` or throw
+`RewardLiveOwnerException` (the test `EveryOfflineReasonCodeOfTheRecoveryIsClassified`
+lists every code).
+
+### Rewards paused at start
+
+A soft failure pauses rewards for the whole installation for this start:
+
+- No `ProcessAsync`: nothing is paid, enrolled, defaulted or archived, for any profile, and
+  no reward record is written. The last Arena session (active pointer, history, closure,
+  inbox) stays exactly as it was; the next start runs the same recovery again from the
+  untouched records and pays exactly once.
+- `RewardRuntimeCoordinator.ObserveRewardsPaused(code, recoveryPending)` records the reason.
+  The menu card shows "Rewards are paused ..." (`withheld`, no toggle) and the reward choice
+  is frozen: changing it would make the retry fail with `offline-consent-conflict`. No run
+  is captured and no delegation is minted.
+- Because the previous session may be unsettled, a new Arena entry is declined before the
+  normal server is paused (`rewards-paused-recovery-pending`). Every recovery and admission
+  pause sets this; only the unusable-storage case (above) keeps its older behaviour.
+- One Warning per start: "Arena rewards are paused for this start: the last Arena session
+  could not be settled (<code>: <meaning>). SPT starts normally. Nothing was paid, enrolled or
+  changed ..." with the remedy. A moved-install session carries its own full sentence (both
+  folders and the way out).
+- `user/arena-rewards/rewards-paused.json` is a diagnostic note for the session helper:
+  `{schema, reason, recoveryPending, serverPid, serverStartedUtc, writtenUtc}`. The helper
+  accepts it only when pid and start time equal the server process it started. No server
+  code reads it; it never authorizes anything. A later start that finishes recovery deletes
+  it.
+
+| Code | Meaning | Remedy |
+| --- | --- | --- |
+| `offline-*` (recovery) | the last Arena session could not be settled | restart SPT once; if it returns, keep `user\arena-rewards` as it is and report the code |
+| `offline-recovery-<ExceptionType>` | a file error persisted after three attempts | close programs that lock `user\arena-rewards` (scanner, backup, sync), restart |
+| `offline-recovery-lease-mismatch`, `offline-history-binding-mismatch` | session recorded by another installation folder | start SPT from the recorded folder once (the message names it) |
+| `native-startup-boundary-unavailable` | another mod loaded the profiles before Arena's reward step | the last session stays unsettled until the load order is fixed |
+| `reward-admission-<code>` | the reward step failed before it took ownership | restart SPT; report the code |
+
 ### Lost reward authority
 
 **Offline-session history after a move.** Every lease in `user/arena-rewards/offline-sessions`
@@ -133,12 +204,14 @@ sessions look foreign. `RecoverMissingPointer` skips a finished session (complet
 discard, or `closed.json` plus a valid `completion.json`) whatever folder it records and logs
 one Debug line with the count; the profile pass then archives the old enrollment
 (`install-root-changed`). An unfinished foreign session never becomes the active
-pointer: startup stops with a message naming the session, both folders and the way out
-(finish it from the recorded installation, or move the session folder away and lose its
-unreturned results). A stale `offline-active.json` whose lease records another folder
-stops with its own message. A session folder name that differs from the lease's session id
-still stops as `offline-history-binding-mismatch`. The generic "recovery is incomplete"
-message carries the reason code in parentheses.
+pointer: SPT starts with Arena rewards paused (see
+[Rewards paused at start](#rewards-paused-at-start)) and the Warning names the session, both
+folders and the way out (finish it from the recorded installation, or move the session folder
+away and lose its unreturned results). Nothing is changed and nothing is paid until then. A
+stale `offline-active.json` whose lease records another folder pauses with its own message. A
+session folder name that differs from the lease's session id pauses as
+`offline-history-binding-mismatch`. The generic "recovery is incomplete" message carries the
+reason code in parentheses.
 
 The ledger lives in the profile (`com.maschine.ArenaMode.rewards`), its authority
 beside it in `user/arena-rewards/<profileId>/`, bound to the installation root. The
@@ -301,7 +374,8 @@ outcomes:
   mod's own files.
 - The companion side is not complete (or cannot be read, 2026-11-08: the startup
   recovery then keeps the profile quarantined, and its Warning names the first gap).
-  Startup stops, because a half-finished
+  Startup stops (unlike the other reward failures, which pause rewards; see
+  [Startup failure policy](#startup-failure-policy)), because a half-finished
   companion write could leave the Cola files inconsistent and nothing here can
   finish it. The Error names the actual cause and the remedy that is true for it:
   - A possibly paid plan has no completion record, or the journal records a Cola

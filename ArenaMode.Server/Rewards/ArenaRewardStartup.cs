@@ -32,6 +32,13 @@ public sealed class ArenaRewardStartup(
     IReadOnlyList<DependencyInjectionContainer> containers,
     ISptLogger<ArenaRewardStartup> logger) : IOnLoad, IDisposable
 {
+    // Tests: the coordinator this start informs; null is the process-wide one.
+    internal RewardRuntimeCoordinator? Coordinator { get; init; }
+    private RewardRuntimeCoordinator Rewards => Coordinator ?? RewardRuntimeCoordinator.Current;
+    // Tests: the number of profiles SPT has loaded so far; null reads the SaveServer.
+    internal Func<int>? LoadedProfiles { get; init; }
+    // Tests: the pause between two attempts of a recovery that hit a file error.
+    internal TimeSpan RecoveryRetryDelay { get; init; } = TimeSpan.FromMilliseconds(500);
     private int _entered;
     private RewardStartupLifetimeLock? _lifetimeLock;
     private RewardOfflinePrivate? _offlineOwner;
@@ -45,20 +52,38 @@ public sealed class ArenaRewardStartup(
         _lifetimeLock = admission.Lifetime;
         if (admission.Unusable is { } unusable)
         {
-            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(unusable, storageUnusable: true);
-            logger.Warning($"[ArenaMode] Profile rewards are unavailable: {DescribeUnusable(unusable)} "
-                + "Rewards stay off and no reward data is written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+            if (admission.StorageUnusable)
+            {
+                Rewards.ObserveStartupUnavailable(unusable, storageUnusable: true);
+                logger.Warning($"[ArenaMode] Profile rewards are unavailable: {DescribeUnusable(unusable)} "
+                    + "Rewards stay off and no reward data is written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+            }
+            else
+            {
+                // An unexpected failure before this start owned anything: rewards pause, and no Arena session may start
+                // on top of an unsettled one this start could not look at.
+                Rewards.ObserveRewardsPaused(unusable, recoveryPending: true);
+                RewardPausedNote.Write(root, unusable, recoveryPending: true);
+                logger.Warning(ComposeAdmissionPauseWarning(unusable));
+            }
             return;
         }
         if (!admission.Proceed) return;
         using var startupGate = admission.Gate;
+        // Only a proven or not-excludable live second writer stops SPT here (it throws). Every other recovery
+        // problem pauses rewards for this start: nothing is paid, enrolled or changed, and the next start retries.
+        var pause = await RecoverOrPauseAsync(root, () => LoadedProfileCount() == 0,
+            () => logger.Info("[ArenaMode] Old Arena session discarded; rewards set to OFF. Normal SPT will start."),
+            cancellationToken, RecoveryRetryDelay,
+            retrying: (attempt, e) => logger.Debug($"[ArenaMode] Offline Arena recovery hit {e.GetType().Name}; retry {attempt} of {RecoveryAttempts - 1}."));
+        if (pause is not null)
         {
-            // Outside the reward-only catch: continuing would load normal profiles
-            // while a private process owns the original runtime or recovery is unknown.
-            using var recovery = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
-            RewardOfflineSession.RecoverBeforeStartup(recovery, discarded: () =>
-                logger.Info("[ArenaMode] Old Arena session discarded; rewards set to OFF. Normal SPT will start."));
+            Rewards.ObserveRewardsPaused(pause.Code, recoveryPending: true);
+            RewardPausedNote.Write(root, pause.Code, recoveryPending: true);
+            logger.Warning(ComposeRecoveryPauseWarning(pause));
+            return;
         }
+        RewardPausedNote.Remove(root);
         var callbacks = containers.Select(c => new StartupCallback(c.ParentType, c.Type, c.InjectableAttribute.TypePriority)).ToList();
         try
         {
@@ -67,15 +92,15 @@ public sealed class ArenaRewardStartup(
                 Assembly.GetEntryAssembly()?.GetName().Name,
                 root,
                 AppContext.BaseDirectory,
-                saves.GetProfiles().Count,
+                LoadedProfileCount(),
                 callbacks,
                 FindConflictingServer(root));
             if (reason is not null) throw new RewardDataException(reason);
             if (!RewardStartupFiles.MarkerAbsent(root)) return;
-            using var window = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
+            using var window = new RewardStartupWindow(root, () => LoadedProfileCount() == 0);
             foreach (var outcome in await RewardStartupProcessor.ProcessAsync(window, cancellationToken))
             {
-                RewardRuntimeCoordinator.Current.ObserveStartupOutcome(outcome);
+                Rewards.ObserveStartupOutcome(outcome);
                 LogAuthority(outcome);
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
                     logger.Info($"[ArenaMode] Arena reward: {outcome.Roubles} RUB delivered by mail; {outcome.Experience} XP credited.");
@@ -95,10 +120,100 @@ public sealed class ArenaRewardStartup(
         {
             // A refusal affects rewards, never ordinary server startup or raids.
             var reason = e is RewardDataException ? e.Message : e.GetType().Name;
-            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(reason);
+            Rewards.ObserveStartupUnavailable(reason);
             logger.Warning(ComposeRefusalWarning(reason, callbacks));
         }
     }
+
+    private int LoadedProfileCount() => (LoadedProfiles ?? (() => saves.GetProfiles().Count))();
+
+    internal const int RecoveryAttempts = 3;
+
+    /// <summary>Why this start's recovery of the last Arena session paused rewards, and the failure behind it (for the Warning).</summary>
+    internal sealed record RecoveryPause(string Code, Exception Cause);
+
+    /// <summary>
+    /// Runs the recovery of the last Arena session. Returns null when it finished (or there was nothing to do) and the pause
+    /// when it could not: SPT then starts with rewards paused. Throws, and so stops SPT, only when another process may be
+    /// writing: a live or unverifiable private process, a changed active pointer, a private server appearing under this
+    /// root, or cancellation. A file error is retried (a virus scanner holds a file for a moment) before it pauses.
+    /// </summary>
+    internal static async Task<RecoveryPause?> RecoverOrPauseAsync(string root, Func<bool> profilesUnloaded, Action discarded,
+        CancellationToken cancellationToken, TimeSpan? retryDelay = null, Action<string>? checkpoint = null,
+        Action<int, Exception>? retrying = null)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                using var recovery = new RewardStartupWindow(root, profilesUnloaded);
+                RewardOfflineSession.RecoverBeforeStartup(recovery, checkpoint, discarded);
+                return null;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (RewardLiveOwnerException e)
+            {
+                throw new RewardOfflineException($"Offline Arena recovery is incomplete ({e.Message}); startup stopped because another Arena or SPT process may still be writing.", e)
+                { LiveWriter = true };
+            }
+            catch (RewardOfflineException e) when (e.LiveWriter) { throw; }
+            catch (Exception) when (PrivateTreeAppeared(root)) { throw; }
+            catch (RewardDataException e) when (e.Message == "native-startup-boundary-unavailable")
+            {
+                return new(e.Message, e);
+            }
+            catch (RewardOfflineException e)
+            {
+                if (attempt < RecoveryAttempts && e.InnerException is IOException or UnauthorizedAccessException)
+                {
+                    retrying?.Invoke(attempt, e.InnerException);
+                    await Task.Delay(retryDelay ?? TimeSpan.FromMilliseconds(500), cancellationToken);
+                    continue;
+                }
+                // Every recovery pause carries the "offline-" prefix: the card and the lease choose their sentence from it.
+                string code = e.ReasonCode;
+                return new(RewardUnavailableText.LeaseCode(code.StartsWith("offline-", StringComparison.Ordinal) ? code : "offline-recovery-" + code), e);
+            }
+        }
+    }
+
+    // Recovery runs on the normal tree. A private server's marker or lease file under this root means a private server
+    // starts here: never a reason to pause.
+    private static bool PrivateTreeAppeared(string root)
+    {
+        try { return !RewardStartupFiles.MarkerAbsent(root) || File.Exists(Path.Combine(root, RewardOfflineSession.LeaseFile)); }
+        catch { return true; }
+    }
+
+    internal static string ComposeRecoveryPauseWarning(RecoveryPause pause)
+    {
+        if (pause.Code == "native-startup-boundary-unavailable")
+            return "[ArenaMode] Arena rewards are paused for this start: another mod loads the profiles before Arena's reward step (native-startup-boundary-unavailable). "
+                + "SPT starts normally; the last Arena session, if any, stays unsettled and is retried at the next start.";
+        string remedy = pause.Cause is RewardOfflineException { ExplainsItself: true } own ? own.Message
+            : pause.Cause.InnerException is IOException or UnauthorizedAccessException
+                ? "Close programs that may lock user\\arena-rewards (virus scanner, backup, sync) and restart SPT."
+                : "Restart SPT once. If the same code returns, keep user\\arena-rewards as it is (do not delete or move it) and report the code.";
+        return $"[ArenaMode] Arena rewards are paused for this start: the last Arena session could not be settled ({pause.Code}: {DescribePauseCode(pause.Code)}). "
+            + "SPT starts normally. Nothing was paid, enrolled or changed, the Arena session is kept untouched and is retried at the next start; "
+            + "until then Arena cannot start a new session and the reward card says rewards are paused. "
+            + $"Remedy: {remedy} See docs/REWARDS-RUNTIME.md, 'Rewards paused at start'.";
+    }
+
+    internal static string ComposeAdmissionPauseWarning(string code)
+        => $"[ArenaMode] Profile rewards are paused for this start: the reward step failed before it could take ownership ({code}). "
+            + "SPT starts normally; nothing was paid, enrolled or changed, and no new Arena session starts on top of an unsettled one. This is retried at the next start. "
+            + "See docs/REWARDS-RUNTIME.md, 'Rewards paused at start'.";
+
+    private static string DescribePauseCode(string code) => code switch
+    {
+        "offline-activation-proof-missing" => "a record of the session is missing",
+        "offline-consent-conflict" => "the reward choice changed during the session",
+        "offline-multiple-unclosed-sessions" => "more than one unfinished session",
+        "offline-recovery-lease-mismatch" or "offline-history-binding-mismatch" => "the session was recorded by another installation folder",
+        "offline-inbox-conflict" => "a stored reward receipt differs from the session's",
+        _ => "see the code"
+    };
 
     internal static string ComposeRefusalWarning(string reason, IEnumerable<StartupCallback> callbacks)
         => $"[ArenaMode] Startup rewards unavailable ({DescribeRefusal(reason, callbacks)}); profiles will load normally."
@@ -135,14 +250,17 @@ public sealed class ArenaRewardStartup(
 
     /// <summary>Proceed false with nothing else set: a private start or a bootstrap that declined; Unusable: skip rewards.</summary>
     internal sealed record StartupAdmission(bool Proceed, RewardOfflinePrivate? Owner = null,
-        RewardStartupLifetimeLock? Gate = null, RewardStartupLifetimeLock? Lifetime = null, string? Unusable = null);
+        RewardStartupLifetimeLock? Gate = null, RewardStartupLifetimeLock? Lifetime = null, string? Unusable = null,
+        bool StorageUnusable = false);
 
     // The ownership steps that must precede native profile loading. A genuine contention (a held .startup.lock
     // beyond two minutes, a held .server.lock, a live private owner, cancellation) throws and stops this
     // startup; a reward folder that merely cannot be used does not (see UnusableStorage).
-    internal static async Task<StartupAdmission> AdmitAsync(string root, CancellationToken cancellationToken)
+    internal static async Task<StartupAdmission> AdmitAsync(string root, CancellationToken cancellationToken,
+        TimeSpan? startupWait = null)
     {
         RewardStartupLifetimeLock? gate = null, lifetime = null;
+        bool startupBusy = false, serverLockStage = false;
         try
         {
             // Offline private ownership must precede every native profile load. It
@@ -155,23 +273,27 @@ public sealed class ArenaRewardStartup(
             // Every participating startup must wait BEFORE checking peers/refusing
             // rewards. Otherwise a second server could continue into native load while
             // the first is committing.
-            gate = await RewardStartupLifetimeLock.AcquireStartupAsync(root, cancellationToken);
+            startupBusy = true;
+            gate = await RewardStartupLifetimeLock.AcquireStartupAsync(root, cancellationToken, startupWait);
+            startupBusy = false;
             // The handle is authoritative even if ownership metadata is lost. Never
             // downgrade a busy runtime to "rewards unavailable, load profiles anyway".
+            serverLockStage = true;
             try { lifetime = RewardStartupLifetimeLock.Acquire(root); }
             catch (IOException exception) when (RewardStartupLifetimeLock.IsContention(exception))
             { throw new RewardOfflineException("Another SPT or Arena session owns this installation. Stop or return from that session before starting normal SPT.", exception); }
             return new(true, Gate: gate, Lifetime: lifetime);
         }
-        catch (Exception exception) when (UnusableStorage(exception, root) is { } unusable)
+        catch (Exception exception) when (SoftAdmission(exception, root, startupBusy, serverLockStage) is { } soft)
         {
             // No process we know of owns anything here: the reward folder simply cannot be used (the SPT folder or
-            // one of its parents is a link, access is denied, the path is unavailable). That is a reason to do no
-            // reward work at all, not a reason to keep SPT itself from starting. No reward data was written (the
-            // metadata folder or a lock file may have been created before a later step failed).
+            // one of its parents is a link, access is denied, the path is unavailable), or the admission failed for a
+            // reason that is no sign of another writer. That is a reason to do no reward work at all, not a reason to
+            // keep SPT itself from starting. No reward data was written (the metadata folder or a lock file may have
+            // been created before a later step failed).
             gate?.Dispose();
             lifetime?.Dispose();
-            return new(false, Unusable: unusable);
+            return new(false, Unusable: soft.Reason, StorageUnusable: soft.Storage);
         }
         catch
         {
@@ -179,6 +301,23 @@ public sealed class ArenaRewardStartup(
             lifetime?.Dispose();
             throw;
         }
+    }
+
+    // Which admission failures let SPT start with rewards off. Hard (null): cancellation, a held lock or live owner
+    // (RewardOfflineException, the two-minute .startup.lock wait, a contention IOException), anything on a private tree
+    // (marker, lease file or active pointer present, or unreadable), anything while taking .server.lock that is not a
+    // plain unusable folder, and a Tarkova Cola recovery failure (its payment may exist). Everything else is soft:
+    // Storage true is the unusable-folder case, false an unexpected failure ("reward-admission-<code>").
+    internal static (string Reason, bool Storage)? SoftAdmission(Exception exception, string root, bool startupBusy, bool serverLockStage = false)
+    {
+        if (exception is OperationCanceledException or RewardOfflineException or RewardLiveOwnerException or RewardColaRecoveryException) return null;
+        if (startupBusy && exception is InvalidOperationException) return null;
+        if (exception is IOException contention && RewardStartupLifetimeLock.IsContention(contention)) return null;
+        if (LooksPrivate(root)) return null;
+        if (UnusableStorage(exception, root) is { } storage) return (storage, true);
+        if (serverLockStage) return null;
+        string raw = exception is RewardDataException ? exception.Message : exception.GetType().Name;
+        return (RewardUnavailableText.LeaseCode("reward-admission-" + raw), false);
     }
 
     // The reward folder is unusable for a reason that has nothing to do with another process owning it.

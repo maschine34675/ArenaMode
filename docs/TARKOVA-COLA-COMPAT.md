@@ -60,7 +60,8 @@ The companion research file uses an immutable plan prepared before the native
 transaction, then an atomic compare/write/readback after native payment is proven.
 Its completion record prevents repeated deltas. Recovery can finish an already
 paid transfer even after opt-out, but cannot issue a new payment while OFF. A
-conflicting companion file after native payment stops startup for recovery; it
+conflicting companion file after native payment stops startup for recovery (the one reward-file failure that still does, see the
+[startup failure policy](REWARDS-RUNTIME.md#startup-failure-policy)); it
 never overwrites intervening progress or rolls the PMC profile back. Keep the
 normal profile, Cola profile and reward metadata together; do not delete journals
 to resolve such a refusal. Before payment, missing mods or incompatible state

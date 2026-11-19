@@ -19,6 +19,9 @@ internal static class RewardUnavailableText
     internal const string UnreviewedStart = "Rewards are off: this SPT server version or start is not reviewed for rewards. See the server log.";
     internal const string ProfilesLoadedEarly = "Rewards are off: another mod loads the profiles before Arena's reward step. See the server log.";
 
+    internal const string SessionUnsettled = "Rewards are paused: the last Arena session could not be settled when SPT started. See the server log.";
+    internal const string PausedAtStart = "Rewards are paused for this start: the reward step could not run. See the server log.";
+
     // The lease stores the code with its origin, because the entry's own read of a profile's reward authority and the
     // start's refusal share no vocabulary: "startup:earlier-startup-callback", "entry:runtime-enrollment-origin-mismatch".
     internal const string StartupScope = "startup:", EntryScope = "entry:";
@@ -41,7 +44,9 @@ internal static class RewardUnavailableText
     {
         "earlier-startup-callback" or "startup-callback-unlisted" => EarlierCallback,
         "unreviewed-native-startup-version" or "not-native-server-startup" or "runtime-root-mismatch" => UnreviewedStart,
-        "native-profiles-already-loaded" => ProfilesLoadedEarly,
+        "native-profiles-already-loaded" or "native-startup-boundary-unavailable" => ProfilesLoadedEarly,
+        _ when reason.StartsWith("offline-", StringComparison.Ordinal) => SessionUnsettled,
+        _ when reason.StartsWith("reward-admission-", StringComparison.Ordinal) => PausedAtStart,
         "reward-storage-linked" or "reward-storage-access-denied" or "reward-storage-unavailable" => StorageUnusable,
         _ => Temporary,
     };

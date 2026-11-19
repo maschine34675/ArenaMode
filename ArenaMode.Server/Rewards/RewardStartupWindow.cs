@@ -12,6 +12,8 @@ internal sealed class RewardStartupWindow(string root, Func<bool> nativeProfiles
     internal bool IsOpen => _open && nativeProfilesUnloaded() && RewardStartupFiles.MarkerAbsent(Root);
     internal void RequireOpen()
     {
+        // Profiles loaded or this window ended (a start-order problem: recovery pauses rewards for this start), or a private
+        // server's marker appeared (another writer: ArenaRewardStartup.RecoverOrPauseAsync tells the two apart by the marker).
         if (!IsOpen) throw new RewardDataException("native-startup-boundary-unavailable");
     }
     public void Dispose() => _open = false;

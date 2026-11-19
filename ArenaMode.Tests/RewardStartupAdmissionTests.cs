@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using ArenaMode.Server.Rewards;
 using SPTarkov.Common.Models.Logging;
 using SPTarkov.Server.Core.Models.Utils;
@@ -223,6 +224,77 @@ public sealed class RewardStartupAdmissionTests : IDisposable
         Assert.Contains("link", warning.Text);
         Assert.Empty(Names(Real));
         startup.Dispose();
+    }
+
+    // ---- fail-soft startup: which admission failures still stop SPT ---------------------------------------------------
+
+    [Fact]
+    public async Task AHeldStartupLockBeyondTheWaitStillStopsStartup()
+    {
+        string root = RewardStartupFiles.Canonical(Real);
+        Assert.True(RewardStartupDefaults.PrepareDirectory(root));
+        using var held = await RewardStartupLifetimeLock.AcquireStartupAsync(root, CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ArenaRewardStartup.AdmitAsync(root, CancellationToken.None, TimeSpan.FromMilliseconds(150)));
+    }
+
+    [Fact]
+    public async Task AMalformedPrivateMarkerStillStopsStartup()
+    {
+        File.WriteAllText(Path.Combine(Real, "arena-session.json"), "{ not json");
+        await Assert.ThrowsAnyAsync<Exception>(() => ArenaRewardStartup.AdmitAsync(RewardStartupFiles.Canonical(Real), CancellationToken.None));
+    }
+
+    [Fact]
+    public void AnUnexpectedFailureOnAPlainTreeIsSoftWithAReasonCode()
+    {
+        string root = RewardStartupFiles.Canonical(Real);
+        Assert.Equal(("reward-admission-ArgumentException", false), ArenaRewardStartup.SoftAdmission(new ArgumentException("x"), root, false));
+        Assert.Equal(("reward-admission-some-code", false), ArenaRewardStartup.SoftAdmission(new RewardDataException("some-code"), root, false));
+        Assert.Equal(("reward-admission-JsonException", false), ArenaRewardStartup.SoftAdmission(new JsonException(), root, false));
+        // The unusable-folder cases keep their own reason and the storage flag.
+        Assert.Equal(("reward-storage-access-denied", true), ArenaRewardStartup.SoftAdmission(new UnauthorizedAccessException(), root, false));
+        // The startup-lock wait only counts while it is the wait that failed.
+        Assert.Equal(("reward-admission-InvalidOperationException", false), ArenaRewardStartup.SoftAdmission(new InvalidOperationException(), root, false));
+    }
+
+    [Fact]
+    public void ContentionOwnershipCancellationColaAndPrivateTreesAreNeverSoft()
+    {
+        string root = RewardStartupFiles.Canonical(Real);
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new InvalidOperationException("busy"), root, startupBusy: true));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new RewardOfflineException("owned"), root, false));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new RewardLiveOwnerException("live"), root, false));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new OperationCanceledException(), root, false));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new RewardColaRecoveryException("cola-paid-plan-missing"), root, false));
+        if (OperatingSystem.IsWindows())
+            Assert.Null(ArenaRewardStartup.SoftAdmission(new IOException("sharing", unchecked((int)0x80070020)), root, false));
+        // Any unknown failure while taking .server.lock cannot exclude a second server.
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new ArgumentException("x"), root, false, serverLockStage: true));
+        Assert.Equal(("reward-storage-unavailable", true), ArenaRewardStartup.SoftAdmission(new IOException("disk", unchecked((int)0x80070070)), root, false, serverLockStage: true));
+        // A private tree: marker, lease file, or an active pointer.
+        File.WriteAllText(Path.Combine(Real, "arena-session.json"), "{}");
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new ArgumentException("x"), root, false));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new RewardDataException("x"), root, false));
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new UnauthorizedAccessException(), root, false));
+    }
+
+    [Fact]
+    public void AnActivePointerMakesAnUnexpectedFailureHard()
+    {
+        string root = RewardStartupFiles.Canonical(Real);
+        Directory.CreateDirectory(Path.Combine(Real, "user", "arena-rewards"));
+        File.WriteAllText(RewardOfflineSession.ActivePath(Real), "{}");
+        Assert.Null(ArenaRewardStartup.SoftAdmission(new ArgumentException("x"), root, false));
+    }
+
+    [Fact]
+    public void TheAdmissionPauseWarningNamesTheCodeAndSaysSptStarts()
+    {
+        string text = ArenaRewardStartup.ComposeAdmissionPauseWarning("reward-admission-ArgumentException");
+        Assert.Contains("reward-admission-ArgumentException", text);
+        Assert.Contains("paused", text);
+        Assert.Contains("SPT starts normally", text);
     }
 
     public void Dispose()

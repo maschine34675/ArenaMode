@@ -22,7 +22,8 @@ internal static partial class RewardOfflineSession
                     $"The active Arena session {lease.SessionId} was recorded by the SPT installation in \"{lease.RuntimeRoot}\", "
                     + $"but this installation is in \"{root}\". Only that installation can finish this Arena session. "
                     + $"Start SPT from \"{lease.RuntimeRoot}\" once (or move this folder back), let the session finish, then move it again. "
-                    + "Nothing was changed.", new RewardDataException("offline-recovery-lease-mismatch"));
+                    + "Nothing was changed. SPT starts normally with Arena rewards paused until then.", new RewardDataException("offline-recovery-lease-mismatch"))
+                { ExplainsItself = true };
             string directory = SessionDirectory(root, lease.SessionId);
             string activationProof = Path.Combine(directory, "activation.json");
             bool hasActivation = RewardRuntimeFiles.Exists(root, activationProof);
@@ -33,7 +34,7 @@ internal static partial class RewardOfflineSession
                 // DI disposal can release a lifetime handle before the last native
                 // shutdown callbacks exit. The helper's exit check is also required
                 // for a manual normal startup recovering this record.
-                if (ProcessStillAlive(activation)) throw new RewardDataException("offline-private-process-still-running");
+                RequirePrivateProcessGone(activation);
             }
             if (ReadDiscard(root, lease) is not null)
             {
@@ -140,15 +141,21 @@ internal static partial class RewardOfflineSession
             window.RequireOpen();
             RewardRuntimeFiles.WriteNew(root, Path.Combine(directory, "completion.json"),
                 new RewardOfflineCompletion(1, lease.SessionId, RewardIdentity.Hash(RewardRuntimeFiles.Json(closure))));
-            if (ReadReference(root, ActivePath(root)) != reference) throw new RewardDataException("offline-owner-changed-during-recovery");
+            // Under both locks nobody else may change the pointer: if it changed, another writer is active.
+            if (ReadReference(root, ActivePath(root)) != reference) throw new RewardLiveOwnerException("offline-owner-changed-during-recovery");
             File.Delete(ActivePath(root));
             if (HasActive(root)) throw new IOException("Offline ownership retirement was not durable.");
+        }
+        catch (RewardLiveOwnerException exception)
+        {
+            throw new RewardOfflineException($"Offline Arena recovery is incomplete ({exception.Message}); startup stopped because another Arena or SPT process may still be writing.", exception)
+            { LiveWriter = true };
         }
         catch (Exception exception) when (exception is not RewardOfflineException)
         {
             // The console prints only this message, not the inner exception: carry the reason so the player can report it.
             string reason = exception is RewardDataException ? exception.Message : exception.GetType().Name;
-            throw new RewardOfflineException($"Offline Arena recovery is incomplete ({reason}); normal startup stopped without replacing a profile.", exception);
+            throw new RewardOfflineException($"Offline Arena recovery is incomplete ({reason}); the Arena session was left untouched and is retried at the next start.", exception);
         }
     }
 
@@ -259,9 +266,10 @@ internal static partial class RewardOfflineSession
         $"Arena session {lease.SessionId} was recorded by the SPT installation in \"{lease.RuntimeRoot}\", but this installation is in \"{root}\". "
         + "Only that installation can finish this Arena session. "
         + $"Start SPT from \"{lease.RuntimeRoot}\" once (or move this folder back), let the session finish, then move it again. "
-        + $"If that installation is gone for good, moving \"user\\arena-rewards\\offline-sessions\\{lease.SessionId}\" out of this installation lets SPT start; "
-        + "the Arena results and reward setting changes of that session that were never returned are lost. Nothing was changed.",
-        new RewardDataException("offline-history-binding-mismatch"));
+        + $"If that installation is gone for good, moving \"user\\arena-rewards\\offline-sessions\\{lease.SessionId}\" out of this installation lets Arena rewards resume at the next start; "
+        + "the Arena results and reward setting changes of that session that were never returned are lost. Nothing was changed. SPT starts normally with Arena rewards paused until then.",
+        new RewardDataException("offline-history-binding-mismatch"))
+    { ExplainsItself = true };
 
     private static bool ProcessStillAlive(RewardOfflineActivation activation)
     {

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace ArenaMode.Tests;
 
-public sealed class RewardRuntimeTests
+public sealed partial class RewardRuntimeTests
 {
     // A refusal of the start that recurs while the installation stays as it is (another mod's load step before
     // Arena's) is not "temporarily unavailable": the card says that rewards are off and points to the log

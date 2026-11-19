@@ -76,7 +76,7 @@ internal static partial class RewardOfflineSession
     {
         window.RequireOpen();
         var activation = ReadActivation(window.Root, lease);
-        if (ProcessStillAlive(activation)) throw new RewardDataException("offline-private-process-still-running");
+        RequirePrivateProcessGone(activation);
         var record = ReadDiscard(window.Root, lease);
         if (record is null)
         {
@@ -99,7 +99,7 @@ internal static partial class RewardOfflineSession
         checkpoint?.Invoke("discard-completion");
         window.RequireOpen();
         if (ReadReference(window.Root, ActivePath(window.Root)) != reference)
-            throw new RewardDataException("offline-owner-changed-during-recovery");
+            throw new RewardLiveOwnerException("offline-owner-changed-during-recovery");
         File.Delete(ActivePath(window.Root));
         if (HasActive(window.Root)) throw new IOException("Offline discard retirement was not durable.");
         checkpoint?.Invoke("discard-retired");
