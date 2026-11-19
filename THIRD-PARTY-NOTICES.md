@@ -1,6 +1,6 @@
 # ArenaMode: licenses, sources and credits
 
-Current-tree inventory, checked **2026-10-29** (the diff since the v0.4.0 tag adds no third-party
+Current-tree inventory, checked **2026-11-19** (the diff since the v0.4.0 tag adds no third-party
 code or assets). This document distinguishes
 ArenaMode's code license from separately licensed assets. It does not relicense
 earlier Git revisions, screenshots or game content, and is not a statement that
@@ -56,6 +56,12 @@ not an imported mod or configuration app. Its MIT reference notice is retained
 in [the access-check sources](tools/ArenaLabyrinthAccessChecks/EnableLabyrinth-LICENSE.txt),
 copyright (c) 2025 acidphantasm. See the
 [implementation boundary](tools/ArenaLabyrinthAccessChecks/README.md).
+
+ArenaMode-WeaponPoolFix, part of the BEAQO add-on by Sankese (MIT, copyright (c) 2026 maschine and
+Sankese), was a behavioral reference: it showed that one broken weapon preset fails the whole Gun Game
+pool and which defects to look for. Arena's `ArenaPresetGuard` is an independent implementation (it works on
+the raw preset before one preset per weapon is chosen, with its own rule set and reasons); no source code
+of the add-on is included.
 
 Smoothie (CC BY-NC-SA 4.0) was read as a technique reference for building a
 server batch of bot profiles under a per-frame time budget

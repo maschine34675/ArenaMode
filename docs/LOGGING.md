@@ -16,6 +16,11 @@ optional grenades or spare magazines that did not fit are Debug. A no-contest
 round and a kit without any reserve stay Warning: there the round has no valid
 result or the player fights on the loaded magazine alone.
 
+The Gun Game weapon-pool generator is the same kind of case: when weapon presets of the item database
+do not fit it (a weapon mod changed a weapon's slots) it logs ONE Warning per server start with the count,
+the first three presets and their reasons, details at Debug, and nothing when nothing was left out. Left out
+silently, a lost weapon would be as invisible as the old `base-invalid` Debug line.
+
 A start whose rewards are paused is not gameplay either: it is one Warning per start that
 names the reason code ("Arena rewards are paused for this start: ...", see
 [Rewards paused at start](REWARDS-RUNTIME.md#rewards-paused-at-start)), never Debug. A

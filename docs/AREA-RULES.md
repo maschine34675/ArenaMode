@@ -391,6 +391,13 @@ shares the documented preload exception's limits. Individual native groups must
 remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See docs/reviews/DEATHMATCH-GROUPS-REVIEW.md.
 
+The Gun Game weapon pool is generated at server load from the item database's weapon presets. One preset
+the database cannot build must never fail the whole pool: `ArenaPresetGuard` runs on the raw preset before
+`Plainer`, each preset/candidate/entry has its own try, and the left-out presets are reported once at
+Warning. Read docs/reviews/WEAPON-VARIANTS-REVIEW.md ("Preset guard") before changing `LadderGenerator`; keep
+`Consider`'s name and signature unique (the BEAQO add-on patches it by reflection) and `ArenaWeaponVariants.CreateCatalog`
+keeping `base-invalid` entries.
+
 Damage assists add proportional base points without changing the killer reward,
 kill limits or Tactical money. Read docs/reviews/ASSIST-SCORING-REVIEW.md before changing HP
 capture, settlement or scoreboard compaction: actual HP deltas precede native

@@ -100,6 +100,47 @@ visible to the existing template-based `KitBundlePreloader`. Gun Game's existing
 preload-before-swap and respawn preload remain authoritative; no late client-side
 mutation or new bundle-loading mechanism is introduced.
 
+## Preset guard (weapon pool, 2026-11-19)
+
+The Gun Game pool is built by `LadderGenerator` from the item database's weapon presets, inside one try. Before
+the guard, ONE preset it could not build (a part whose parent is in no node, a duplicate part id, a slot a weapon
+mod removed from the weapon) threw there and the server fell back to the shipped 24-entry ladder instead of about
+140 weapons; other defects did not throw and gave the player an incomplete gun (the client logs `Kit: no slot`
+and skips the part). The credit for the failure analysis belongs to Sankese's BEAQO add-on (THIRD-PARTY-NOTICES).
+
+- **First net: `ArenaPresetGuard.Problem`**, pure, on the RAW preset BEFORE `Plainer` picks one preset per weapon
+  (after it, a broken plainest preset would lose a weapon whose other preset is fine). Rules, each mapped to a
+  throw site or a build the client cannot complete, argued in the class comment: no-parts, no-root /
+  several-roots, duplicate-id, bad-parent / no-slot / orphan, cycle, root-mismatch (the generator keys name,
+  calibre and ammunition by the Encyclopedia but builds from the root node), unknown-template, slot-missing
+  (Slots, Chambers or Cartridges of the parent), required-empty (required `Slots` only). Parent ids compare as
+  `MongoId` (case-insensitive like `BuildEntry`), slot ids ordinally. Deliberately NOT rules: duplicate slots
+  (vanilla `saiga12_nerf` repeats a stack slot 20 times), slot filters, a part cap.
+- **Second net:** each preset, candidate and entry is built in its own try; the rung number follows the pool
+  position, so a skipped candidate leaves no hole. One Warning per start (first three, details at Debug); the
+  report has its own try so it can never discard the pool.
+- **`base-invalid` is the later, softer net and stays as it is.** `CreateCatalog` keeps an entry whose base fails
+  `TryValidate` byte-identical and only reports it, and it also serves `kits.json` (authored, shown in the kit
+  UI): dropping entries there would silently shorten the player's kit list, and for the Gun Game it would undo
+  the draw's guarantee of `rungs` entries. Pinned by `tools/WeaponVariantChecks/Program.cs` ("invalid base left
+  exactly unchanged"). With the guard in place the structural defects of a generated preset no longer reach it.
+- **Proof that valid presets are not lost.** On the installed vanilla database (SPT 4.1: 272 weapon presets,
+  148 weapons) the guard rejects none of them (`GuardRejectsNoVanillaWeaponPreset`, with population floors) and
+  `GuardDoesNotChangeTheVanillaPool` compares the guarded with the unguarded pool (node ids normalised by first
+  appearance). A one-time golden comparison against the UNTOUCHED generator, taken before the change over the
+  same database files, gave the same normalised-pool hash before and after (pool of 139 entries):
+  `F02752ED57CFDD69D32B6AA53B257F3E0704FF6A52102EA8E8415FB339F36681`, with `items.json`
+  `5093B348FD0D507CDDC1E957114A77B44FF9358846299CBC98AC5E0AD4967A34` and `globals.json`
+  `8EDFD516F4969F97DB7BC7DF6EE727809850CBB7BE1300719C5FD16A02298AC0`. The hash is evidence, not pinned: it
+  depends on the SPT data version, and the fixture (no handbook, no English locale) is not the live pool.
+- **Injection:** `OneBrokenPresetCostsOnlyItself` injects a preset named "default" (so `Plainer` takes it) with an
+  orphan part: guard on gives the baseline pool and one Warning with `orphan:`; guard off gives one entry fewer, a
+  `build-threw:KeyNotFoundException` line and dense numbering. `tools/WeaponPoolGuardChecks` holds 23 mutants
+  of the guard and of the wiring; the Consider net has no vanilla trigger and is exercised with a template that
+  throws when read.
+- **Not covered offline:** presets that content mods add at server load. Native acceptance is one server start
+  with all mods (the Warning, if any, must name real defects) and one Gun Game raid to the first promotion.
+
 ## Checks and remaining runtime gate
 
 `tools/WeaponVariantChecks/Verify.ps1` links the actual generator and LadderPicker,

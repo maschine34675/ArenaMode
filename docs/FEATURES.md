@@ -418,7 +418,7 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
 Contract and test boundaries: [Translocator](reviews/TRANSLOCATOR-20261115.md).
 
 Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
-[weapon variants](../ArenaMode.Server/Services/ArenaWeaponVariants.cs),
+[weapon variants](../ArenaMode.Server/Services/ArenaWeaponVariants.cs), [pool preset guard](../ArenaMode.Server/Services/ArenaPresetGuard.cs) (a weapon preset the item database cannot build is left out of the Gun Game pool with a logged reason instead of dropping the whole pool to the shipped ladder),
 [backpack reload](reviews/BACKPACK-RELOAD-REVIEW.md),
 [default fire mode](reviews/DEFAULT-FIRE-MODE-REVIEW.md),
 [skills](../ArenaMode.Client/Combat/ArenaSkills.cs),
