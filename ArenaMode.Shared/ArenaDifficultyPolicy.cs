@@ -208,7 +208,7 @@ public static class ArenaDifficultyPolicy
 
     /// <summary>
     /// Gun Game: how many levels below the current gear level a pooled bot profile may sit before it is
-    /// discarded. The server's band is the centre +/-5 (<c>Spread</c> in ArenaBotTierScalePatch), so a
+    /// discarded. The server's band is the centre +/-5 (<see cref="GearBand"/>, which ArenaBotTierScalePatch writes), so a
     /// pooled profile below centre - 5 is below anything the server would generate now. A native Gun Game
     /// raid with a slack of 10 let profiles made shortly before the end of the ramp feed the spawns for
     /// minutes (levels 55..65 against a band of 61..71). A fresh batch is not stale on arrival as long as
@@ -255,7 +255,9 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The PMC levels worth pooling at raid start, a subset of <see cref="PmcRequestLevels"/>.
     /// The server builds a profile with the gear band of the moment it is asked, and only
-    /// Gun Game's band moves. A level pooled at second 0 would reach the field minutes later
+    /// Gun Game's band moves with the clock (solo Tactical's moves with the round: the pool made
+    /// at raid start carries the round 1 band, the round it is used in, and
+    /// ArenaTacticalFreshGearPatch drops what is left of it at a stage change). A level pooled at second 0 would reach the field minutes later
     /// in start-level gear, so in Gun Game only the opening level is warmed (its AI level is
     /// requested while the band is still near the start, and later refills use the live band);
     /// the step's level is requested fresh once progress reaches its threshold. Nothing is

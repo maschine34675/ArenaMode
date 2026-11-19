@@ -1550,7 +1550,7 @@ public class ArenaSessionService
     /// The Tactical round the client last reported for exactly this live raid; 1 until a report
     /// arrived, and 1 for a null or stale identity and for a protected raid. A sibling of
     /// <see cref="TryGetBotTierContext"/> on purpose: that method keeps its seven parameters (its one
-    /// production caller, two tests and the BEAQO add-on's reflection all depend on them) and gets
+    /// production caller, two tests and a third-party add-on's reflection all depend on them) and gets
     /// no overload. The entry is matched by reference, so a replacement raid with the same
     /// arm string never inherits the round; a report that lands between the context read and this
     /// call only moves the answer to the newer report, which is what the band should follow.

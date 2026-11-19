@@ -31,6 +31,10 @@ the player reads are all defined through it, so they cannot disagree. `TacticalO
 `TacticalOpeningRoundsThatDiffer` are defined through it too (a round differs when its level is not the full
 level).
 
+The owner decided the shape (lighter in rounds 1 and 2, the full level from round 3). The values below were set
+during the implementation on 2026-11-19 and are **not confirmed by the owner yet**: the centres 25 and 45, the
+derivation of the Reduced centres, the gap of 10 levels and the wording of the buy-screen line.
+
 - `full = GearLevel(step, start, end)`. From round 3 on the answer is `full`; a round of 0 or less counts as
   round 1.
 - Otherwise the opening centre of the round, clamped into [the map's start level, `full`]. Maximum: round 1 =
@@ -53,8 +57,9 @@ tier of the bot system below the top one is 10 levels wide, so a band always ove
 Maximum lands on the tier above its centre with one level of the tier below (20 in tier 2 for round 1, 40 in
 tier 4 for round 2: the overhang is on the **weaker** side on purpose, the feature's error budget is "too
 soft", not "too hard"). Reduced round 2 puts two of its eleven levels (31 and 32) in the next tier up: that is
-the price of deriving it from the share instead of keeping a second table (the owner's 0.6 share, decided
-2026-11-19; 25 would have avoided it and was not chosen). The Reduced full band 35..45 straddles tiers 4 and 5
+the price of deriving it from the share instead of keeping a second table (0.6 is the difficulty model's share;
+deriving the Reduced centres from it was chosen during the implementation, and a hand-picked 25 would have
+avoided the overhang). The Reduced full band 35..45 straddles tiers 4 and 5
 and is old behaviour. Custom maps (every case is pinned by `TacticalOpeningPolicyTests`):
 
 | Map numbers | Maximum, rounds 1 / 2 / 3+ | Reduced, rounds 1 / 2 / 3+ |
@@ -239,7 +244,7 @@ call avoids the SPT wrapper's two Info lines per call.
 ## Checks
 
 - xunit: `TacticalOpeningPolicyTests` (the table, the custom maps, monotonicity, the gap rule, the derivation,
-  the band predicate, `GearBandSpread` equal to the server's private `Spread`), `TacticalRoundReportTests` and
+  the band predicate, `GearBand` as the spread either side of the centre, floored at 1), `TacticalRoundReportTests` and
   `TacticalRoundStatusTests` (the route, refusals, `Duplicate`, restart, both reset sites, `/status`),
   `TacticalOpeningTextTests` (the three texts, 45 characters, the sweep against the policy), and the Tactical
   rows of `BotTierDifficultyBandTests`.
@@ -249,7 +254,7 @@ call avoids the SPT wrapper's two Info lines per call.
   text; 97 mutants, each dying on the assertion it names.
 - `tools/TacticalFreshGearChecks`: the real patch, state, gate and policy against the balance fixtures: both
   sides, the round sequence, the budget, a new centre, a late ack, a second raid, `Reset`, every guard, scav
-  squads, the wiring in `Plugin.cs` and `ArenaRespawnDriver.cs`; 50 mutants.
+  squads, the wiring in `Plugin.cs` and `ArenaRespawnDriver.cs`; 53 mutants.
 - `tools/TacticalPolishChecks` compiles the new property into its slice, runs the hold and the line round by
   round, with probes; `tools/SoloTacticalSpawnChecks` pins the gate between the guard and the request.
 - `GunGameFreshGearChecks` and `DurationDifficultyChecks` stay green (Gun Game and `Describe()` untouched).
