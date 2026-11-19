@@ -1314,7 +1314,8 @@ public static class Settings
                 "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
                 "cap with reserve for activation and any authenticated PitFireTeam companions. " +
                 "The ceiling of 96 stays below the server clone's 104-bot capacity floor. " +
-                "Frozen at match start.",
+                "At the Reduced difficulty step at most 24 are alive at once whatever this says " +
+                "(the menu row shows the effective value first). Frozen at match start.",
                 new AcceptableValueRange<int>(4, 96)));
 
         ZombieStuckWaveTimeoutSeconds = config.Bind("Zombie", "StuckWaveTimeoutSeconds", 100f,
@@ -1354,6 +1355,9 @@ public static class Settings
                 "Percent chance each spawned infected is the hard/Shooting variant (PM pistol) instead of " +
                 "normal/Fast melee. 0 keeps every infected melee; 100 makes every infected a shooter. " +
                 "Never easy (too slow to matter) or impossible (the native brain throws on construction). " +
+                "At the Maximum difficulty step every fifth wave is a special wave: waves 5, 15, 25, ... are ALL RUNNERS " +
+                "(no shooters and no slow infected) and waves 10, 20, ... are ALL SHOOTERS (every infected a shooter). " +
+                "Exactly 0 never gets ALL SHOOTERS and exactly 100 never gets ALL RUNNERS; Reduced has no special waves. " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
 
@@ -1640,8 +1644,8 @@ public static class Settings
             "gear level, extra PMCs on top of the PMC floor, bot speed exactly as set, and position reports as configured. " +
             "Reduced: one step down everywhere (PMCs hard, scavs normal, about 60 % gear level, fewer extra PMCs, half of " +
             "the bot speed surplus, position reports 1.5x slower). Either value holds from the first spawn; only Gun Game " +
-            "builds up over the raid. Zombies (their position reports are never slowed): Maximum keeps the configured number alive, turns the slow walkers into runners and " +
-            "adds shooters wave by wave; Reduced keeps the mix as it is and allows at most 24 alive at once. Protected PitFireTeam raids keep opponent gear relative " +
+            "builds up over the raid. Zombies (their position reports are never slowed): Maximum keeps the configured number alive, turns the slow walkers into runners, " +
+            "adds shooters wave by wave and makes every fifth wave ALL RUNNERS or ALL SHOOTERS; Reduced keeps the mix as it is, has no special waves and allows at most 24 alive at once. Protected PitFireTeam raids keep opponent gear relative " +
             "to your profile at both steps. Frozen when the raid starts.");
 
         var difficultyRevision = config.Bind("Difficulty", "DifficultyRevision", 0,

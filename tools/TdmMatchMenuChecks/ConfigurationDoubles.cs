@@ -17,7 +17,8 @@ namespace ArenaMode.Pickups
 }
 namespace ArenaMode.Session
 {
-    public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; }
+    // Difficulty is the step frozen at arm (null outside an armed or active raid), as in the real ArenaSession.
+    public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; public static ArenaMode.Shared.ArenaDifficultyStep? Difficulty; }
     internal static class ArenaMenuSelection
     {
         internal static bool DominationAvailable = true;

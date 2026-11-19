@@ -1,7 +1,9 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using BepInEx.Configuration;
 using System;
+using System.Globalization;
 
 namespace ArenaMode.Session;
 
@@ -31,6 +33,34 @@ internal sealed class ArenaZombieRulesState
     };
 
     internal static int Value(ArenaZombieRule rule) => Entry(rule)?.Value ?? 0;
+
+    /// <summary>
+    /// The difficulty step this menu describes: the step frozen at arm when the raid is armed (an F12 edit
+    /// after the arm changes nothing for that raid, and the row must not promise it), otherwise the live
+    /// setting, which is exactly what the arm path freezes next.
+    /// </summary>
+    internal static ArenaDifficultyStep CurrentStep
+        => ArenaSession.Difficulty ?? Settings.DifficultyStep?.Value ?? ArenaDifficultyStep.Maximum;
+
+    /// <summary>
+    /// What the row shows next to its slider. The slider stays the editor of the setting (<paramref name="setting"/>
+    /// is what it holds and what the cfg keeps); only ALIVE AT ONCE can show something else, and only at
+    /// Reduced when the cap bites (a setting above 24): the effective value first, then the setting, so the
+    /// player reads what the raid will use. At Maximum, and at Reduced with a setting of 24 or less, it is the
+    /// plain setting. The effective value comes from the same policy the raid reads
+    /// (<see cref="ArenaDifficultyPolicy.ZombieMaxAlive"/>), so the row cannot drift from the rule.
+    /// </summary>
+    internal static string ValueText(ArenaZombieRule rule, int setting, ArenaDifficultyStep step)
+    {
+        if (rule == ArenaZombieRule.MaxAlive)
+        {
+            int effective = ArenaDifficultyPolicy.ZombieMaxAlive(step, setting);
+            if (step == ArenaDifficultyStep.Reduced && effective != setting)
+                return effective.ToString(CultureInfo.InvariantCulture) + " (setting "
+                    + setting.ToString(CultureInfo.InvariantCulture) + ", Reduced)";
+        }
+        return setting.ToString(CultureInfo.InvariantCulture);
+    }
     internal static AcceptableValueRange<int> Range(ArenaZombieRule rule)
         => Entry(rule)?.Description.AcceptableValues as AcceptableValueRange<int>;
 
