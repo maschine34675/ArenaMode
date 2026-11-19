@@ -651,6 +651,21 @@ public sealed class OfflineSessionHelperTests
         Assert.Contains(area.Tree, refused.Message);
     }
 
+    [Fact]
+    public void AnInstallationWhoseRecordsFolderIsGoneIsNotCalledGone()
+    {
+        using var area = new Area();
+        area.Close();
+        string other = OtherInstallation(area);
+        // The folder is still there (records wiped, or a fresh SPT at the old path): only its records are missing.
+        Directory.Delete(Path.Combine(area.Source, "user", "arena-rewards", "offline-sessions"), true);
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other));
+        Assert.Equal("foreign-session-unreadable", refused.Code);
+        Assert.Contains("records are missing", refused.Message);
+        Assert.DoesNotContain("no longer exists", refused.Message);
+        Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
+    }
+
     // A real rebuild over the kept tree of a moved installation: the junctions of the old tree point into the folder
     // that left (dangling) or at a folder that is still there. The first must go, the second must stay untouched.
     [Fact]

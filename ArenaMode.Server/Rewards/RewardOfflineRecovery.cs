@@ -260,7 +260,7 @@ internal static partial class RewardOfflineSession
         + "Only that installation can finish this Arena session. "
         + $"Start SPT from \"{lease.RuntimeRoot}\" once (or move this folder back), let the session finish, then move it again. "
         + $"If that installation is gone for good, moving \"user\\arena-rewards\\offline-sessions\\{lease.SessionId}\" out of this installation lets SPT start; "
-        + "the Arena results of that session that were never returned are lost. Nothing was changed.",
+        + "the Arena results and reward setting changes of that session that were never returned are lost. Nothing was changed.",
         new RewardDataException("offline-history-binding-mismatch"));
 
     private static bool ProcessStillAlive(RewardOfflineActivation activation)

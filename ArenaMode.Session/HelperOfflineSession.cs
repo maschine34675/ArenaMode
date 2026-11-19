@@ -649,13 +649,16 @@ namespace ArenaMode.SessionHelper
             // about the installation. Only a vanished installation or a wiped records folder cannot be read at all.
             bool unreadable = IsUnreadable(foreign);
             string detail = reason == null || string.IsNullOrEmpty(reason.Message) ? string.Empty : " (" + reason.Message + ")";
+            // Only the records folder decides readability; the wording must not claim the folder is gone when it is still there
+            // (a wiped records folder, or a fresh SPT installed at the old path).
+            string gone = Directory.Exists(foreign) ? "whose Arena session records are missing" : "which no longer exists";
             if (unreadable && CallerHoldsSessionCopy(tree, callerRuntime))
-                return "This SPT folder (" + callerRuntime + ") was moved: the last Arena session was started from \"" + foreign + "\", which no longer exists,"
+                return "This SPT folder (" + callerRuntime + ") was moved: the last Arena session was started from \"" + foreign + "\", " + gone + ","
                     + " and this folder's own records do not show that session as finished" + detail + ". Move the folder back to \"" + foreign + "\","
                     + " start SPT there once so the session can finish, then move it again. If that is not possible, the leftover Arena folder \"" + tree
                     + "\" can be deleted by hand; Arena results of that session that were never returned are lost with it. Nothing was changed.";
             if (unreadable)
-                return "The last Arena session was started from the SPT folder \"" + foreign + "\", which no longer exists (it was moved, deleted or is offline),"
+                return "The last Arena session was started from the SPT folder \"" + foreign + "\", " + gone + " (it was moved, deleted or is offline),"
                     + " so its session records cannot be read" + detail + ". If SPT was moved, move it back to that place and finish the session there."
                     + " If that folder is gone for good, the private session folder \"" + tree + "\" can be deleted by hand;"
                     + " Arena results of that session that were never returned are lost with it. Nothing was changed.";
