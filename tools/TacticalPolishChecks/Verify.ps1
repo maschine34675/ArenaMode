@@ -6,7 +6,8 @@ New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 $boundPaths=@('ArenaMode.Client/Modes/TacticalMode.cs','ArenaMode.Client/Modes/ArenaMatch.cs',
     'ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs','ArenaMode.Client/Hud/TacticalBuyPanel.cs',
     'ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs','ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs',
-    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs',
+    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs','ArenaMode.Client/Modes/TacticalOpeningBandGate.cs','ArenaMode.Client/Modes/TacticalRoundReply.cs',
+    'ArenaMode.Shared/ArenaDifficultyPolicy.cs','ArenaMode.Shared/Protocol.cs',
     'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs',
     'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs')
 $boundPaths+=Get-ChildItem -LiteralPath $PSScriptRoot -File|ForEach-Object {'tools/TacticalPolishChecks/'+$_.Name}
@@ -90,6 +91,9 @@ if(!$SkipNegativeProbes){
     $order=$methods.Clone();$order['StartRound']=Extract-Method $preFix 'StartRound'
     Run-Probe 'pre-fix-dispatch-order' $order $panel 'order' "a survivor's squad is not requested, counted or announced before the round-break swap lands"
     Run-Probe 'fault-tick-ignores-held-request' (Mutate 'TickLive' 'if (_squadDispatch.Waiting(RoundNumber))' 'if (false)') $panel 'order' 'the assembly check waits for the held request instead of retrying it'
+    # Opening rounds: the band hold between the dispatch guard and the request, and its early return before Evaluate.
+    Run-Probe 'fault-dispatch-ignores-band-gate' (Mutate 'DispatchOpeningSquad' 'if (!_openingBand.ShouldRelease(round))' 'if (false)') $panel 'order' "round 2's request waits for the server to acknowledge the round report"
+    Run-Probe 'fault-tick-band-hold-skipped' (Mutate 'TickLive' 'if (_bandHeldRound == RoundNumber)' 'if (false)') $panel 'order' 'the assembly check waits for the band hold instead of retrying the request'
     Run-Probe 'fault-respawn-landing-unreported' (Mutate 'OnSoloLocalRespawn' '_squadDispatch.Report(RoundNumber, landed: true);' '') $panel 'order' "the held respawn's landing sends the request"
     # Own kits (docs/reviews/CUSTOM-KITS-20261110.md): the plain window warms what it sold, and only that.
     function Mutate-Panel([string]$find,[string]$replace){
