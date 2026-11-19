@@ -206,7 +206,9 @@ internal sealed class TacticalOpeningBandGate
     /// The buy-screen line for <paramref name="round"/> (<see cref="TacticalOpeningText"/>), empty unless
     /// the feature applies, the squad is PMC and the report of exactly this round is acknowledged: the
     /// player is never told about a stage the server has not confirmed. Called every frame by the buy
-    /// screen, so it allocates nothing and never throws (a failing gear context gives an empty line).
+    /// screen, so it is cheap and only ever runs in the buy phase; it is not allocation-free (the gear
+    /// context reads the per-map config through allocating lookups once the round is acknowledged), which
+    /// is acceptable at that rate. It never throws (a failing gear context gives an empty line).
     /// </summary>
     public string OpponentGearNote(int round)
     {
