@@ -298,6 +298,9 @@ public sealed class ArenaModeRouter : StaticRouter
                 ?? (false, false, null);
             var ordinary = ArenaContext.OrdinaryRaids?.GetRecoveryStatus(sessionId)
                 ?? (false, null, null, null, null, false);
+            // One read: round and seq are a pair, and two accessor calls would take the lock twice,
+            // so a report landing between them could hand a resyncing client a torn pair.
+            var tactical = Sessions?.GetTacticalReportState(sessionId) ?? (1, 0);
             return Json(new
             {
                 state = state.ToString(),
@@ -309,8 +312,8 @@ public sealed class ArenaModeRouter : StaticRouter
                 participants = Sessions?.GetParticipants(sessionId),
                 difficulty = ArenaDifficultyPolicy.ToWire(Sessions?.GetDifficulty(sessionId) ?? ArenaDifficultyStep.Maximum),
                 participantBosses = Sessions?.GetParticipantBosses(sessionId) == true,
-                tacticalRound = Sessions?.GetTacticalReportState(sessionId).round ?? 1,
-                tacticalSeq = Sessions?.GetTacticalReportState(sessionId).seq ?? 0,
+                tacticalRound = tactical.Item1,
+                tacticalSeq = tactical.Item2,
                 armToken = Sessions?.GetArmToken(sessionId),
                 clientRaidStarted = Sessions?.IsClientRaidStarted(sessionId) == true,
                 pitFireTeamTeam = protectedTeam,
