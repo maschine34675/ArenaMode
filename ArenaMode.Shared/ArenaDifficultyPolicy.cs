@@ -412,7 +412,7 @@ public static class ArenaDifficultyPolicy
     /// </summary>
     public const int TacticalOpeningMinGap = 10;
 
-    /// <summary>Same spread the server writes around the band centre (<c>ArenaBotTierScalePatch.Spread</c>; a test pins the equality).</summary>
+    /// <summary>The spread of the generated bots' level band either side of its centre; read through <see cref="GearBand"/> by the server and the client.</summary>
     public const int GearBandSpread = 5;
 
     /// <summary>The mode id compare, in one place for the server band and the client purge.</summary>
@@ -480,9 +480,22 @@ public static class ArenaDifficultyPolicy
     }
 
     /// <summary>
-    /// True when a pooled profile is outside the band the server writes for this centre:
-    /// below max(1, centre - <see cref="GearBandSpread"/>) or above centre + the spread.
+    /// The level band of generated bots around a gear level (band centre): max(1, centre - spread)
+    /// to centre + <see cref="GearBandSpread"/>. THE one source of the band edges: the server writes
+    /// it into the bot generation details (<c>ArenaBotTierScalePatch</c>) and the client purge
+    /// (<see cref="IsTacticalGearOutOfBand"/>) tests pooled profiles against it, so the two cannot
+    /// drift apart (before, the server held its own inline copy and only the spread was pinned).
+    /// </summary>
+    public static (int Min, int Max) GearBand(int centre)
+        => (Math.Max(1, centre - GearBandSpread), centre + GearBandSpread);
+
+    /// <summary>
+    /// True when a pooled profile is outside the band the server writes for this centre
+    /// (<see cref="GearBand"/>).
     /// </summary>
     public static bool IsTacticalGearOutOfBand(int profileLevel, int centre)
-        => profileLevel < Math.Max(1, centre - GearBandSpread) || profileLevel > centre + GearBandSpread;
+    {
+        var (min, max) = GearBand(centre);
+        return profileLevel < min || profileLevel > max;
+    }
 }

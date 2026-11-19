@@ -1,5 +1,3 @@
-using System.Reflection;
-using ArenaMode.Server.Patches;
 using ArenaMode.Shared;
 
 namespace ArenaMode.Tests;
@@ -180,12 +178,13 @@ public sealed class TacticalOpeningPolicyTests
     public void OutOfBandIsTheBandTheServerWrites(int centre, int profileLevel, bool outOfBand)
         => Assert.Equal(outOfBand, ArenaDifficultyPolicy.IsTacticalGearOutOfBand(profileLevel, centre));
 
-    [Fact]
-    public void TheSpreadIsTheOneTheServerPatchWrites()
-    {
-        var spread = typeof(ArenaBotTierScalePatch).GetField("Spread", BindingFlags.NonPublic | BindingFlags.Static)!;
-        Assert.Equal(ArenaDifficultyPolicy.GearBandSpread, (int)spread.GetRawConstantValue()!);
-    }
+    [Theory]
+    [InlineData(25, 20, 30)]
+    [InlineData(3, 1, 8)]   // the floor of the band is level 1
+    [InlineData(1, 1, 6)]
+    [InlineData(66, 61, 71)]
+    public void TheGearBandIsTheSpreadEitherSideOfTheCentreFlooredAtOne(int centre, int min, int max)
+        => Assert.Equal((min, max), ArenaDifficultyPolicy.GearBand(centre));
 
     [Theory]
     [InlineData("tactical", true)]

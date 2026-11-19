@@ -43,18 +43,16 @@ namespace ArenaMode.Server.Patches;
 /// </summary>
 public sealed class ArenaBotTierScalePatch : AbstractPatch
 {
-    /// <summary>
-    /// How far a bot's level may sit either side of where the ramp currently is.
-    ///
-    /// This has to be spent on BOTH halves of the range, because the field we
-    /// set is not an instruction — it is a clamp. The system builds its own
-    /// window around the PLAYER's level and then clamps that window into ours,
-    /// so on a level one profile both ends of the window land on our minimum and
-    /// every bot in the raid comes out at exactly the same level. Moving the
-    /// player level the window is built around is what makes the range real
-    /// again.
-    /// </summary>
-    private const int Spread = 5;
+    // The band around the gear level is ArenaDifficultyPolicy.GearBand (the one source, shared with the client's pool purge).
+    // How far a bot's level may sit either side of where the ramp currently is.
+    //
+    // This has to be spent on BOTH halves of the range, because the field we
+    // set is not an instruction — it is a clamp. The system builds its own
+    // window around the PLAYER's level and then clamps that window into ours,
+    // so on a level one profile both ends of the window land on our minimum and
+    // every bot in the raid comes out at exactly the same level. Moving the
+    // player level the window is built around is what makes the range real
+    // again.
 
     protected override MethodBase GetTargetMethod()
     {
@@ -132,8 +130,8 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
             // optional APBS 2.4.1 adapter restores these explicit Arena bounds
             // after its global-level/weighted range selection.
             botGenerationDetails.PlayerLevel = here;
-            botGenerationDetails.LocationSpecificPmcLevelOverride =
-                new MinMax<int>(Math.Max(1, here - Spread), here + Spread);
+            var band = ArenaDifficultyPolicy.GearBand(here);
+            botGenerationDetails.LocationSpecificPmcLevelOverride = new MinMax<int>(band.Min, band.Max);
 
             if (identity != null)
                 ArenaBotTierOwnership.MarkWave(botGenerationDetails, sessions, identity);
@@ -166,7 +164,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
         _lastReported = level;
         ArenaContext.Logger?.Debug(
             $"[ArenaMode] Bot gear band on {location}: {elapsed.TotalMinutes:0} min in, "
-            + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}; "
+            + $"bots now level {ArenaDifficultyPolicy.GearBand(level).Min}-{ArenaDifficultyPolicy.GearBand(level).Max}; "
             + $"mode={mode}, step={ArenaDifficultyPolicy.ToWire(step)}, progress={progress:P0}"
             + (tacticalRound > 0 ? $", round={tacticalRound}." : "."));
     }
