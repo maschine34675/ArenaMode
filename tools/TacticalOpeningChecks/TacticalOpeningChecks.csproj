@@ -7,12 +7,14 @@
     <!-- Every production file the checks compile or read is a property so a mutant can point the build at a copy. -->
     <GateSource Condition="'$(GateSource)' == ''">../../ArenaMode.Client/Modes/TacticalOpeningBandGate.cs</GateSource>
     <ReplySource Condition="'$(ReplySource)' == ''">../../ArenaMode.Client/Modes/TacticalRoundReply.cs</ReplySource>
+    <TextSource Condition="'$(TextSource)' == ''">../../ArenaMode.Client/Modes/TacticalOpeningText.cs</TextSource>
     <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Shared/ArenaDifficultyPolicy.cs</PolicySource>
     <ProtocolSource Condition="'$(ProtocolSource)' == ''">../../ArenaMode.Shared/Protocol.cs</ProtocolSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(GateSource)" Link="Production/TacticalOpeningBandGate.cs" />
     <Compile Include="$(ReplySource)" Link="Production/TacticalRoundReply.cs" />
+    <Compile Include="$(TextSource)" Link="Production/TacticalOpeningText.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaDifficultyPolicy.cs" />
     <Compile Include="$(ProtocolSource)" Link="Production/Protocol.cs" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

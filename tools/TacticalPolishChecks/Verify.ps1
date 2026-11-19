@@ -6,7 +6,7 @@ New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 $boundPaths=@('ArenaMode.Client/Modes/TacticalMode.cs','ArenaMode.Client/Modes/ArenaMatch.cs',
     'ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs','ArenaMode.Client/Hud/TacticalBuyPanel.cs',
     'ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs','ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs',
-    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs','ArenaMode.Client/Modes/TacticalOpeningBandGate.cs','ArenaMode.Client/Modes/TacticalRoundReply.cs',
+    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs','ArenaMode.Client/Modes/TacticalOpeningBandGate.cs','ArenaMode.Client/Modes/TacticalRoundReply.cs','ArenaMode.Client/Modes/TacticalOpeningText.cs',
     'ArenaMode.Shared/ArenaDifficultyPolicy.cs','ArenaMode.Shared/Protocol.cs',
     'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs',
     'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs')
@@ -23,7 +23,7 @@ function Extract-Method([string]$source,[string]$name){
 }
 $methodNames=@('Tick','TickLive','StartRound','StartSoloBodyMove','DispatchOpeningSquad','OnSoloLocalRespawn','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','ClearPurchase','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
 $methods=@{};foreach($name in $methodNames){$methods[$name]=Extract-Method $tactical $name}
-$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','Worn')|ForEach-Object {
+$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','OpponentGearNote','Worn')|ForEach-Object {
     $match=[regex]::Match($tactical,'(?ms)^    (?:public|internal) \w+ '+$_+'\s*=>.*?;[ \t]*\r?$')
     if(!$match.Success){throw "Production property $_ not found"};$match.Value
 }

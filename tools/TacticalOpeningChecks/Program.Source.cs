@@ -17,6 +17,9 @@ internal static partial class Program
         CheckTickGlue(tactical);
         CheckMatchEndGlue(tactical);
         CheckConstructorGlue(tactical);
+        CheckBuyLine(tactical,
+            Source("ARENA_OPENING_SCREEN_SOURCE", "ArenaMode.Client", "Hud", "TacticalBuyScreen.cs"),
+            Source("ARENA_OPENING_PANEL_SOURCE", "ArenaMode.Client", "Hud", "TacticalBuyPanel.cs"));
         CheckSender(client);
         CheckPublishedState(Source("ARENA_OPENING_STATE_SOURCE", "ArenaMode.Client", "Bots", "ArenaTacticalOpening.cs"));
 
@@ -152,6 +155,28 @@ internal static partial class Program
             "the gate runs on unscaled time with the HTTP sender");
         Assert(tactical.Contains("message => Plugin.ModLogger.LogDebug(message),\n            message => Plugin.ModLogger.LogWarning(message));", StringComparison.Ordinal),
             "the gate's lines are Debug and its one-per-raid failure a Warning, never Info");
+    }
+
+    // The buy-screen line is its own label in both windows (never appended to the plan line, which is one
+    // 1000 px line holding up to 102 characters already) and is rebuilt on its own test.
+    private static void CheckBuyLine(string tacticalSource, string screenSource, string panelSource)
+    {
+        string tactical = Code(tacticalSource);
+        Assert(tactical.Contains("internal string OpponentGearNote => _openingBand.OpponentGearNote(RoundNumber);", StringComparison.Ordinal),
+            "the mode's note is the gate's line for the current round");
+        string screen = Code(screenSource);
+        Assert(screen.Contains("_plan.text = bought != null ? $\"Buying: {bought.Name ?? bought.Id}\" : mode.NoPurchaseDescription;", StringComparison.Ordinal)
+               && screen.Contains("_note = ArenaKitUi.Text(rect, \"OpponentGear\", style,", StringComparison.Ordinal)
+               && screen.Contains("TextAlignmentOptions.MidlineRight, WindowWidth - Margin - 380f, 54f, 380f, 24f);", StringComparison.Ordinal)
+               && Count(screen, "OpponentGearNote") == 1,
+            "the line is its own label on the card screen, never part of the plan line");
+        Assert(screen.Contains("string note = mode.OpponentGearNote ?? string.Empty;\n            if (fresh || !string.Equals(note, _shownNote, StringComparison.Ordinal))\n            {\n                _note.text = note;\n                _shownNote = note;\n            }", StringComparison.Ordinal),
+            "the note is rebuilt on its own test, so an acknowledgement that arrives after the first frame shows");
+        string panel = Code(panelSource);
+        Assert(panel.Contains("            : mode.NoPurchaseDescription, _bodyStyle);", StringComparison.Ordinal)
+               && panel.Contains("string opponentGear = mode.OpponentGearNote;\n        if (!string.IsNullOrEmpty(opponentGear))\n            GUILayout.Label(opponentGear, _bodyStyle);", StringComparison.Ordinal)
+               && Count(panel, "OpponentGearNote") == 1,
+            "the line is its own label in the plain window, drawn only when it has text");
     }
 
     private static void CheckSender(string clientSource)

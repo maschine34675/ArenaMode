@@ -202,6 +202,27 @@ internal sealed class TacticalOpeningBandGate
         }
     }
 
+    /// <summary>
+    /// The buy-screen line for <paramref name="round"/> (<see cref="TacticalOpeningText"/>), empty unless
+    /// the feature applies, the squad is PMC and the report of exactly this round is acknowledged: the
+    /// player is never told about a stage the server has not confirmed. Called every frame by the buy
+    /// screen, so it allocates nothing and never throws (a failing gear context gives an empty line).
+    /// </summary>
+    public string OpponentGearNote(int round)
+    {
+        try
+        {
+            if (!_applies || !Settled(round) || _gearContext() is not TacticalGearContext context)
+                return string.Empty;
+            return TacticalOpeningText.Note(context.Step, context.StartLevel, context.EndLevel, context.SquadIsPmc, round);
+        }
+        catch (Exception ex)
+        {
+            LogFault("reading the opponent gear note", ex);
+            return string.Empty;
+        }
+    }
+
     /// <summary>Test seam: the process-wide seq counter (the next report gets this plus one).</summary>
     internal static int LastSeqForTests
     {

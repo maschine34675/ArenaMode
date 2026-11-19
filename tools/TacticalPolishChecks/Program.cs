@@ -173,6 +173,20 @@ static class Program
         mode.BandSender=(r,s)=>Task.FromException<TacticalRoundReply>(new HttpRequestException("dead route"));
         mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.Start();
         Check(mode.RoundNumber==4&&BurstSpawnService.Requests.Count==1&&Assembling(),"round 4 with a dead route sends its request at once");
+
+        // The buy screens' own line (TacticalMode.OpponentGearNote): empty until the CURRENT round's report is
+        // acknowledged, each opening round in its own words, nothing from round 4 on.
+        mode=Fresh();mode.BandSender=(r,s)=>Task.FromResult(Ack(r,s));
+        Check(mode.OpponentGearNote=="","no line before the first report is made");
+        mode.BandForTest.Report(1);Check(mode.OpponentGearNote=="","no line while round 1's report is unanswered");
+        mode.BandForTest.Tick();Check(mode.OpponentGearNote==TacticalOpeningText.Light,"round 1 says light gear once its report is acknowledged");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);
+        Check(mode.OpponentGearNote=="","round 2 says nothing until its own report is acknowledged, not even round 1's line");
+        mode.BandForTest.Tick();Check(mode.OpponentGearNote==TacticalOpeningText.Medium,"round 2 says medium gear once acknowledged");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();
+        Check(mode.OpponentGearNote==TacticalOpeningText.FullFromNowOn,"round 3 says full gear from now on");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();
+        Check(mode.OpponentGearNote=="","round 4 says nothing");
     }
     static void Kit()
     {

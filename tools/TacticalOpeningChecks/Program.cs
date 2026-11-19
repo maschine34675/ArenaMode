@@ -27,6 +27,7 @@ internal static partial class Program
             CheckSeqAndToken();
             CheckNeverThrows();
             CheckGearLevel();
+            CheckOpponentNote();
             CheckSharedConstant();
             CheckSources();
             Console.WriteLine($"ARENA_TACTICAL_OPENING_CHECKS_PASSED ({_assertions} assertions)");

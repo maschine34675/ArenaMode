@@ -242,6 +242,13 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             : "No purchase: automatically buy the best affordable kit; cheapest kit is free if you cannot afford any.";
 
     /// <summary>
+    /// The buy screens' own line about the enemy squad's gear (<see cref="TacticalOpeningText"/>): empty
+    /// unless the opening rounds apply, the squad is PMC and this round's report is acknowledged. It is
+    /// a separate label in both windows, never part of <see cref="NoPurchaseDescription"/>.
+    /// </summary>
+    internal string OpponentGearNote => _openingBand.OpponentGearNote(RoundNumber);
+
+    /// <summary>
     /// The buy phase is over but the round waits for a body swap to land (the
     /// raid-start kit swap, or a respawn after a death in the buy phase); the
     /// HUD and the buy menu say so instead of counting to zero.

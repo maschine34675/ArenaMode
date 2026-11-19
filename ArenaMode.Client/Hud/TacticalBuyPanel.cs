@@ -274,6 +274,12 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
             ? $"Buying: {mode.Bought.Name ?? mode.Bought.Id}"
             : mode.NoPurchaseDescription, _bodyStyle);
 
+        // The enemy squad's gear in the opening rounds: its own label, like the card screen's, drawn only
+        // when the mode has something true to say (TacticalMode.OpponentGearNote).
+        string opponentGear = mode.OpponentGearNote;
+        if (!string.IsNullOrEmpty(opponentGear))
+            GUILayout.Label(opponentGear, _bodyStyle);
+
         GUILayout.Space(8f);
 
         _scroll = GUILayout.BeginScrollView(_scroll);

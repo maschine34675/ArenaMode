@@ -7,6 +7,9 @@ $protocol=Join-Path $repo 'ArenaMode.Shared/Protocol.cs'
 $tactical=Join-Path $repo 'ArenaMode.Client/Modes/TacticalMode.cs'
 $sender=Join-Path $repo 'ArenaMode.Client/Session/ArenaTacticalRoundClient.cs'
 $state=Join-Path $repo 'ArenaMode.Client/Bots/ArenaTacticalOpening.cs'
+$text=Join-Path $repo 'ArenaMode.Client/Modes/TacticalOpeningText.cs'
+$screen=Join-Path $repo 'ArenaMode.Client/Hud/TacticalBuyScreen.cs'
+$panel=Join-Path $repo 'ArenaMode.Client/Hud/TacticalBuyPanel.cs'
 $server=Join-Path $repo 'ArenaMode.Server/Services/ArenaSessionService.cs'
 function Fault($name,$path,$property,$find,$replace,$failure,$environment) {
     $fault=@{Name=$name;Path=$path;Find=$find;Replace=$replace;Failure=$failure}
@@ -18,6 +21,9 @@ function Fault($name,$path,$property,$find,$replace,$failure,$environment) {
 function GateFault($name,$find,$replace,$failure) { Fault $name $gate 'GateSource' $find $replace $failure 'ARENA_OPENING_GATE_SOURCE' }
 function TacticalFault($name,$find,$replace,$failure) { Fault $name $tactical $null $find $replace $failure 'ARENA_OPENING_TACTICAL_SOURCE' }
 function StateFault($name,$find,$replace,$failure) { Fault $name $state $null $find $replace $failure 'ARENA_OPENING_STATE_SOURCE' }
+function TextFault($name,$find,$replace,$failure) { Fault $name $text 'TextSource' $find $replace $failure }
+function ScreenFault($name,$find,$replace,$failure) { Fault $name $screen $null $find $replace $failure 'ARENA_OPENING_SCREEN_SOURCE' }
+function PanelFault($name,$find,$replace,$failure) { Fault $name $panel $null $find $replace $failure 'ARENA_OPENING_PANEL_SOURCE' }
 function SenderFault($name,$find,$replace,$failure) { Fault $name $sender $null $find $replace $failure 'ARENA_OPENING_CLIENT_SOURCE' }
 $sendLine='byte[] payload = await RequestHandler.HttpClient.PostAsync(Protocol.TacticalRoundRoute, body).ConfigureAwait(false);'
 $faults=@(
@@ -116,7 +122,25 @@ $faults=@(
     (SenderFault 'sender-logs-info' 'return Task.Run(async () =>' "Plugin.ModLogger.LogInfo(""report"");`n        return Task.Run(async () =>" 'the report goes through RequestHandler.HttpClient.PostAsync inside Task.Run, without the wrapper''s Info lines'),
     (SenderFault 'sender-blocks' $sendLine 'byte[] payload = RequestHandler.HttpClient.PostAsync(Protocol.TacticalRoundRoute, body).Result;' 'the report never blocks the calling thread on its task'),
     (SenderFault 'sender-wrong-route' 'Protocol.TacticalRoundRoute, body)' 'Protocol.StatusRoute, body)' 'the report is posted to the Tactical round route'),
-    (SenderFault 'sender-body-without-seq' 'new { armToken, round, seq }' 'new { armToken, round }' 'the report body carries armToken, round and seq')
+    (SenderFault 'sender-body-without-seq' 'new { armToken, round, seq }' 'new { armToken, round }' 'the report body carries armToken, round and seq'),
+    # --- the buy-screen line: the words, the guard, the labels -----------------------------------
+    (TextFault 'text-too-long-allowed' 'public const int MaxLength = 45;' 'public const int MaxLength = 60;' 'the line is at most 45 characters'),
+    (TextFault 'text-light-reworded' 'public const string Light = "Enemy squad this round: light gear";' 'public const string Light = "Enemy squad: light gear";' 'the three decided texts'),
+    (TextFault 'text-scav-is-told' 'if (!squadIsPmc || round < 1)' 'if (round < 1)' 'a scav squad is told nothing'),
+    (TextFault 'text-round-zero-speaks' 'if (!squadIsPmc || round < 1)' 'if (!squadIsPmc)' 'a round below 1 says nothing'),
+    (TextFault 'text-medium-is-light' 'return round == 1 ? Light : Medium;' 'return Light;' 'round 2 at the opening level of round 2 says medium gear'),
+    (TextFault 'text-no-full-line' 'return FullFromNowOn;' 'return string.Empty;' 'the first full round after a lighter round says full gear from now on'),
+    (TextFault 'text-full-line-without-a-lighter-round' "&& ArenaDifficultyPolicy.TacticalGearLevel(step, startLevel, endLevel, round - 1) != full)`n            return FullFromNowOn;" "&& true)`n            return FullFromNowOn;" 'a map whose round 2 is already full says light gear, then full gear from now on, in round 2'),
+    (TextFault 'text-by-round-number' 'if (level != full)' 'if (round <= ArenaDifficultyPolicy.TacticalOpeningRounds)' 'a map whose round 2 is already full says light gear, then full gear from now on, in round 2'),
+    (GateFault 'note-ignores-the-ack' 'if (!_applies || !Settled(round) || _gearContext() is not TacticalGearContext context)' 'if (!_applies || _gearContext() is not TacticalGearContext context)' 'no line before a report is made'),
+    (GateFault 'note-reads-a-frozen-role' 'context.SquadIsPmc, round);' 'true, round);' 'a scav squad is told nothing even when acknowledged'),
+    (GateFault 'note-throws' 'LogFault("reading the opponent gear note", ex);' 'throw;' 'a failing gear context gives no line and never throws into the frame'),
+    (TacticalFault 'mode-note-previous-round' '_openingBand.OpponentGearNote(RoundNumber);' '_openingBand.OpponentGearNote(RoundNumber - 1);' 'the mode''s note is the gate''s line for the current round'),
+    (ScreenFault 'screen-note-in-the-plan-line' ': mode.NoPurchaseDescription;' ': mode.NoPurchaseDescription + " - " + mode.OpponentGearNote;' 'the line is its own label on the card screen, never part of the plan line'),
+    (ScreenFault 'screen-note-too-wide' 'WindowWidth - Margin - 380f, 54f, 380f, 24f);' 'WindowWidth - Margin - 380f, 54f, 640f, 24f);' 'the line is its own label on the card screen, never part of the plan line'),
+    (ScreenFault 'screen-note-never-rebuilt' '                _shownNote = note;' '' 'the note is rebuilt on its own test, so an acknowledgement that arrives after the first frame shows'),
+    (PanelFault 'panel-note-in-the-body-line' ': mode.NoPurchaseDescription, _bodyStyle);' ': mode.NoPurchaseDescription + mode.OpponentGearNote, _bodyStyle);' 'the line is its own label in the plain window, drawn only when it has text'),
+    (PanelFault 'panel-note-always-drawn' 'if (!string.IsNullOrEmpty(opponentGear))' 'if (true)' 'the line is its own label in the plain window, drawn only when it has text')
 )
 Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'TacticalOpeningChecks.csproj') 'ARENA_TACTICAL_OPENING_CHECKS_PASSED' @() $faults -RequireSingleSite
 Write-Output 'ARENA_TACTICAL_OPENING_CHECKS_VERIFIED'
