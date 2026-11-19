@@ -30,8 +30,8 @@ namespace ArenaMode.Compat;
 /// <para>
 /// Decisions, in the order of <see cref="FindLevelObject"/>:
 /// (1) Amand's own lookup wins whenever it yields a <c>LevelSettings</c>, and nothing of Arena is consulted first. A map
-/// Amand resolves by scene name (only Factory day was run natively; Laboratory, Customs and Factory night are expected, not
-/// proven, to resolve that way) therefore behaves exactly as without Arena, and an ordinary raid is untouched. Which way a
+/// Amand resolves by scene name (only Factory was run natively, and its report does not name the day or night variant;
+/// Laboratory and Customs are expected, not proven, to resolve that way) therefore behaves exactly as without Arena, and an ordinary raid is untouched. Which way a
 /// map goes does not matter for correctness: the substitute only ever fills a lookup that came back empty. The earlier version tested for the literal name <c>!settings</c> and for
 /// Labyrinth only; neither was a safety argument (the 2026-11-08 run simply covered Factory and Labyrinth), and a name
 /// filter would leave a table entry whose object name drifted as a latent NullReferenceException. An existing object

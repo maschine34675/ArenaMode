@@ -355,8 +355,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 - **Development, 2026-11-19:** Amand's Graphics level-settings repair
   (`ArenaMode.Client/Compat/ArenaAmandsGraphicsScene.cs`) now covers every Arena map instead of Labyrinth only: Graphics' own
   lookup wins whenever it yields a `LevelSettings`, otherwise the live `Singleton<LevelSettings>` of the exact raid is used.
-  `tools/AmandsGraphicsSceneChecks` is registered and has 20 mutants; its published-DLL check needs the archived 1.8.0 DLL
-  (git-ignored, pinned hash) and says so when it is skipped, which it is in the runner's worker checkouts. Not run natively
+  `tools/AmandsGraphicsSceneChecks` is registered and has 22 mutants; its published-DLL check needs the archived 1.8.0 DLL
+  (git-ignored, pinned hash) and says so when it is skipped, which it is in the runner's worker checkouts. A direct `Verify.ps1` run from this checkout with the
+  archived DLL (hash matched) passed 80 assertions and 22 of 22 mutants on 2026-11-19; the runner's worker checkouts run 77 plus the skip line. Not run natively
   on the six ArenaMapPort maps, Factory night, Laboratory or Customs; Graphics is not installed here or on the GPU hosts.
   Open: ambient colours on ported maps (Graphics' default scene branch against MapPort's lighting repairs); native acceptance
   plan in `artifacts/opening-rounds-20261119/design/amands-scene.md`, section 6.
