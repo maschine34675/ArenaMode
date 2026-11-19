@@ -56,7 +56,7 @@ internal static class Program
             Settings.ZombieStuckWaveTimeoutSeconds.Value = watchdog;
             Settings.ZombieShooterPercent.Value = shooter;
             ZombieRoleMix.Script = null; ZombieRoleMix.Draws = 0;
-            ArenaMode.Plugin.ModLogger.Lines.Clear();
+            ArenaMode.Plugin.ModLogger.Lines.Clear(); ArenaMode.Plugin.ModLogger.InfoLines.Clear(); ArenaMode.Plugin.ModLogger.DebugLines.Clear();
             ZombieNativeEventBridge.HasSnapshot = snapshot;
             ZombieNativeEventBridge.SnapshotSize = size; ZombieNativeEventBridge.SnapshotShooter = 23;
             ZombieLoadoutRefill.Calls = 0; ArenaMatchService.Current = Match;
@@ -343,6 +343,9 @@ internal static class Program
             Check(ZombieSpawnService.Dispatched == 6 && CompositionLines("1").Count == 1
                 && CompositionLines("1")[0] == "Zombie wave 1 composition: easy 2, normal 2, hard 2 (size 6, theme None).",
                 "the composition line counts the dispatched draws by difficulty once the wave is fully dispatched");
+            Check(ArenaMode.Plugin.ModLogger.DebugLines.Any(l => l.StartsWith("Zombie wave 1 composition:"))
+                && !ArenaMode.Plugin.ModLogger.InfoLines.Any(l => l.Contains("composition")),
+                "the composition line is a Debug line, never Info (gameplay events log at Debug only)");
             ZombieRoleMix.Script = n => "hard";
             Arrive(); t += .3f; f.Tick(t);
             ZombieSpawnService.Alive = 0; t += .3f; f.Tick(t);
@@ -366,6 +369,30 @@ internal static class Program
             Check(ZombieSpawnService.Dispatched == 2 && CompositionLines("1").Count == 1
                 && CompositionLines("1")[0] == "Zombie wave 1 composition: easy 0, normal 2, hard 0 (size 2, theme None).",
                 "the line follows the accepted dispatches only");
+        }
+
+        // A slot that fails asynchronously is drawn again: the draws can reach the wave size while the wave
+        // still owes a slot, and the line must wait for the policy's own count (it then holds the requested mix,
+        // the failed first draw included).
+        using (var f = new Fixture(size: 2, maxAlive: 2))
+        {
+            ZombieRoleMix.Script = n => n == 0 ? "easy" : "hard";
+            float t = .2f; f.Tick(t);
+            Check(ZombieSpawnService.Dispatched == 1, "the first infected of two is dispatched");
+            ZombieSpawnService.Pending = 0; ZombieSpawnService.FailedDispatches = 1;
+            for (int i = 0; i < 12 && ZombieSpawnService.Dispatched < 2; i++) { t += .5f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == 2 && CompositionLines("1").Count == 0,
+                "the line waits for the policy count while a returned slot is owed, although the draws already add up to the wave size");
+            for (int i = 0; i < 12 && CompositionLines("1").Count == 0; i++) { Arrive(); t += .5f; f.Tick(t); }
+            Check(CompositionLines("1").Count == 1
+                && CompositionLines("1")[0] == "Zombie wave 1 composition: easy 1, normal 0, hard 2 (size 2, theme None).",
+                "the line is written once the policy count is reached and holds the requested draws, failed ones included");
+            // The slot that fails after the line is drawn again; the line is not written a second time.
+            ZombieSpawnService.Pending = 0; ZombieSpawnService.Alive = 1; ZombieSpawnService.FailedDispatches = 1;
+            int before = ZombieSpawnService.Dispatched;
+            for (int i = 0; i < 12 && ZombieSpawnService.Dispatched == before; i++) { t += .5f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == before + 1 && CompositionLines("1").Count == 1,
+                "a wave's composition line is written once, not again when a returned slot is drawn again");
         }
 
         // The theme is part of the line, from the same policy the draws use.

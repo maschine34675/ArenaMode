@@ -64,7 +64,9 @@ namespace ArenaMode
     public static class Plugin { public static Logger ModLogger = new(); }
     public class Logger
     {
-        public List<string> Lines = new(); public void LogInfo(object s) => Lines.Add(s.ToString()); public void LogDebug(object s) => Lines.Add(s.ToString());
+        public List<string> Lines = new(), InfoLines = new(), DebugLines = new();
+        public void LogInfo(object s) { Lines.Add(s.ToString()); InfoLines.Add(s.ToString()); }
+        public void LogDebug(object s) { Lines.Add(s.ToString()); DebugLines.Add(s.ToString()); }
         public void LogWarning(object s) => Lines.Add(s.ToString()); public void LogError(object s) => Lines.Add(s.ToString());
     }
 }

@@ -406,10 +406,6 @@ public sealed partial class ZombieMode : IArenaMode
             if (theme != ZombieWaveTheme.None)
                 _waveStatusText = WithTheme(_waveStatusText, themedWave, theme);
 
-            // A wave that is over (or replaced) writes its composition line once.
-            if (_phase != ZombieWavePolicy.Phase.Wave || _waveNumber != _tallyWave)
-                FlushCompositionTally();
-
             if (_phase == ZombieWavePolicy.Phase.Wave && _waveNumber != _lastAnnouncedWave)
             {
                 _lastAnnouncedWave = _waveNumber;
@@ -579,24 +575,29 @@ public sealed partial class ZombieMode : IArenaMode
     }
 
     /// <summary>
-    /// Counts one accepted dispatch by the difficulty drawn for it. The tally is the only record of
+    /// Counts one accepted dispatch by the difficulty drawn for it (accepted by the synchronous request;
+    /// a slot that fails later and is drawn again leaves its first draw in the count, so the line is the
+    /// REQUESTED mix, not proof of the bodies that arrived). The tally is the only record of
     /// what a wave was made of (the bodies carry no difficulty a reader could see), so the native
-    /// acceptance of the special waves reads its line. Reset per wave; the line is written when the wave
-    /// is fully dispatched or, at the latest, when it ends (the end is a safety net: the full-dispatch
-    /// trigger has normally written it already). Slots returned by individual recovery are drawn again
-    /// after the line, which is not repeated: it describes the wave as dispatched.
+    /// acceptance of the special waves reads its line. Reset per wave; the line is written when the policy
+    /// count says the wave is fully dispatched. That is the only trigger, on purpose: the policy increments
+    /// its count only together with a draw that this method then tallies, and a wave cannot end before the
+    /// count reaches the size, so the line has always been written by the time the wave ends (a wave-end
+    /// flush would be unreachable code no harness could exercise). Slots returned afterwards by an
+    /// asynchronous failure or by individual recovery are drawn again after the line, which is not repeated.
     /// </summary>
     private void TallyDispatch(string difficulty)
     {
         int wave = _waveState.WaveNumber;
         if (_tallyWave != wave)
-        {
-            FlushCompositionTally();
             ResetTally(wave);
-        }
         int slot = difficulty == ZombieRoleMix.Easy ? 0 : difficulty == ZombieRoleMix.Hard ? 2 : 1;
         _tally[slot]++;
-        if (_tally[0] + _tally[1] + _tally[2] >= ZombieWavePolicy.WaveSize(_config, wave))
+        // "Fully dispatched" is the policy's own count, not the sum of the draws: a slot returned by an
+        // asynchronous profile failure or by individual recovery is drawn again, so the draws can reach the
+        // wave size while slots are still owed (SpawnedThisWave below the size). Waiting for the policy count
+        // keeps the line from being written before the wave is fully dispatched.
+        if (_waveState.SpawnedThisWave >= ZombieWavePolicy.WaveSize(_config, wave))
             FlushCompositionTally();
     }
 
@@ -612,10 +613,11 @@ public sealed partial class ZombieMode : IArenaMode
         if (_tallyLogged || _tallyWave <= 0 || _tally[0] + _tally[1] + _tally[2] == 0)
             return;
         _tallyLogged = true;
-        Plugin.ModLogger.LogDebug(
-            $"Zombie wave {_tallyWave} composition: easy {_tally[0]}, normal {_tally[1]}, hard {_tally[2]} "
+        string line = $"Zombie wave {_tallyWave} composition: easy {_tally[0]}, normal {_tally[1]}, hard {_tally[2]} "
             + $"(size {ZombieWavePolicy.WaveSize(_config, _tallyWave)}, "
-            + $"theme {ArenaDifficultyPolicy.ZombieWaveThemeFor(_step, _shooterPercent, _tallyWave)}).");
+            + $"theme {ArenaDifficultyPolicy.ZombieWaveThemeFor(_step, _shooterPercent, _tallyWave)}).";
+        // Debug only: a wave is a gameplay event (docs/LOGGING.md); the Info log is for player-relevant events.
+        Plugin.ModLogger.LogDebug(line);
     }
 
     public void OnKill(ArenaKill kill)
