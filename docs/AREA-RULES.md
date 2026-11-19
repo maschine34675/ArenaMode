@@ -287,10 +287,18 @@ docs/reviews/ITEMS-HUD-COMPAT-20261025.md and docs/reviews/REMAINING-MOD-COMPAT-
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
 and camera lifetimes remain in Redeploy.Core (development build minimum 1.0.22).
-Amand's Graphics 1.8.0 is reviewed for Arena. On Labyrinth only, Arena corrects
-its unsuccessful `!settings` lookup for the local FPS camera using EFT's active
-scene `LevelSettings`. This requires the exact active raid or its still-loading,
-server-armed local game and map. Core owns the subsequent camera handoff.
+Amand's Graphics 1.8.0 is reviewed for Arena. On every Arena map Arena repairs
+Graphics' startup lookup of the level settings for the local FPS camera, but only
+when Graphics' own lookup finds no `LevelSettings` (missing object, or an object
+without the component); a lookup that works is never replaced, and ordinary raids
+are untouched. The substitute is the live `Singleton<LevelSettings>` of the exact
+active raid or of its still-loading, server-armed local game and map; nothing is
+written into Graphics' scene table. Core owns the subsequent camera handoff. Only
+Factory (day) and Labyrinth were run natively with Graphics; the six ArenaMapPort
+maps are covered by code and offline checks only (`tools/AmandsGraphicsSceneChecks`,
+with mutants) and have not been run natively. Open point: Graphics treats an unknown
+scene like the hideout and writes its own sky, equator and ground colours into the
+`LevelSettings` fields that ArenaMapPort's lighting repairs also write.
 
 Reviewed-version differences are advisory in direct play and new private sessions
 (user decision, 2026-10-27; docs/reviews/MOD-VERSION-FOLLOWUP-20261027.md). Attempt recognized

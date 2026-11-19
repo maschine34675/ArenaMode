@@ -2,6 +2,8 @@
 
 **8 November follow-up:** the [Graphics retest](../reports/2026-11/GPU-AMANDS-20261108.md)
 resolved the Arena Labyrinth startup issue and supersedes the October whitelist decision below.
+**19 November follow-up:** the repair now covers every Arena map (Graphics' own lookup wins when it works); the ported
+maps are covered by code and offline checks only and have not been run natively. See DEPENDENCIES.md and HANDOFF.md.
 
 Status: **bounded native acceptance and policy update, 2026-10-26**. This records the
 follow-up to [the seven-mod review](../reports/2026-10/SEVEN-MOD-COMPAT-20261025.md) and the earlier

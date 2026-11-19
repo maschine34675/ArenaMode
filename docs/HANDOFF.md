@@ -352,6 +352,14 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   binaries on disk. Rollback manifest and previous files are under
   `D:\SPT41-Backups\arena-session-menu-art\20261109-192424-305`.
 
+- **Development, 2026-11-19:** Amand's Graphics level-settings repair
+  (`ArenaMode.Client/Compat/ArenaAmandsGraphicsScene.cs`) now covers every Arena map instead of Labyrinth only: Graphics' own
+  lookup wins whenever it yields a `LevelSettings`, otherwise the live `Singleton<LevelSettings>` of the exact raid is used.
+  `tools/AmandsGraphicsSceneChecks` is registered and has 20 mutants; its published-DLL check needs the archived 1.8.0 DLL
+  (git-ignored, pinned hash) and says so when it is skipped, which it is in the runner's worker checkouts. Not run natively
+  on the six ArenaMapPort maps, Factory night, Laboratory or Customs; Graphics is not installed here or on the GPU hosts.
+  Open: ambient colours on ported maps (Graphics' default scene branch against MapPort's lighting repairs); native acceptance
+  plan in `artifacts/opening-rounds-20261119/design/amands-scene.md`, section 6.
 - **Development, 2026-11-08:** Amand's Graphics 1.8.0 was admitted after
   Factory and Labyrinth respawns. Amand's Sense Updated 3.1.0 was exercised
   with Core 1.0.22 on Factory and remains unlisted. [Builds, evidence and

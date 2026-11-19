@@ -264,10 +264,14 @@ native observations below predate that migration; see
   Arena additionally isolates its cold-kit preloads. Two actual scoped Arena
   deaths and a newly held scope's rendering passed with Fontaine FOV Fix 4.1.0.
   Coverage does not extend to every optic, NVG/thermal mode or callback race.
-- **Amand's Graphics 1.8.0:** reviewed in the whitelist. Arena uses
-  Labyrinth's actual lighting settings when Graphics cannot find its usual
-  scene object. The initial kit and two deaths on Labyrinth passed, including
-  one with graphics switched off. [Native test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
+- **Amand's Graphics 1.8.0:** reviewed in the whitelist. Arena uses the
+  actual lighting settings of the running map when Graphics cannot find its
+  usual scene object, on every Arena map (a lookup that works is left alone).
+  The initial kit and two deaths on Labyrinth passed, including one with
+  graphics switched off. The six ArenaMapPort maps are covered by code and
+  offline checks and have not been run natively yet; on them Graphics treats the
+  unknown scene like the hideout, which can change the ambient colours.
+  [Native test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
 - **Amand's Sense Updated 3.1.0:** Core 1.0.22 preserves Sense
   markers and the current inventory across a body replacement. The mod remains
   outside the default Arena whitelist. [Test and scope](reports/2026-11/GPU-AMANDS-20261108.md)

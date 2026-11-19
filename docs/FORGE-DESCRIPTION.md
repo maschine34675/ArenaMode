@@ -373,8 +373,12 @@ reward choice is kept.
   Books impact sounds and an unresolved intermittent audio noise) was published on
   2026-10-30; 0.3.0 works without monitors.
 - One native BotFirstAid teardown exception was seen once and is unattributed.
-- Amand's Graphics 1.8.0 is on the whitelist. Arena resolves the Labyrinth lighting
-  settings during startup. Graphics can stay ON or OFF through respawns.
+- Amand's Graphics 1.8.0 is on the whitelist. Arena resolves the map's lighting
+  settings during startup on every Arena map. Graphics can stay ON or OFF through
+  respawns. Tested in the game on Factory and Labyrinth only; the ArenaMapPort maps
+  are covered by code and offline checks and have not been run in the game yet. On
+  those maps Graphics treats the map like the hideout, which can change the ambient
+  colours.
 - HUD continuity does not align every foreign damage, shield, assist or killfeed
   rule with Arena. Optional HUDs and sounds can overlap; configure them separately.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults

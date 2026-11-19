@@ -235,6 +235,11 @@ ArenaMode does not detect the ArenaMapPort version, so install 0.6.0. The packag
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
+- Amand's Graphics now starts on every Arena map, not only on Labyrinth. Arena uses the running map's lighting settings
+  whenever Graphics cannot find its own, and leaves a lookup that works alone. Before, the ported ArenaMapPort maps had the
+  same startup failure as Labyrinth had, so the starting kit and every respawn were refused with Graphics installed. Covered
+  by code and offline checks; the ported maps have not been run in the game with Graphics yet. Graphics treats them like the
+  hideout, which can change the ambient colours (known open point).
 - Add Amand's Graphics 1.8.0 to the Arena whitelist. Its Labyrinth lighting
   initializes before the starting kit is handed out, and its ON/OFF setting
   survives respawns. [Native test](docs/reports/2026-11/GPU-AMANDS-20261108.md)
