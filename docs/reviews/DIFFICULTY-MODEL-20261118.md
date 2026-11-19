@@ -143,10 +143,15 @@ The four measurements this contract asked for ran on SPT-GPU-2 on 2026-11-18 and
   `impossible`. For scavs, `hard` against `normal` came out the same way. The values were
   read from the running game instead of timing fights with identical gear: one timed sample
   showed that weapon and line of sight dominate such a number.
-- Tactical solo, round one, and the weakest stock kits: every kit tested (drifter and
-  vanguard, which the 250,000 buy, the default kit spartan, and reaper as a top reference)
-  killed `Maximum` bots within a few rounds, on small samples. The starting money is
-  unchanged.
+- Tactical solo, round one: not played as a round. Seen: the first Tactical opponents come at
+  the full band, and in Deathmatch the two kits the 250,000 buy that were tested (drifter,
+  the cheapest, and vanguard) killed `Maximum` bots, mostly within 1 to 7 rounds and twice
+  only after 17. The starting money is unchanged; whether a round against five such
+  opponents plays well is for a played round to show.
+- The weakest stock kits: measured in Deathmatch only (not Team Deathmatch), on 4 to 9
+  targets per kit. The default kit spartan and drifter, the kit with the weakest
+  ammunition, killed on every target that stayed in view; the top kit taken as reference
+  was not visibly better in that sample.
 - The raid timer: ArenaMode's `raidTimeMinutes` (60) applies on a ported map as well, so
   the Gun Game ramp of 15 minutes fits.
 - Not asked for, found on the way: pooled bot profiles made the Gun Game gear ramp lag by
@@ -272,7 +277,7 @@ marked **Correction** or **Not implemented**; the decisions in "Direction" are u
   participants, 2026-11-19): 19 purge lines, no warning; the opening profiles (level 3..11)
   were served until about minute 4.6, from minute 6 to 12 the sampled bots were 13 to 18
   levels below the centre of the sampling minute, and after the end of the ramp (minutes 15.5
-  to 18.4, 32 bots) the levels were 55..65 against a band of 61..71, because profiles
+  to 18.4, 32 bots) the levels were 55..64 against a band of 61..71, because profiles
   generated shortly before the end stay fresh under a slack of 10 and feed the spawns for
   minutes. With 5, every pooled profile below the end level - 5 is dropped after the ramp and
   new bots land in the step's band like in the fixed modes. A fresh batch is not stale on

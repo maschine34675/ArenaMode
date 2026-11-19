@@ -514,7 +514,8 @@ Gun Game at Reduced and its scav switch, a long Team DM or Domination match with
 loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
 maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a
 long match; the menu row ALIVE AT ONCE shows the setting while Reduced applies 24; Tactical's round-one kit without
-a purchase is the cheapest one (.366 EKO, penetration 30) against class 5 and 6 plates; the server's gear clock
+a purchase is the cheapest one (drifter, .366 EKO, the lowest penetration of the catalogue) although the opponents
+now wear top-tier armour from round one, and a played Tactical round at Maximum is still owed; the server's gear clock
 starts with the local-start request and the client's AI clock with the match (the server is ahead by the loading
 time), and `botTier*` are read live on the server. Client and server must be installed together; an older client
 against a new server runs at Maximum (Debug line in the server log).

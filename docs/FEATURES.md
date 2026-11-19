@@ -92,7 +92,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   casualties while respecting that total.
 - Difficulty builds up over the map's ramp time. A bot's gear is fixed when its
   profile is generated, so before a PMC is requested Arena drops pooled profiles of
-  that PMC type that lag more than 10 gear levels behind the ramp and has fresh ones
+  that PMC type that lag more than 5 gear levels behind the ramp and has fresh ones
   generated. Scavs and bots that already exist are not touched.
 
 ### Deathmatch
@@ -761,7 +761,8 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
 - DM/Gun Game refill a fixed selected population. Labyrinth can retain a boss
   slot within that total instead of adding uncontrolled native boss waves.
 - **One difficulty setting, fixed strength** ([contract](reviews/DIFFICULTY-MODEL-20261118.md),
-  implemented on `feature/difficulty-model`, not yet tested in a native raid).
+  [native acceptance on GPU-2](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md), which also
+  lists what was not run).
   `[Difficulty] Step` has two values: **Maximum** (default) and **Reduced**. It is
   read once when the raid is armed, sent to the server, echoed back, and frozen
   until the raid ends; changing it during a raid changes nothing. The F9 panel
