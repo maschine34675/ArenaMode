@@ -24,6 +24,15 @@ namespace ArenaMode.Session;
 /// (<see cref="TacticalOpeningBandGate.HoldCapSeconds"/>, <see cref="TacticalOpeningBandGate.InFlightLostSeconds"/>);
 /// a call that hangs leaves one background task, and its seq makes a late answer harmless.
 /// A failed call throws inside the task; the gate counts that as a lost report.
+///
+/// Logging, exactly: this class writes nothing. The gate writes Debug lines, ONE Warning per raid
+/// for a report that never got through, and, for a fault inside the gate itself, one more Warning
+/// (<c>LogFault</c>, once per raid). The SPT HTTP client, which is not ours, writes its own
+/// <c>LogError</c> line per failed attempt; against a server without the route (an old server) the
+/// first report costs up to four sends of up to four attempts, so up to 16 such lines once per
+/// raid before the gate ends the feature. That is accepted: probing the route first would cost
+/// every healthy raid an extra request, and an old server next to a new client is a misinstall
+/// worth a loud log (docs/LOGGING.md, "Tactical opening rounds").
 /// </summary>
 internal static class ArenaTacticalRoundClient
 {

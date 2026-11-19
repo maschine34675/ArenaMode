@@ -204,6 +204,18 @@ reactions unavailable:` (`ReactionKinds` or `ClaimReactions` threw; no further a
 crowd reactions release failed:`, and `Arena crowd reaction event failed:` (the first exception
 in a crowd event handler; it is contained and never reaches the match).
 
+## Tactical opening rounds (solo)
+
+The round report and the squad hold (`TacticalOpeningBandGate`, `ArenaTacticalRoundClient`) log
+at Debug: the server refusing or not applying the feature, a failed report attempt, a held squad
+request with its seconds and release reason. Warnings: `Tactical opening rounds: the server did
+not answer the round report (...)`, at most once per raid, when a report never got through
+within its four sends; `Tactical opening rounds failed while <doing> (...)`, at most once per
+raid, when the gate itself threw (the squad is then not held); and `Tactical opening rounds could
+not start; ...` when the match-start wiring threw. Nothing is written at Info. The SPT HTTP
+client logs at Error on its own for each failed attempt (up to 16 lines for the first report
+against a server that lacks the route); that comes from SPT, not from this feature.
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five
