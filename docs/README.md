@@ -282,12 +282,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (295)
+## Reports (296)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Rewards paused at start: a copied install with an unsettled session of another folder starts with rewards paused and settles at the next start; a private Arena round trip on GPU-2 with the new helper](reports/2026-11/FAIL-SOFT-NATIVE-20261119.md)
 - [Moved installation (GitHub #3): the server started from a copied folder with 46 finished Arena sessions stops on v0.6.0 and starts with the fix, archiving the old reward records](reports/2026-11/MOVED-INSTALL-NATIVE-20261119.md)
 - [Difficulty model on GPU-2: acceptance per mode and step, impossible against hard under SAIN, stock kits against Maximum bots, the Gun Game gear ramp before and after the pool purge](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)
 - [Selectable Translocator development verification](reports/2026-11/GPU-TRANSLOCATOR-20261115.md)
