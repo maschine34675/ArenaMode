@@ -137,6 +137,8 @@ public sealed partial class BotTierScalePatchTests
         Refused(() => Report(sessions, id, -1, 9));
         Refused(() => Report(sessions, id, 3, 0));
         Refused(() => Report(sessions, id, 3, -5));
+        Refused(() => Report(sessions, id, 3, ArenaSessionService.MaxTacticalSeq + 1));
+        Refused(() => Report(sessions, id, 3, int.MaxValue));
         // Another session id has no entry at all.
         Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Refused,
             Report(sessions, new MongoId(OrdinarySession), 3, 9, token));
@@ -185,6 +187,22 @@ public sealed partial class BotTierScalePatchTests
             sessions.TryReportTacticalRound(id, token, 2, 1, out _, out _, out _, out var refusal));
         Assert.False(string.IsNullOrWhiteSpace(refusal));
         Assert.Equal((1, 0), RawTactical(sessions, id));
+    }
+
+    [Fact]
+    public void AFinalizingRaidRefusesWithItsOwnReasonAndAnAbortedEndAcceptsAgain()
+    {
+        var (sessions, id) = StartBand("tactical", "maximum", end: OpeningEnd);
+        Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Accepted, Report(sessions, id, 2, 1));
+        Assert.True(sessions.BindNativeEndIdentity(id,
+            Protocol.BuildNativeStartIdentity(sessions.GetArmToken(id)!), "test-server", out var end));
+        Assert.True(sessions.BeginNativeEndFinalization(id, end));
+        Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Refused,
+            sessions.TryReportTacticalRound(id, sessions.GetArmToken(id), 3, 2, out _, out _, out _, out var refusal));
+        Assert.Equal("raid is ending", refusal);
+        Assert.True(sessions.AbortNativeEndFinalization(id, end));
+        Assert.Equal((2, 1), RawTactical(sessions, id));
+        Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Accepted, Report(sessions, id, 3, 2));
     }
 
     [Fact]

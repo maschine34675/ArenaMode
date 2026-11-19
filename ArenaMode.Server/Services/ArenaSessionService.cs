@@ -1587,11 +1587,19 @@ public class ArenaSessionService
     internal const int MaxTacticalRound = 999;
 
     /// <summary>
+    /// Highest seq a client may report. The seq only ever rises, so one report carrying a huge value
+    /// (a bug or a replay; it still needs the arm token) would make every later, honest report a
+    /// Duplicate and freeze the stored round for the rest of the raid. A real raid reports a few
+    /// hundred times at most.
+    /// </summary>
+    internal const int MaxTacticalSeq = 1_000_000;
+
+    /// <summary>
     /// Stores the round a solo Tactical client reports, so the gear band of the next generation
     /// requests follows it. Bound to the exact live raid: the entry of the request's session
     /// must be InRaid within the live deadline, carry exactly this arm token (non-empty), run
-    /// Tactical and not be a protected PitFireTeam raid; the round must be 1..999 and the seq at
-    /// least 1. Anything else is <see cref="TacticalRoundReportResult.Refused"/> and changes nothing.
+    /// Tactical and not be a protected PitFireTeam raid; the round must be 1..999 and the seq
+    /// 1..<see cref="MaxTacticalSeq"/>. Anything else is <see cref="TacticalRoundReportResult.Refused"/> and changes nothing.
     ///
     /// <paramref name="seq"/> is the order. A seq that is not above the stored one is a
     /// <see cref="TacticalRoundReportResult.Duplicate"/> (a resend, or a late older request) and
@@ -1619,7 +1627,12 @@ public class ArenaSessionService
         {
             if (!_sessions.TryGetValue(sessionId.ToString(), out var entry) || !IsLiveRaid(entry))
             {
-                refusal = "no live Arena raid";
+                // FinalizingEnd gets its own reason: AbortNativeEndFinalization returns the same entry
+                // to InRaid with its round kept, so a client may treat this refusal as transient
+                // instead of as "no raid" (which ends reporting for the rest of the raid).
+                refusal = entry?.State == ArenaSessionState.FinalizingEnd
+                    ? "raid is ending"
+                    : "no live Arena raid";
                 return TacticalRoundReportResult.Refused;
             }
 
@@ -1638,7 +1651,7 @@ public class ArenaSessionService
                 return TacticalRoundReportResult.Refused;
             }
 
-            if (round < 1 || round > MaxTacticalRound || seq < 1)
+            if (round < 1 || round > MaxTacticalRound || seq < 1 || seq > MaxTacticalSeq)
             {
                 refusal = "round or seq out of range";
                 return TacticalRoundReportResult.Refused;
