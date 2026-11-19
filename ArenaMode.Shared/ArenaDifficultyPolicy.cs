@@ -23,6 +23,21 @@ public enum ArenaBotLevel
 }
 
 /// <summary>
+/// What a Zombie wave is made of beyond the ordinary mix. A theme changes the per-wave slow
+/// and shooter shares and nothing else: not the wave size, the alive limit, the roles, the
+/// profile plan or the spawn path.
+/// </summary>
+public enum ZombieWaveTheme
+{
+    /// <summary>The ordinary mix of the step.</summary>
+    None = 0,
+    /// <summary>No shooters and no slow infected: everything runs at the player.</summary>
+    Runners = 1,
+    /// <summary>Every infected is a shooter.</summary>
+    Shooters = 2,
+}
+
+/// <summary>
 /// The difficulty table of docs/reviews/DIFFICULTY-MODEL-20261118.md as named members.
 ///
 /// Pure and static: client, server and tests read the same numbers, and no call site holds
@@ -278,16 +293,61 @@ public static class ArenaDifficultyPolicy
         => step == ArenaDifficultyStep.Reduced ? Math.Min(configured, ZombieMaxAliveReduced) : configured;
 
     /// <summary>
+    /// Zombies at Maximum: every this-many waves (from the first multiple) is a special wave.
+    /// Five because the slow share has faded to almost nothing by then (waves 4 to 9 are
+    /// 35, 10, 15, 20, 0, 0 percent): the plateau after wave 11 needs a landmark every few
+    /// minutes, and five leaves four ordinary waves between two of them.
+    /// </summary>
+    public const int ZombieSpecialWaveInterval = 5;
+
+    /// <summary>
+    /// The calendar only, before the user's shooter setting is consulted: Maximum only (Reduced
+    /// is "somewhat less of everything" with a flat shooter share, and never fades, so the
+    /// plateau this solves does not exist there), every fifth wave from wave 5, odd multiples
+    /// of five (5, 15, 25, ...) are Runners and even ones (10, 20, ...) are Shooters. No state
+    /// and no random number, so the shares below and the announcement agree by construction.
+    /// </summary>
+    public static ZombieWaveTheme ZombieScheduledTheme(ArenaDifficultyStep step, int waveNumber)
+    {
+        if (step != ArenaDifficultyStep.Maximum || waveNumber < ZombieSpecialWaveInterval
+            || waveNumber % ZombieSpecialWaveInterval != 0)
+            return ZombieWaveTheme.None;
+        return (waveNumber / ZombieSpecialWaveInterval) % 2 == 1 ? ZombieWaveTheme.Runners : ZombieWaveTheme.Shooters;
+    }
+
+    /// <summary>
+    /// The theme that actually applies and is announced: a theme that would take away what the
+    /// user fixed is dropped. Shooters never run at a shooter share of 0 (the user switched
+    /// them off) and Runners never run at 100 (the user fixed every infected as a shooter, and
+    /// the draw is exact at both values). The two share functions below return exactly these
+    /// themes' shares, which a test checks for every setting and wave.
+    /// </summary>
+    public static ZombieWaveTheme ZombieWaveThemeFor(ArenaDifficultyStep step, int configuredShooter, int waveNumber)
+    {
+        int share = Math.Clamp(configuredShooter, 0, 100);
+        var theme = ZombieScheduledTheme(step, waveNumber);
+        if (theme == ZombieWaveTheme.Runners && share == 100) return ZombieWaveTheme.None;
+        if (theme == ZombieWaveTheme.Shooters && share == 0) return ZombieWaveTheme.None;
+        return theme;
+    }
+
+    /// <summary>
     /// The melee slow share of a wave given the rhythm's value (<paramref name="baseSlowPercent"/>).
     /// Reduced keeps the rhythm. Maximum subtracts 5 points per wave from wave 4 on and never
     /// goes below 0, so the horde turns all-fast: rhythm 40, 20, 30, 40, 20, ... becomes
-    /// 35, 10, 15, 20, 0, 0, 5, 0 from wave 4.
+    /// 35, 10, 15, 20, 0, 0, 5, 0 from wave 4. A Runners wave (see <see cref="ZombieScheduledTheme"/>)
+    /// is 0.
     /// </summary>
     public static int ZombieSlowPercent(ArenaDifficultyStep step, int baseSlowPercent, int waveNumber)
     {
         int slow = Math.Clamp(baseSlowPercent, 0, 100);
         if (step == ArenaDifficultyStep.Reduced || waveNumber < ZombieSlowFadeFromWave)
             return slow;
+        // A Runners wave has no slow infected at all. Shooters leave the slow share alone: the
+        // roll is never reached when every draw is a shooter. At a shooter share of 100 this
+        // function is not consulted either, so reading the calendar without the setting is exact.
+        if (ZombieScheduledTheme(step, waveNumber) == ZombieWaveTheme.Runners)
+            return 0;
         long fade = (long)ZombieSlowFadePointsPerWave * (waveNumber - (ZombieSlowFadeFromWave - 1));
         return (int)Math.Max(0L, slow - fade);
     }
@@ -295,13 +355,22 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The shooter share of a wave given the configured share. Reduced keeps it flat.
     /// Maximum adds a tenth of the configured share per wave after the first, up to twice the
-    /// configured share and never above 100 %; exactly 0 % and 100 % stay exact.
+    /// configured share and never above 100 %; exactly 0 % and 100 % stay exact. A Runners wave
+    /// is 0 % and a Shooters wave 100 % (<see cref="ZombieScheduledTheme"/>), except at those two exact settings.
     /// </summary>
     public static int ZombieShooterPercent(ArenaDifficultyStep step, int configured, int waveNumber)
     {
         int share = Math.Clamp(configured, 0, 100);
         if (step == ArenaDifficultyStep.Reduced || waveNumber <= 1 || share == 0 || share == 100)
             return share;
+        // The special waves override the growth after the exact-0/100 return above, so a user's
+        // 0 % never meets a Shooters wave and 100 % never loses a shooter (ZombieWaveThemeFor
+        // drops exactly those two themes). Step is Maximum here: Reduced has returned already.
+        switch (ZombieScheduledTheme(step, waveNumber))
+        {
+            case ZombieWaveTheme.Runners: return 0;
+            case ZombieWaveTheme.Shooters: return 100;
+        }
         // Two bounds, one enforcer each: the growth cap holds the share at twice the setting
         // (and keeps the product small at any wave number), the clamp holds it at 100 %.
         double growth = Math.Min(ZombieShooterGrowthCap - 1d, ZombieShooterGrowthPerWave * ((long)waveNumber - 1));

@@ -21,7 +21,22 @@ internal static class Program
         internal readonly GameWorld World = new();
         internal readonly ArenaMatch Match = new();
         internal readonly ZombieMode Mode;
-        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f, bool snapshot = false, int maxAlive = 2)
+        private int _followerEpoch;
+        // Replaces the four companions the way a real rebuild does (the fixture's lifecycle double
+        // calls it from TryStartFollowerSpawn), so a protected squad can cross several wave breaks.
+        private void AddFollowers(BotGame bots)
+        {
+            _followerEpoch++;
+            PitFireTeamCompat.Followers = new();
+            for (int i = 0; i < 4; i++)
+            {
+                var player = new Player { IsAI = true, Profile = new() { Id = $"friend-{_followerEpoch}-{i}", AccountId = $"account-{i}" } };
+                var bot = new BotOwner { GetPlayer = player }; player.AIData = new() { BotOwner = bot };
+                World.RegisteredPlayers.Add(player); World.Ever[player.ProfileId] = player;
+                bots.BotsController.Bots.BotOwners.Add(bot); PitFireTeamCompat.Followers.Add(bot);
+            }
+        }
+        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f, bool snapshot = false, int maxAlive = 2, int shooter = 37, float intermission = 2)
         {
             Time.time = 0; Time.timeScale = 1;
             Singleton<AbstractGame>.Instance = Game;
@@ -34,17 +49,14 @@ internal static class Program
             PitFireTeamCompat.TeamArenaActive = team; PitFireTeamCompat.PersistenceSuppressionActive = true;
             PitFireTeamCompat.RoundTransitionActive = false; PitFireTeamCompat.Followers = new();
             PitFireTeamRoundLifecycle.Teardowns = 0; PitFireTeamRoundLifecycle.Status = new();
-            for (int i = 0; team && i < 4; i++)
-            {
-                var player = new Player { IsAI = true, Profile = new() { Id = $"friend-{i}", AccountId = $"account-{i}" } };
-                var bot = new BotOwner { GetPlayer = player }; player.AIData = new() { BotOwner = bot };
-                World.RegisteredPlayers.Add(player); World.Ever[player.ProfileId] = player;
-                bots.BotsController.Bots.BotOwners.Add(bot); PitFireTeamCompat.Followers.Add(bot);
-            }
+            PitFireTeamRoundLifecycle.Spawn = team ? () => AddFollowers(bots) : null;
+            if (team) AddFollowers(bots);
             Settings.ZombieMaxAlive.Value = maxAlive; Settings.ZombieWaveStartSize.Value = size; Settings.ZombieWaveGrowth.Value = 0;
-            Settings.ZombieSpawnIntervalSeconds.Value = .2f; Settings.ZombieIntermissionSeconds.Value = 2;
+            Settings.ZombieSpawnIntervalSeconds.Value = .2f; Settings.ZombieIntermissionSeconds.Value = intermission;
             Settings.ZombieStuckWaveTimeoutSeconds.Value = watchdog;
-            Settings.ZombieShooterPercent.Value = 37;
+            Settings.ZombieShooterPercent.Value = shooter;
+            ZombieRoleMix.Script = null; ZombieRoleMix.Draws = 0;
+            ArenaMode.Plugin.ModLogger.Lines.Clear();
             ZombieNativeEventBridge.HasSnapshot = snapshot;
             ZombieNativeEventBridge.SnapshotSize = size; ZombieNativeEventBridge.SnapshotShooter = 23;
             ZombieLoadoutRefill.Calls = 0; ArenaMatchService.Current = Match;
@@ -176,7 +188,195 @@ internal static class Program
             Check(ZombieSpawnService.Dispatched == 0 && ZombieLoadoutRefill.Calls == 0, "ordinary or ended raid cannot enter wave work");
         }
         CheckCapAndZeroPause();
+        CheckSpecialWaves();
+        CheckCompositionTally();
         Console.WriteLine($"ZOMBIE_WAVE_PENDING_CHECKS_PASSED {_checks} assertions");
+    }
+
+    // One-infected waves: clears the running wave (arrival, then death), lets the intermission tick once
+    // more and starts the next wave. A protected squad crosses its restore barrier first.
+    private static void ClearAndStartNext(Fixture f, ref float t, int wave, bool team = false)
+    {
+        t += .2f; ZombieSpawnService.Pending = 0; ZombieSpawnService.Alive = 1; ZombieSpawnService.ConfirmedArrivals = wave; f.Tick(t);
+        t += .2f; ZombieSpawnService.Alive = 0; f.Tick(t);
+        if (team)
+        {
+            for (int i = 0; i < 60 && f.Mode.HudStatusLine.Contains("RESTORING"); i++) { t += .3f; f.Tick(t); }
+            Check(!f.Mode.HudStatusLine.Contains("RESTORING"), "protected squad completes its restore barrier in the fixture");
+        }
+        t += .3f; f.Tick(t);
+        t += 2.1f; f.Tick(t);
+    }
+
+    private static List<string> Callouts(Fixture f) => f.Match.Callouts;
+
+    private static void CheckSpecialWaves()
+    {
+        Check(ZombieMode.ThemeLabel(ArenaMode.Shared.ZombieWaveTheme.Runners) == "ALL RUNNERS"
+            && ZombieMode.ThemeLabel(ArenaMode.Shared.ZombieWaveTheme.Shooters) == "ALL SHOOTERS"
+            && ZombieMode.ThemeLabel(ArenaMode.Shared.ZombieWaveTheme.None).Length == 0,
+            "theme labels are the announced words");
+        Check(ZombieMode.ThemeLabel(ArenaMode.Shared.ZombieWaveTheme.Runners).Length <= 12
+            && ZombieMode.ThemeLabel(ArenaMode.Shared.ZombieWaveTheme.Shooters).Length <= 12,
+            "theme labels stay short enough for the score panel line");
+
+        // Maximum, shooter 37: waves 1 to 10 of a solo raid.
+        using (var f = new Fixture(size: 1, maxAlive: 2))
+        {
+            float t = .2f; f.Tick(t);
+            var expected = new List<string> { "WAVE 1" };
+            for (int wave = 1; wave <= 9; wave++)
+            {
+                ClearAndStartNext(f, ref t, wave);
+                int next = wave + 1;
+                if (next == 5) expected.Add("NEXT: ALL RUNNERS");
+                if (next == 10) expected.Add("NEXT: ALL SHOOTERS");
+                expected.Add(next == 5 ? "WAVE 5: ALL RUNNERS" : next == 10 ? "WAVE 10: ALL SHOOTERS" : $"WAVE {next}");
+                Check(Callouts(f).SequenceEqual(expected),
+                    $"special waves are announced once before and once at their start, ordinary waves keep the plain callout (wave {next}: {string.Join(" / ", Callouts(f))})");
+                string status = f.Mode.HudStatusLine;
+                if (next == 5) Check(status.Contains("WAVE 5 (ALL RUNNERS) | ") && !status.Contains("WAVE 5 | "), "status line names the running special wave");
+                else if (next == 10) Check(status.Contains("WAVE 10 (ALL SHOOTERS) | "), "status line names the running special wave");
+                else Check(!status.Contains("("), "ordinary waves carry no theme in the status line");
+            }
+        }
+
+        // The intermission before a special wave: the status line names the coming wave and the warning is raised once.
+        using (var f = new Fixture(size: 1, maxAlive: 2))
+        {
+            float t = .2f; f.Tick(t);
+            for (int wave = 1; wave <= 3; wave++) ClearAndStartNext(f, ref t, wave);
+            t += .2f; ZombieSpawnService.Pending = 0; ZombieSpawnService.Alive = 1; ZombieSpawnService.ConfirmedArrivals = 4; f.Tick(t);
+            Check(!Callouts(f).Any(c => c.StartsWith("NEXT")), "no warning while the current wave is running");
+            t += .2f; ZombieSpawnService.Alive = 0; f.Tick(t);
+            Check(f.Mode.HudStatusLine.Contains("WAVE 5 (ALL RUNNERS) IN "), "status line of the intermission names the coming special wave");
+            Check(Callouts(f).Count(c => c == "NEXT: ALL RUNNERS") == 1, "the warning appears at the start of the intermission");
+            t += .3f; f.Tick(t); t += .3f; f.Tick(t);
+            Check(Callouts(f).Count(c => c == "NEXT: ALL RUNNERS") == 1, "the warning is not repeated during the intermission");
+        }
+
+        // The user's shooter share is respected: 0 never gets an all-shooter wave, 100 never an all-runner wave.
+        foreach (int shooter in new[] { 0, 100 })
+        using (var f = new Fixture(size: 1, maxAlive: 2, shooter: shooter))
+        {
+            float t = .2f; f.Tick(t);
+            for (int wave = 1; wave <= 4; wave++) ClearAndStartNext(f, ref t, wave);
+            bool runners = Callouts(f).Contains("WAVE 5: ALL RUNNERS"), warned = Callouts(f).Contains("NEXT: ALL RUNNERS");
+            Check(shooter == 0 ? runners && warned : !runners && !warned && Callouts(f).Contains("WAVE 5"),
+                shooter == 0 ? "a shooter share of 0 still gets the runner wave" : "a shooter share of 100 never gets a runner wave");
+            for (int wave = 5; wave <= 9; wave++) ClearAndStartNext(f, ref t, wave);
+            Check(shooter == 0 ? Callouts(f).Contains("WAVE 10") && !Callouts(f).Any(c => c.Contains("SHOOTERS"))
+                : Callouts(f).Contains("WAVE 10: ALL SHOOTERS"),
+                shooter == 0 ? "a shooter share of 0 never gets an all-shooter wave" : "a shooter share of 100 keeps the shooter wave");
+        }
+
+        // Reduced has no special waves at all, even when the live step changes after the match started.
+        ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Reduced;
+        using (var f = new Fixture(size: 1, maxAlive: 2))
+        {
+            ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
+            float t = .2f; f.Tick(t);
+            for (int wave = 1; wave <= 9; wave++) ClearAndStartNext(f, ref t, wave);
+            Check(Callouts(f).SequenceEqual(Enumerable.Range(1, 10).Select(n => $"WAVE {n}")) && !f.Mode.HudStatusLine.Contains("("),
+                "Reduced announces no special wave and ignores a later live step");
+        }
+        ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
+
+        // A zero-length intermission crosses the break inside one call: no warning can precede the wave, the start callout still names it.
+        using (var f = new Fixture(size: 1, maxAlive: 2, intermission: 0))
+        {
+            float t = .2f; f.Tick(t);
+            for (int wave = 1; wave <= 4; wave++)
+            {
+                t += .2f; ZombieSpawnService.Pending = 0; ZombieSpawnService.Alive = 1; ZombieSpawnService.ConfirmedArrivals = wave; f.Tick(t);
+                t += .2f; ZombieSpawnService.Alive = 0; f.Tick(t);
+            }
+            Check(Callouts(f).Contains("WAVE 5: ALL RUNNERS") && !Callouts(f).Any(c => c.StartsWith("NEXT")),
+                "a zero-length intermission names the wave at its start and cannot warn before it");
+        }
+
+        // PitFireTeam: the status line carries the theme through the restore barrier, the warning waits for the countdown.
+        using (var f = new Fixture(size: 1, team: true, maxAlive: 2))
+        {
+            float t = .2f; f.Tick(t);
+            for (int i = 0; i < 40 && ZombieSpawnService.Dispatched == 0; i++) { t += .3f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == 1, "protected squad reaches its first wave in the fixture");
+            for (int wave = 1; wave <= 3; wave++) ClearAndStartNext(f, ref t, wave, team: true);
+            t += .2f; ZombieSpawnService.Pending = 0; ZombieSpawnService.Alive = 1; ZombieSpawnService.ConfirmedArrivals = 4; f.Tick(t);
+            t += .2f; ZombieSpawnService.Alive = 0; f.Tick(t);
+            Check(f.Mode.HudStatusLine.Contains("RESTORING") && !Callouts(f).Any(c => c.StartsWith("NEXT")),
+                "no warning is raised while the squad is held in the restore barrier");
+            int guard = 0;
+            while (f.Mode.HudStatusLine.Contains("RESTORING") && guard++ < 60)
+            {
+                Check(!Callouts(f).Any(c => c.StartsWith("NEXT")), "no warning is raised while the squad is held in the restore barrier");
+                t += .3f; f.Tick(t);
+            }
+            t += .3f; f.Tick(t);
+            Check(Callouts(f).Count(c => c == "NEXT: ALL RUNNERS") == 1 && f.Mode.HudStatusLine.Contains("WAVE 5 (ALL RUNNERS) IN "),
+                "the warning is raised once, on the first evaluated tick after the restore barrier");
+            t += 2.1f; f.Tick(t);
+            Check(Callouts(f).Contains("WAVE 5: ALL RUNNERS") && f.Mode.HudStatusLine.Contains("WAVE 5 (ALL RUNNERS) | "),
+                "a protected squad gets the same wave-start text and status line");
+        }
+    }
+
+    // The dispatched infected arrive: pending requests become alive, confirmed arrivals, so the wave keeps filling.
+    private static void Arrive()
+    {
+        ZombieSpawnService.Alive += ZombieSpawnService.Pending;
+        ZombieSpawnService.ConfirmedArrivals += ZombieSpawnService.Pending;
+        ZombieSpawnService.Pending = 0;
+    }
+
+    private static List<string> CompositionLines(string wave)
+        => ArenaMode.Plugin.ModLogger.Lines.Where(l => l.StartsWith($"Zombie wave {wave} composition:")).ToList();
+
+    private static void CheckCompositionTally()
+    {
+        // Six infected per wave, drawn easy / normal / hard in turn: the line counts what was dispatched, once per wave.
+        using (var f = new Fixture(size: 6, maxAlive: 6))
+        {
+            ZombieRoleMix.Script = n => (n % 3) switch { 0 => "easy", 1 => "normal", _ => "hard" };
+            float t = .2f; f.Tick(t);
+            for (int i = 0; i < 12 && ZombieSpawnService.Dispatched < 6; i++) { Arrive(); t += .25f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == 6 && CompositionLines("1").Count == 1
+                && CompositionLines("1")[0] == "Zombie wave 1 composition: easy 2, normal 2, hard 2 (size 6, theme None).",
+                "the composition line counts the dispatched draws by difficulty once the wave is fully dispatched");
+            ZombieRoleMix.Script = n => "hard";
+            Arrive(); t += .3f; f.Tick(t);
+            ZombieSpawnService.Alive = 0; t += .3f; f.Tick(t);
+            Check(CompositionLines("1").Count == 1, "a wave's composition line is written once, not again when the wave ends");
+            t += .3f; f.Tick(t); t += 2.1f; f.Tick(t);
+            for (int i = 0; i < 12 && CompositionLines("2").Count == 0; i++) { Arrive(); t += .25f; f.Tick(t); }
+            Check(CompositionLines("2").Count == 1 && CompositionLines("2")[0] == "Zombie wave 2 composition: easy 0, normal 0, hard 6 (size 6, theme None).",
+                "the tally starts again for every wave");
+        }
+
+        // A rejected dispatch returned its slot, so it is not part of the composition.
+        using (var f = new Fixture(size: 2, maxAlive: 2))
+        {
+            ZombieSpawnService.RejectRequest = true;
+            float t = .2f; f.Tick(t);
+            ZombieSpawnService.RejectRequest = false;
+            for (int i = 0; i < 12 && ZombieSpawnService.Dispatched < 1; i++) { Arrive(); t += .5f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == 1 && CompositionLines("1").Count == 0,
+                "a rejected dispatch is not tallied as a draw of the wave");
+            for (int i = 0; i < 12 && ZombieSpawnService.Dispatched < 2; i++) { Arrive(); t += .5f; f.Tick(t); }
+            Check(ZombieSpawnService.Dispatched == 2 && CompositionLines("1").Count == 1
+                && CompositionLines("1")[0] == "Zombie wave 1 composition: easy 0, normal 2, hard 0 (size 2, theme None).",
+                "the line follows the accepted dispatches only");
+        }
+
+        // The theme is part of the line, from the same policy the draws use.
+        using (var f = new Fixture(size: 1, maxAlive: 2))
+        {
+            float t = .2f; f.Tick(t);
+            for (int wave = 1; wave <= 4; wave++) ClearAndStartNext(f, ref t, wave);
+            Check(CompositionLines("5").Count == 1 && CompositionLines("5")[0].EndsWith("(size 1, theme Runners).")
+                && CompositionLines("4")[0].EndsWith("theme None)."),
+                "the composition line names the special wave's theme");
+        }
     }
 
     private static void CheckCapAndZeroPause()

@@ -81,6 +81,13 @@ public sealed partial class ZombieMode : IArenaMode
     private ZombieWavePolicy.State _waveState;
     private System.Random _rng; // Unity also has a Random type in scope here — must stay fully qualified.
     private int _lastAnnouncedWave;
+    // The wave whose "NEXT: ALL ..." warning was shown last: at most one warning per special wave.
+    private int _lastWarnedWave;
+    // The dispatched draws of one wave by difficulty (easy, normal, hard) and the wave they belong to;
+    // see TallyDispatch. _tallyLogged keeps it to one Debug line per wave.
+    private readonly int[] _tally = new int[3];
+    private int _tallyWave;
+    private bool _tallyLogged;
     private int _zombiesKilled;
     private float _nextNudgeAt;
     private float _nextWaveEvaluateAt;
@@ -270,6 +277,8 @@ public sealed partial class ZombieMode : IArenaMode
         _refillState = ZombieRefillPolicy.Initial();
         _currentKit = null;
         _lastAnnouncedWave = 0;
+        _lastWarnedWave = 0;
+        ResetTally(0);
         _zombiesKilled = 0;
         _nextNudgeAt = 0f;
         _nextWaveEvaluateAt = 0f;
@@ -387,10 +396,25 @@ public sealed partial class ZombieMode : IArenaMode
             _waveNumber = result.WaveNumber;
             _waveStatusText = result.StatusText;
 
+            // The theme of the wave the status text is about (the running wave, or the next one
+            // during an intermission), computed once here: the wave-start callout, the status line
+            // and the pre-warning below all read it, and it sits before the PitFireTeam exit so a
+            // squad's status line carries it too. Pure policy, so it is exactly the theme the draws
+            // below use (the same functions, the same frozen step and shooter share).
+            int themedWave = _phase == ZombieWavePolicy.Phase.Wave ? _waveNumber : _waveNumber + 1;
+            var theme = ArenaDifficultyPolicy.ZombieWaveThemeFor(_step, _shooterPercent, themedWave);
+            if (theme != ZombieWaveTheme.None)
+                _waveStatusText = WithTheme(_waveStatusText, themedWave, theme);
+
+            // A wave that is over (or replaced) writes its composition line once.
+            if (_phase != ZombieWavePolicy.Phase.Wave || _waveNumber != _tallyWave)
+                FlushCompositionTally();
+
             if (_phase == ZombieWavePolicy.Phase.Wave && _waveNumber != _lastAnnouncedWave)
             {
                 _lastAnnouncedWave = _waveNumber;
-                _match?.ReportTextCallout($"WAVE {_waveNumber}");
+                _match?.ReportTextCallout(theme == ZombieWaveTheme.None
+                    ? $"WAVE {_waveNumber}" : $"WAVE {_waveNumber}: {ThemeLabel(theme)}");
             }
 
             if (result.ForceRetireStuckInfected)
@@ -418,6 +442,19 @@ public sealed partial class ZombieMode : IArenaMode
             }
             if (_phase == ZombieWavePolicy.Phase.Wave) _teamIntermissionRestored = false;
 
+            // The pre-warning, once per special wave, on the first evaluated tick of the intermission
+            // before it. It sits AFTER the PitFireTeam exit above on purpose: that exit holds the squad
+            // in the restore barrier (the status line is the team's, the real countdown has not started),
+            // so a warning raised there would show while the player is being restored and be gone
+            // before the countdown. A solo raid reaches this line on the same tick. HUD text only, no
+            // cue (the cues also drive lighting and crowd reactions).
+            if (theme != ZombieWaveTheme.None && _phase == ZombieWavePolicy.Phase.Intermission
+                && _waveNumber > 0 && _lastWarnedWave != themedWave)
+            {
+                _lastWarnedWave = themedWave;
+                _match?.ReportTextCallout($"NEXT: {ThemeLabel(theme)}");
+            }
+
             for (int i = 0; i < result.SpawnNow; i++)
             {
                 var draw = ZombieRoleMix.Next(_rng, _shooterPercent, _waveState.WaveNumber, _step);
@@ -433,6 +470,11 @@ public sealed partial class ZombieMode : IArenaMode
                 // fewer real zombies than configured.
                 if (!dispatched)
                     ZombieWavePolicy.ReportFailedDispatch(ref _waveState, now);
+
+                // Only a dispatch that was accepted counts: a failed one returned its slot above and
+                // is drawn again, so counting it would report more infected than the wave has.
+                if (dispatched)
+                    TallyDispatch(draw.Difficulty);
             }
 
             // Self-heal _local before computing playerEligible below.
@@ -514,6 +556,66 @@ public sealed partial class ZombieMode : IArenaMode
             if (player != null)
                 ZombieSpawnService.NudgeIdleZombies(player.Position);
         }
+    }
+
+    /// <summary>
+    /// The theme's label in the status line and the callouts. At most 12 characters, because the
+    /// score panel line already carries the wave, the count and the clock (a harness pins the length).
+    /// </summary>
+    internal static string ThemeLabel(ZombieWaveTheme theme) => theme switch
+    {
+        ZombieWaveTheme.Runners => "ALL RUNNERS",
+        ZombieWaveTheme.Shooters => "ALL SHOOTERS",
+        _ => string.Empty
+    };
+
+    /// <summary>"WAVE 5 | 3 LEFT" becomes "WAVE 5 (ALL RUNNERS) | 3 LEFT"; the pure policy owns the rest of the text.</summary>
+    private static string WithTheme(string status, int wave, ZombieWaveTheme theme)
+    {
+        string prefix = "WAVE " + wave;
+        return status != null && status.StartsWith(prefix, StringComparison.Ordinal)
+            ? prefix + " (" + ThemeLabel(theme) + ")" + status.Substring(prefix.Length)
+            : status;
+    }
+
+    /// <summary>
+    /// Counts one accepted dispatch by the difficulty drawn for it. The tally is the only record of
+    /// what a wave was made of (the bodies carry no difficulty a reader could see), so the native
+    /// acceptance of the special waves reads its line. Reset per wave; the line is written when the wave
+    /// is fully dispatched or, at the latest, when it ends (the end is a safety net: the full-dispatch
+    /// trigger has normally written it already). Slots returned by individual recovery are drawn again
+    /// after the line, which is not repeated: it describes the wave as dispatched.
+    /// </summary>
+    private void TallyDispatch(string difficulty)
+    {
+        int wave = _waveState.WaveNumber;
+        if (_tallyWave != wave)
+        {
+            FlushCompositionTally();
+            ResetTally(wave);
+        }
+        int slot = difficulty == ZombieRoleMix.Easy ? 0 : difficulty == ZombieRoleMix.Hard ? 2 : 1;
+        _tally[slot]++;
+        if (_tally[0] + _tally[1] + _tally[2] >= ZombieWavePolicy.WaveSize(_config, wave))
+            FlushCompositionTally();
+    }
+
+    private void ResetTally(int wave)
+    {
+        _tallyWave = wave;
+        _tallyLogged = false;
+        Array.Clear(_tally, 0, _tally.Length);
+    }
+
+    private void FlushCompositionTally()
+    {
+        if (_tallyLogged || _tallyWave <= 0 || _tally[0] + _tally[1] + _tally[2] == 0)
+            return;
+        _tallyLogged = true;
+        Plugin.ModLogger.LogDebug(
+            $"Zombie wave {_tallyWave} composition: easy {_tally[0]}, normal {_tally[1]}, hard {_tally[2]} "
+            + $"(size {ZombieWavePolicy.WaveSize(_config, _tallyWave)}, "
+            + $"theme {ArenaDifficultyPolicy.ZombieWaveThemeFor(_step, _shooterPercent, _tallyWave)}).");
     }
 
     public void OnKill(ArenaKill kill)

@@ -295,7 +295,7 @@ public sealed class ArenaDifficultyPolicyTests
     [InlineData(1, 75, 75)]
     [InlineData(3, 25, 25)]
     [InlineData(4, 40, 35)]
-    [InlineData(5, 20, 10)]
+    [InlineData(5, 20, 0)] // a Runners wave has no slow infected at Maximum
     [InlineData(6, 30, 15)]
     [InlineData(7, 40, 20)]
     [InlineData(8, 20, 0)]
@@ -310,11 +310,32 @@ public sealed class ArenaDifficultyPolicyTests
     }
 
     [Theory]
+    [InlineData(15, 40)]
+    [InlineData(25, 20)]
+    [InlineData(5, 75)]
+    public void ARunnersWaveHasNoSlowInfectedAtMaximumOnly(int wave, int rhythm)
+    {
+        Assert.Equal(0, ArenaDifficultyPolicy.ZombieSlowPercent(Max, rhythm, wave));
+        Assert.Equal(rhythm, ArenaDifficultyPolicy.ZombieSlowPercent(Red, rhythm, wave));
+    }
+
+    [Fact]
+    public void AShootersWaveLeavesTheSlowShareAlone()
+    {
+        // The slow roll is never reached when every draw is a shooter, so the function keeps the fade there.
+        Assert.Equal(5, ArenaDifficultyPolicy.ZombieSlowPercent(Max, 40, 10));
+        Assert.Equal(0, ArenaDifficultyPolicy.ZombieSlowPercent(Max, 40, 20));
+    }
+
+    [Theory]
     [InlineData(20, 1, 20)]
     [InlineData(20, 2, 22)]
     [InlineData(20, 6, 30)]
     [InlineData(20, 11, 40)]
-    [InlineData(20, 50, 40)]
+    [InlineData(20, 51, 40)]
+    [InlineData(20, 50, 100)] // wave 50 is a Shooters wave
+    [InlineData(20, 5, 0)]    // wave 5 is a Runners wave
+    [InlineData(20, 10, 100)] // wave 10 is a Shooters wave
     [InlineData(37, 3, 44)]
     [InlineData(70, 11, 100)]
     [InlineData(70, int.MaxValue, 100)]
@@ -324,6 +345,58 @@ public sealed class ArenaDifficultyPolicyTests
     {
         Assert.Equal(expected, ArenaDifficultyPolicy.ZombieShooterPercent(Max, configured, wave));
         Assert.Equal(configured, ArenaDifficultyPolicy.ZombieShooterPercent(Red, configured, wave));
+    }
+
+    [Theory]
+    [InlineData(1, ZombieWaveTheme.None)]
+    [InlineData(4, ZombieWaveTheme.None)]
+    [InlineData(5, ZombieWaveTheme.Runners)]
+    [InlineData(6, ZombieWaveTheme.None)]
+    [InlineData(9, ZombieWaveTheme.None)]
+    [InlineData(10, ZombieWaveTheme.Shooters)]
+    [InlineData(11, ZombieWaveTheme.None)]
+    [InlineData(15, ZombieWaveTheme.Runners)]
+    [InlineData(20, ZombieWaveTheme.Shooters)]
+    [InlineData(25, ZombieWaveTheme.Runners)]
+    [InlineData(100, ZombieWaveTheme.Shooters)]
+    [InlineData(0, ZombieWaveTheme.None)]
+    [InlineData(-5, ZombieWaveTheme.None)]
+    [InlineData(int.MinValue, ZombieWaveTheme.None)]
+    [InlineData(int.MaxValue, ZombieWaveTheme.None)]
+    public void SpecialWavesAreEveryFifthWaveAtMaximumOnly(int wave, ZombieWaveTheme expected)
+    {
+        Assert.Equal(expected, ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave));
+        Assert.Equal(ZombieWaveTheme.None, ArenaDifficultyPolicy.ZombieScheduledTheme(Red, wave));
+    }
+
+    [Fact]
+    public void TheThemeDeciderAndTheShareFunctionsAgreeForEveryShooterSettingAndWave()
+    {
+        // The announcement reads the decider and the draw reads the share functions; both must tell the same story.
+        for (int shooter = 0; shooter <= 100; shooter++)
+        for (int wave = 1; wave <= 60; wave++)
+        {
+            var scheduled = ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave);
+            var applied = ArenaDifficultyPolicy.ZombieWaveThemeFor(Max, shooter, wave);
+            int shooterShare = ArenaDifficultyPolicy.ZombieShooterPercent(Max, shooter, wave);
+            int slowShare = ArenaDifficultyPolicy.ZombieSlowPercent(Max, 30, wave);
+
+            Assert.False(shooter == 0 && applied == ZombieWaveTheme.Shooters);
+            Assert.False(shooter == 100 && applied == ZombieWaveTheme.Runners);
+            Assert.Equal(scheduled == ZombieWaveTheme.Runners && shooter == 100
+                || scheduled == ZombieWaveTheme.Shooters && shooter == 0 ? ZombieWaveTheme.None : scheduled, applied);
+            if (applied == ZombieWaveTheme.Runners)
+            {
+                Assert.Equal(0, shooterShare);
+                Assert.Equal(0, slowShare);
+            }
+            if (applied == ZombieWaveTheme.Shooters)
+                Assert.Equal(100, shooterShare);
+            if (shooter == 0 || shooter == 100)
+                Assert.Equal(shooter, shooterShare);
+            Assert.Equal(shooter, ArenaDifficultyPolicy.ZombieShooterPercent(Red, shooter, wave));
+            Assert.Equal(ZombieWaveTheme.None, ArenaDifficultyPolicy.ZombieWaveThemeFor(Red, shooter, wave));
+        }
     }
 
     [Fact]

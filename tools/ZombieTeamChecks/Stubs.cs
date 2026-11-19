@@ -243,10 +243,14 @@ namespace ArenaMode.Bots
     public static class ZombieProfilePlan { public static object BackupTargets(int n,int s) => null; public static int BackupCountForWaveStartSize(int n) => n; }
     public static class ZombieRoleMix
     {
+        // The real constants: ZombieMode tallies a wave's dispatches by these difficulty names.
+        public const string Easy = "easy", Normal = "normal", Hard = "hard";
         public static int LastWave, LastShooter, Draws;
         public static ArenaMode.Shared.ArenaDifficultyStep LastStep;
+        // Scripts the difficulty of draw number n (0-based, since the last reset of Draws); null = every draw is Normal.
+        public static Func<int,string> Script;
         public static (string Role,string Difficulty) Next(Random r,int s,int wave,ArenaMode.Shared.ArenaDifficultyStep step)
-        { LastWave=wave; LastShooter=s; LastStep=step; Draws++; return ("infected","normal"); }
+        { LastWave=wave; LastShooter=s; LastStep=step; int n=Draws++; return ("infected", Script?.Invoke(n) ?? Normal); }
     }
     public static class ZombieSpawnService
     {
