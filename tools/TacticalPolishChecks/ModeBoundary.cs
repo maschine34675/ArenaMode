@@ -44,6 +44,8 @@ public partial class TacticalMode
     internal Func<int,int,Task<TacticalRoundReply>> BandSender;
     private readonly TacticalOpeningBandGate _openingBand;
     private int _bandHeldRound;
+    private SoloTacticalSquadRelease _bandHeldRelease;
+    private float _bandHeldSeconds;
     internal TacticalOpeningBandGate BandForTest=>_openingBand;
     public TacticalMode()
     {

@@ -142,7 +142,9 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     /// <summary>
     /// Solo opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md): reports each round to
     /// the server and decides how long a round's squad request waits for the answer. The clock is
-    /// unscaled time, so a paused game neither runs the hold cap nor the resend timers out.
+    /// unscaled time, so the hold cap and the resend timers keep running while the game is paused
+    /// (the HTTP call does not pause either, so a scaled clock would hold a request for a longer
+    /// real time than the cap says).
     /// </summary>
     private readonly TacticalOpeningBandGate _openingBand;
 
@@ -151,6 +153,12 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     /// acknowledgement, 0 when none. <see cref="TickLive"/> sends it when the gate lets it go.
     /// </summary>
     private int _bandHeldRound;
+
+    /// <summary>Why the held request of <see cref="_bandHeldRound"/> was released by the dispatch gate, kept for the re-entry from <see cref="TickLive"/> (its log line and body-move warning describe THAT release, not the band's).</summary>
+    private SoloTacticalSquadRelease _bandHeldRelease;
+
+    /// <summary>The seconds the dispatch gate reported with that release.</summary>
+    private float _bandHeldSeconds;
 
     public TacticalMode()
     {
@@ -807,7 +815,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
                     $"Tactical round {RoundNumber}: the squad request was held {_openingBand.HeldSeconds(RoundNumber):0.000}s "
                     + $"for the opening-round gear band ({band}; released by the cap: {band == TacticalBandRelease.CapExpired}).");
                 _bandHeldRound = 0;
-                DispatchOpeningSquad(RoundNumber, SoloTacticalSquadRelease.BodyLanded, 0f);
+                DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);
                 return;
             }
 
@@ -3019,6 +3027,8 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         if (!_openingBand.ShouldRelease(round))
         {
             _bandHeldRound = round;
+            _bandHeldRelease = release;
+            _bandHeldSeconds = heldSeconds;
             return;
         }
 

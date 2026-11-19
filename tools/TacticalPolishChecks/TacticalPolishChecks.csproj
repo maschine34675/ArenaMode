@@ -6,6 +6,7 @@
          prior direct build's generated sources outside the default glob too. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
     <PanelSource Condition="'$(PanelSource)' == ''">../../ArenaMode.Client/Hud/TacticalBuyPanel.cs</PanelSource>
+    <GateSource Condition="'$(GateSource)' == ''">../../ArenaMode.Client/Modes/TacticalOpeningBandGate.cs</GateSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(TacticalSlice)" Link="Production/TacticalSlice.cs" />
@@ -13,7 +14,7 @@
     <Compile Include="../../ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs" Link="Production/SoloTacticalSpawnPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs" Link="Production/SoloTacticalRoundStartPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs" Link="Production/SoloTacticalSquadDispatch.cs" />
-    <Compile Include="../../ArenaMode.Client/Modes/TacticalOpeningBandGate.cs" Link="Production/TacticalOpeningBandGate.cs" />
+    <Compile Include="$(GateSource)" Link="Production/TacticalOpeningBandGate.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TacticalRoundReply.cs" Link="Production/TacticalRoundReply.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />

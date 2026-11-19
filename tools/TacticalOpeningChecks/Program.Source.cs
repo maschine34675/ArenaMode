@@ -18,6 +18,7 @@ internal static partial class Program
         CheckMatchEndGlue(tactical);
         CheckConstructorGlue(tactical);
         CheckSender(client);
+        CheckPublishedState(Source("ARENA_OPENING_STATE_SOURCE", "ArenaMode.Client", "Bots", "ArenaTacticalOpening.cs"));
 
         server = Code(server);
         gate = Code(gate);
@@ -27,6 +28,37 @@ internal static partial class Program
         Assert(gate.Contains("Protocol.TacticalRoundRaidEndingRefusal", StringComparison.Ordinal)
                && !gate.Contains("\"raid is ending\"", StringComparison.Ordinal),
             "the gate compares the raid-ending refusal through the shared constant");
+        Assert(gate.Contains("TaskContinuationOptions.OnlyOnFaulted", StringComparison.Ordinal)
+               && gate.Contains("_ = finished.Exception;", StringComparison.Ordinal),
+            "a send the gate stops polling still has its fault observed");
+    }
+
+    // ArenaTacticalOpening links game types (GameWorld, Singleton) and cannot be compiled here, so what it
+    // promises is pinned as text: the state of an earlier world is inert, a match end never unbinds a
+    // newer match's gate, and the gear numbers are read live from the map, the frozen step and the role.
+    private static void CheckPublishedState(string stateSource)
+    {
+        string state = Code(stateSource);
+        Assert(state.Contains("_gate != null && Singleton<GameWorld>.Instantiated\n            && ReferenceEquals(_world, Singleton<GameWorld>.Instance);", StringComparison.Ordinal),
+            "a gate bound in another world is inert: the published state compares the world it was bound in");
+        Assert(state.Contains("internal static bool Applies => IsCurrentWorld() && _gate?.Applies == true;", StringComparison.Ordinal)
+               && state.Contains("internal static int AckedRound => IsCurrentWorld() && _gate != null ? _gate.AckedRound : 0;", StringComparison.Ordinal)
+               && state.Contains("internal static int? CurrentGearLevel => IsCurrentWorld() ? _gate?.CurrentGearLevel : null;", StringComparison.Ordinal),
+            "every reader of the published state answers through the world check");
+        string unbind = MethodBody(state, "internal static void Unbind(TacticalOpeningBandGate gate)");
+        int guard = unbind.IndexOf("if (!ReferenceEquals(_gate, gate))\n            return;", StringComparison.Ordinal);
+        int clear = unbind.IndexOf("_gate = null;", StringComparison.Ordinal);
+        Assert(guard >= 0 && clear > guard,
+            "a match end unbinds only its own gate, never a newer match's");
+        string read = MethodBody(state, "internal static TacticalGearContext? ReadGearContext()");
+        Assert(read.Contains("|| !ArenaClientConfig.GetScaleBotTier(map))\n            return null;", StringComparison.Ordinal),
+            "a map without tier scaling offers no gear numbers");
+        Assert(read.Contains("ArenaDifficulty.Step,", StringComparison.Ordinal)
+               && read.Contains("ArenaClientConfig.GetBotTierStartLevel(map),", StringComparison.Ordinal)
+               && read.Contains("ArenaClientConfig.GetBotTierEndLevel(map),", StringComparison.Ordinal),
+            "the gear numbers are the frozen difficulty step and the map's start and end level");
+        Assert(read.Contains("Settings.TacticalSquadIsPmc.Value);", StringComparison.Ordinal),
+            "the squad's role is read live at every call, never frozen");
     }
 
     private static void CheckEndRoundGlue(string tactical)
@@ -62,9 +94,17 @@ internal static partial class Program
         Assert(waiting >= 0 && hold > waiting && evaluate > hold,
             "the band hold returns before SoloTacticalSpawnPolicy.Evaluate, which would answer Retry and send the request ahead of the ack");
         string block = tick.Substring(hold, evaluate - hold);
+        int dispatchCall = block.IndexOf("DispatchOpeningSquad(RoundNumber, ", StringComparison.Ordinal);
+        int dispatchEnd = dispatchCall < 0 ? -1 : block.IndexOf(");", dispatchCall, StringComparison.Ordinal);
         Assert(block.Contains("if (band == TacticalBandRelease.Hold)\n                    return;", StringComparison.Ordinal)
-               && block.Contains("DispatchOpeningSquad(RoundNumber, SoloTacticalSquadRelease.BodyLanded, 0f);\n                return;", StringComparison.Ordinal),
+               && dispatchEnd >= 0
+               && block.Substring(dispatchEnd).StartsWith(");\n                return;", StringComparison.Ordinal),
             "while the gate holds TickLive returns, and once it lets go the request is dispatched and the frame ends");
+        string dispatch = MethodBody(tactical, "private void DispatchOpeningSquad(");
+        Assert(block.Contains("DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);", StringComparison.Ordinal)
+               && dispatch.Contains("_bandHeldRelease = release;", StringComparison.Ordinal)
+               && dispatch.Contains("_bandHeldSeconds = heldSeconds;", StringComparison.Ordinal),
+            "a held request is dispatched later with the release and seconds it was held with, not with a made-up body-move landing");
         Assert(block.Contains("{_openingBand.HeldSeconds(RoundNumber):0.000}s", StringComparison.Ordinal)
                && block.Contains("released by the cap: {band == TacticalBandRelease.CapExpired}", StringComparison.Ordinal)
                && block.Contains("Plugin.ModLogger.LogDebug(", StringComparison.Ordinal),

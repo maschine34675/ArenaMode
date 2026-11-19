@@ -348,6 +348,34 @@ internal static partial class Program
         four.Gate.MarkHeld(5);
         Assert(four.Gate.ShouldRelease(5), "round 5 with a dead route is released at once");
 
+        // A route that dies AFTER an early ack: acknowledged round 2, report 3 never answered. Round 3
+        // holds (its level differs from the acknowledged one) and ends at the cap, but the acknowledged
+        // round never advances, so round 4 must not compare itself with round 2 and hold again.
+        var late = Rig.AtRound(2);
+        late.DefaultPlan = Plan.Pending;
+        late.Gate.Report(3);
+        late.Gate.MarkHeld(3);
+        late.Now = 3f;
+        Assert(late.Gate.Evaluate(3) == TacticalBandRelease.CapExpired,
+            "round 3 after an early ack and a lost report waits until the cap");
+        late.Gate.Report(4);
+        late.Gate.MarkHeld(4);
+        Assert(late.Gate.Evaluate(4) == TacticalBandRelease.SameLevel,
+            "round 4 never waits, even when the route died after an acknowledgement of round 2 or earlier");
+        late.Gate.Report(5);
+        late.Gate.MarkHeld(5);
+        Assert(late.Gate.ShouldRelease(5), "round 5 never waits after an early acknowledgement either");
+
+        // The hold does not look at the squad's role: the server writes the band role-blind, so a scav
+        // squad waits for the acknowledgement exactly like a PMC squad (only the purge and the buy line are PMC-only).
+        var scavHold = Rig.AtRound(2);
+        scavHold.Context = new TacticalGearContext(ArenaDifficultyStep.Maximum, 1, 66, false);
+        scavHold.Plans[scavHold.Calls.Count] = Plan.Pending;
+        scavHold.Gate.Report(3);
+        scavHold.Gate.MarkHeld(3);
+        Assert(!scavHold.Gate.ShouldRelease(3),
+            "a scav squad is held for the acknowledgement like a PMC squad");
+
         // A map whose opening does not differ from the full level holds nothing, not even round 2.
         var flat = Rig.AtRound(1);
         flat.Context = new TacticalGearContext(ArenaDifficultyStep.Maximum, 1, 20, true);

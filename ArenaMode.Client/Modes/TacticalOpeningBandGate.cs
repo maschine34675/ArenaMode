@@ -67,7 +67,13 @@ internal enum TacticalBandRelease
 ///  - The squad request of a round waits for the ack ONLY when the round's gear level differs from
 ///    the level of the last acknowledged round (no ack counts as round 1, the server's default).
 ///    Round 1 and every round from 4 on never wait: the stage cannot change there, so a dead route
-///    must not cost a hold in every round of the raid.
+///    must not cost a hold in every round of the raid (<c>LevelDiffersFromAcked</c> bounds
+///    the comparison at round <see cref="ArenaDifficultyPolicy.TacticalOpeningRounds"/> + 1, because
+///    an acknowledged round that stops advancing would otherwise differ from every later round).
+///  - The hold does not look at the squad's role. The server writes the band role-blind, so a scav
+///    squad's profile is generated with the same stage as a PMC squad's and waits for the same
+///    acknowledgement; only the pool purge and the buy-screen line (<see cref="CurrentGearLevel"/>)
+///    are PMC-only, because only PMC gear is purged or announced.
 ///  - The hold is capped at <see cref="HoldCapSeconds"/> (measured from <see cref="MarkHeld"/>): the
 ///    squad assembles within 45 s, a stuck request must not eat that window. On the cap the request
 ///    goes out anyway and the client keeps expecting its last ACKNOWLEDGED round, never a guess.
@@ -371,6 +377,13 @@ internal sealed class TacticalOpeningBandGate
 
     private bool LevelDiffersFromAcked(int round)
     {
+        // From the round after the last opening round on, the stage is the full level whatever was
+        // acknowledged: a request there never waits. Without this bound a route that died after an
+        // early ack (acked round 1 or 2, report 3 lost) would compare the full level with the old
+        // acknowledged one in EVERY later round, because the acknowledged round never advances, and
+        // cost the 3 s cap in each of them.
+        if (round > ArenaDifficultyPolicy.TacticalOpeningRounds + 1)
+            return false;
         if (_gearContext() is not TacticalGearContext context)
             return false;
         int ackedLevel = ArenaDifficultyPolicy.TacticalGearLevel(
@@ -405,6 +418,15 @@ internal sealed class TacticalOpeningBandGate
             NoteTransportFailure(ex);
             return;
         }
+
+        // A task that the gate stops polling (Reset, EndFeature, the tracked-send cap) is never read
+        // again; touching its exception here keeps a late fault from reaching the unobserved-exception
+        // event. Off the Unity thread and touching nothing of Unity's.
+        task.ContinueWith(
+            static finished => { _ = finished.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 
         _sends.Add(new SendRecord { Task = task, Seq = _newestSeq, SentAt = now });
         while (_sends.Count > MaxTrackedSends)

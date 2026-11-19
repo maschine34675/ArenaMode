@@ -6,6 +6,7 @@ $reply=Join-Path $repo 'ArenaMode.Client/Modes/TacticalRoundReply.cs'
 $protocol=Join-Path $repo 'ArenaMode.Shared/Protocol.cs'
 $tactical=Join-Path $repo 'ArenaMode.Client/Modes/TacticalMode.cs'
 $sender=Join-Path $repo 'ArenaMode.Client/Session/ArenaTacticalRoundClient.cs'
+$state=Join-Path $repo 'ArenaMode.Client/Bots/ArenaTacticalOpening.cs'
 $server=Join-Path $repo 'ArenaMode.Server/Services/ArenaSessionService.cs'
 function Fault($name,$path,$property,$find,$replace,$failure,$environment) {
     $fault=@{Name=$name;Path=$path;Find=$find;Replace=$replace;Failure=$failure}
@@ -16,6 +17,7 @@ function Fault($name,$path,$property,$find,$replace,$failure,$environment) {
 # Gate faults compile the copy into the program (Property) and point the source pins at it (Environment).
 function GateFault($name,$find,$replace,$failure) { Fault $name $gate 'GateSource' $find $replace $failure 'ARENA_OPENING_GATE_SOURCE' }
 function TacticalFault($name,$find,$replace,$failure) { Fault $name $tactical $null $find $replace $failure 'ARENA_OPENING_TACTICAL_SOURCE' }
+function StateFault($name,$find,$replace,$failure) { Fault $name $state $null $find $replace $failure 'ARENA_OPENING_STATE_SOURCE' }
 function SenderFault($name,$find,$replace,$failure) { Fault $name $sender $null $find $replace $failure 'ARENA_OPENING_CLIENT_SOURCE' }
 $sendLine='byte[] payload = await RequestHandler.HttpClient.PostAsync(Protocol.TacticalRoundRoute, body).ConfigureAwait(false);'
 $faults=@(
@@ -29,6 +31,13 @@ $faults=@(
     # --- which rounds wait ------------------------------------------------------------------------
     (GateFault 'every-round-waits' 'return ackedLevel != roundLevel;' 'return true;' 'round 1 never waits for the acknowledgement (no acknowledged round counts as round 1)'),
     (GateFault 'no-ack-counts-as-round-three' 'Math.Max(1, _ackedRound)' 'Math.Max(3, _ackedRound)' 'round 1 never waits for the acknowledgement (no acknowledged round counts as round 1)'),
+    (GateFault 'late-rounds-compare-with-the-ack' 'if (round > ArenaDifficultyPolicy.TacticalOpeningRounds + 1)' 'if (false)' 'round 4 never waits, even when the route died after an acknowledgement of round 2 or earlier'),
+    (GateFault 'hold-skips-scav' 'if (_gearContext() is not TacticalGearContext context)
+            return false;
+        int ackedLevel' 'if (_gearContext() is not TacticalGearContext context || !context.SquadIsPmc)
+            return false;
+        int ackedLevel' 'a scav squad is held for the acknowledgement like a PMC squad'),
+    (GateFault 'dropped-send-unobserved' '_ = finished.Exception;' '' 'a send the gate stops polling still has its fault observed'),
     (GateFault 'no-numbers-waits' "if (_gearContext() is not TacticalGearContext context)`n            return false;" "if (_gearContext() is not TacticalGearContext context)`n            return true;" 'a map without gear numbers holds nothing'),
     # --- what an acknowledgement is ---------------------------------------------------------------
     (GateFault 'any-round-settles' 'public bool Settled(int round) => _ackedRound == round;' 'public bool Settled(int round) => _ackedRound > 0;' 'an acknowledged report settles exactly its own round'),
@@ -78,7 +87,9 @@ $faults=@(
     (TacticalFault 'dispatch-request-before-gate' '_openingBand.MarkHeld(round);' "RequestSoloSquad(retry: false);`n        _openingBand.MarkHeld(round);" 'the band gate sits between the guard and the squad request: it stamps its clock, asks, and returns while it holds'),
     (TacticalFault 'tick-hold-after-evaluate' @("if (_bandHeldRound == RoundNumber)`n            {", 'if (spawnDecision == SoloTacticalSpawnDecision.Waiting) return;') @("if (_bandHeldRound == -1)`n            {", "if (spawnDecision == SoloTacticalSpawnDecision.Waiting) return;`n            if (_bandHeldRound == RoundNumber) return;") 'the band hold returns before SoloTacticalSpawnPolicy.Evaluate, which would answer Retry and send the request ahead of the ack'),
     (TacticalFault 'tick-hold-does-not-return' "if (band == TacticalBandRelease.Hold)`n                    return;" "if (band == TacticalBandRelease.Hold)`n                    { }" 'while the gate holds TickLive returns, and once it lets go the request is dispatched and the frame ends'),
-    (TacticalFault 'tick-dispatch-falls-through' "DispatchOpeningSquad(RoundNumber, SoloTacticalSquadRelease.BodyLanded, 0f);`n                return;" 'DispatchOpeningSquad(RoundNumber, SoloTacticalSquadRelease.BodyLanded, 0f);' 'while the gate holds TickLive returns, and once it lets go the request is dispatched and the frame ends'),
+    (TacticalFault 'tick-dispatch-falls-through' "DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);`n                return;" 'DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);' 'while the gate holds TickLive returns, and once it lets go the request is dispatched and the frame ends'),
+    (TacticalFault 'tick-redispatch-made-up-release' 'DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);' 'DispatchOpeningSquad(RoundNumber, SoloTacticalSquadRelease.BodyLanded, 0f);' 'a held request is dispatched later with the release and seconds it was held with, not with a made-up body-move landing'),
+    (TacticalFault 'dispatch-forgets-the-release' '_bandHeldRelease = release;' '' 'a held request is dispatched later with the release and seconds it was held with, not with a made-up body-move landing'),
     (TacticalFault 'hold-log-no-seconds' '{_openingBand.HeldSeconds(RoundNumber):0.000}s' '0.000s' 'the Debug line of a held request carries the real held seconds and whether the cap released it'),
     (TacticalFault 'hold-log-no-cap' 'released by the cap: {band == TacticalBandRelease.CapExpired}' 'released' 'the Debug line of a held request carries the real held seconds and whether the cap released it'),
     (TacticalFault 'start-no-reports' 'BeginOpeningReports();' '' 'OnMatchStart starts the reports in the solo branch only, after the opening kit is wired'),
@@ -91,6 +102,14 @@ $faults=@(
     (TacticalFault 'end-keeps-the-gate' "_bandHeldRound = 0;`n        _openingBand.Reset();`n        ArenaTacticalOpening.Unbind(_openingBand);" "_bandHeldRound = 0;`n        ArenaTacticalOpening.Unbind(_openingBand);" 'the match end clears the held round, resets the gate and unpublishes it'),
     (TacticalFault 'gate-on-scaled-time' '() => Time.unscaledTime,' '() => Time.time,' 'the gate runs on unscaled time with the HTTP sender'),
     (TacticalFault 'gate-debug-at-info' 'message => Plugin.ModLogger.LogDebug(message),' 'message => Plugin.ModLogger.LogInfo(message),' 'the gate''s lines are Debug and its one-per-raid failure a Warning, never Info'),
+    # --- the published state (ArenaTacticalOpening) -----------------------------------------------
+    (StateFault 'state-world-not-compared' '&& ReferenceEquals(_world, Singleton<GameWorld>.Instance);' ';' 'a gate bound in another world is inert: the published state compares the world it was bound in'),
+    (StateFault 'state-applies-skips-world' 'internal static bool Applies => IsCurrentWorld() && _gate?.Applies == true;' 'internal static bool Applies => _gate?.Applies == true;' 'every reader of the published state answers through the world check'),
+    (StateFault 'state-level-skips-world' 'internal static int? CurrentGearLevel => IsCurrentWorld() ? _gate?.CurrentGearLevel : null;' 'internal static int? CurrentGearLevel => _gate?.CurrentGearLevel;' 'every reader of the published state answers through the world check'),
+    (StateFault 'state-unbind-any-gate' 'if (!ReferenceEquals(_gate, gate))' 'if (false)' 'a match end unbinds only its own gate, never a newer match''s'),
+    (StateFault 'state-context-ignores-scale' '|| !ArenaClientConfig.GetScaleBotTier(map))' ')' 'a map without tier scaling offers no gear numbers'),
+    (StateFault 'state-context-fixed-step' 'ArenaDifficulty.Step,' 'ArenaDifficultyStep.Maximum,' 'the gear numbers are the frozen difficulty step and the map''s start and end level'),
+    (StateFault 'state-context-frozen-role' 'Settings.TacticalSquadIsPmc.Value);' 'true);' 'the squad''s role is read live at every call, never frozen'),
     # --- the HTTP sender --------------------------------------------------------------------------
     (SenderFault 'sender-uses-the-wrapper' $sendLine 'byte[] payload = Encoding.UTF8.GetBytes(RequestHandler.PostJson(Protocol.TacticalRoundRoute, Encoding.UTF8.GetString(body)));' 'the report goes through RequestHandler.HttpClient.PostAsync inside Task.Run, without the wrapper''s Info lines'),
     (SenderFault 'sender-not-in-task-run' 'return Task.Run(async () =>' 'return Task.Factory.StartNew(async () =>' 'the report goes through RequestHandler.HttpClient.PostAsync inside Task.Run, without the wrapper''s Info lines'),
