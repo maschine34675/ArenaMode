@@ -205,6 +205,19 @@ internal static class Program
         Fill(); Demand();
         Check(!Usec(25) && !Usec(5) && Usec(45), "a late acknowledgement that raises the round starts the new centre's budget fresh");
 
+        // The lost-ack shape: the server is one stage AHEAD of the client's centre (round 1 acknowledged on the client,
+        // round 2 stored on the server). Every fresh batch the miss path returns is at the server's band (levels 40..50
+        // for round 2's centre 45), which is outside the client's band 20..30, so the second demand purges it too and
+        // only the third is served, with the one warning. The cost is two extra 15-profile batches, bounded by the budget.
+        Round1Raid(); Demand();
+        void ServerBandBatch() { foreach (int level in new[] { 41, 45, 49 }) client._simpleProfiles.Add(P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, level)); }
+        ServerBandBatch(); Demand();
+        Check(!Usec(41) && !Usec(45) && !Usec(49) && Log.Debugs.Count == 2 && Log.Warnings == 0,
+            "a batch at the server's band that is one stage ahead of the client is purged once more (the second purge)");
+        ServerBandBatch(); before = Pool(); Demand();
+        Check(Pool() == before && Usec(45) && Log.Warnings == 1,
+            "the third purge is not made: the batch at the server's band is served and the mismatch is warned once");
+
         // A purge that found nothing spends nothing.
         Round1Raid(); client._simpleProfiles.RemoveAll(p => p.Info.Level < 20 || p.Info.Level > 30);
         for (int i = 0; i < 4; i++) Demand();

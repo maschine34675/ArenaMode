@@ -34,6 +34,9 @@ $faults=@(
     (PatchFault 'pool-purged-while-deciding' 'outside.Add(profile);' 'outside.Add(profile); __instance._simpleProfiles = new List<Profile>(__instance._simpleProfiles); __instance._simpleProfiles.Remove(profile);' 'an exception while reading the pool leaves it intact'),
     # The budget: two per (role, difficulty, centre).
     (PatchFault 'budget-unlimited' 'if (spent.Count >= PurgesPerCentre)' 'if (false)' 'the third purge for the same centre is not made'),
+    (PatchFault 'budget-off-by-one' 'if (spent.Count >= PurgesPerCentre)' 'if (spent.Count > PurgesPerCentre)' 'the third purge for the same centre is not made'),
+    (PatchFault 'world-not-remembered' '_world = world;' '' 'the third purge for the same centre is not made'),
+    (PatchFault 'skip-never-marked-reported' '_budget[key] = (spent.Centre, spent.Count, true);' '_budget[key] = (spent.Centre, spent.Count, false);' 'the skip is reported once per pair and centre, the warning once per raid'),
     (PatchFault 'budget-never-recorded' '_budget[key] = (spent.Centre, spent.Count + 1, false);' '' 'the third purge for the same centre is not made'),
     (PatchFault 'budget-three' 'internal const int PurgesPerCentre = 2;' 'internal const int PurgesPerCentre = 3;' 'two purges per centre'),
     (PatchFault 'budget-one' 'internal const int PurgesPerCentre = 2;' 'internal const int PurgesPerCentre = 1;' 'two purges per centre'),
