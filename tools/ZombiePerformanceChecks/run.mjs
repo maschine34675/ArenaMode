@@ -18,6 +18,12 @@ const mode = ['harness', 'dauerlast'].includes(args[0]) ? args.shift() : 'harnes
 const [out, durationArg, routeFile] = args;
 const duration = Number(durationArg || 300);
 if (!out || !(duration >= 30 && duration <= 900)) throw new Error('run.mjs [harness|dauerlast] output.jsonl seconds(30..900) [route.json] [--profiler] [--path-budget]');
+// 0.35 s, not the 0.7 s of the operator's stand-in (bench.mjs), on purpose: the poll period is poll duration plus this wait, and
+// the run's coverage gate allows 1.5 s between the last combat poll's START and the end of the phase (run-summary.mjs bounds the
+// interval by the poll start). With 0.7 s the period is about 1.1 s, too close to that limit for a run to qualify reliably.
+// The ring itself would not overflow at either value (4096 frames last 17 s at 240 fps). The price: about twice the inspector
+// calls on the main thread inside the measured frames, so figures from this collector are not directly comparable with the
+// ceiling report's (stand-in) figures; compare cells of one collector only.
 const POLL_WAIT_SECONDS = 0.35;
 const bridge = await connect();
 const log = (kind, data) => fs.appendFileSync(out, JSON.stringify({ kind, wallMs: Date.now(), ...data }) + '\n');
@@ -74,7 +80,11 @@ try {
   ring = await openRing(bridge.call);
   const poller = new RingPoller({ call: bridge.call, ring });
   // Every poll is one record; the reader (ring-analysis.mjs) proves what it can. A failed poll is logged and the next one
-  // covers its interval, because the poller only advances its cursor on success.
+  // covers its interval, because the poller only advances its cursor on success: the DATA are recovered. The run is not a
+  // qualified pass any more, though: runIntegrity requires captureErrors === 0, and the record of the failed poll is missing.
+  // The stand-in's bots-all (unfiltered listing every 20 s) and final-population records are not ported: corpses on the
+  // ground are not measurable (uibridge_bots aliveOnly=false lists registered bodies only), the `bots` record below gives the
+  // alive count the analysis uses.
   collector = (async () => {
     while (collecting) {
       try { log('ring', { phase, ...await poller.poll() }); }

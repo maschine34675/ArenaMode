@@ -128,19 +128,23 @@ test("bad record shapes fail closed and are listed", () => {
 test("the cursor must advance as far as the engine frame counter: a difference is an integrity error that blocks a pass", () => {
   const reader = new FrameRingReader();
   reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
-  // within tolerance (two frames either way): accepted without an error
-  assert.equal(reader.push(record({ from: 100, w0: 150, n: 50, f0: 5052 })).frameCountDelta, -2);
-  assert.equal(reader.push(record({ from: 150, w0: 200, n: 50, f0: 5100 })).frameCountDelta, 2);
+  // exact agreement: accepted without an error (the tolerance is 0, see FRAME_COUNT_TOLERANCE)
+  assert.equal(reader.push(record({ from: 100, w0: 150, n: 50, f0: 5050 })).frameCountDelta, 0);
+  assert.equal(reader.push(record({ from: 150, w0: 200, n: 50, f0: 5100 })).frameCountDelta, 0);
   assert.equal(reader.result().segments[0].integrityErrors.length, 0);
+  // one frame of difference is already an error: a recording error of one frame per poll must not pass
+  assert.equal(reader.push(record({ from: 200, w0: 250, n: 50, f0: 5151 })).frameCountDelta, -1);
+  assert.equal(reader.push(record({ from: 250, w0: 300, n: 50, f0: 5199 })).frameCountDelta, 2);
+  assert.equal(reader.result().segments[0].frameCountMismatches, 2);
   // the engine ran 30 frames more than the ring recorded: the ring is not "one slot per frame" for this poll
-  const skewed = reader.push(record({ from: 200, w0: 250, n: 50, f0: 5180 }));
+  const skewed = reader.push(record({ from: 300, w0: 350, n: 50, f0: 5279 }));
   assert.equal(skewed.frameCountDelta, -30);
   const segment = reader.result().segments[0];
-  assert.equal(segment.integrityErrors.length, 1);
+  assert.equal(segment.integrityErrors.length, 3);
   assert.equal(segment.integrityErrors[0].kind, "frame-count");
-  assert.equal(segment.frameCountMismatches, 1);
+  assert.equal(segment.frameCountMismatches, 3);
   assert.equal(analyzeSegment(segment).passesP95, false);
-  // an interval before the bad poll is still analyzable
+  // an interval before the first bad poll is still analyzable
   assert.equal(analyzeSegment(segment, { endSequence: 100 }).passesP95, true);
 });
 

@@ -122,6 +122,12 @@ test("the recorded stand-in polls show the same shape: a still head with frames 
   assert.ok(stalled.length >= 6);
   const big = polls.filter((p) => p.vals.some((v) => v > 2000));
   assert.equal(big.length, 2);
+  // the unit of the real ring values is milliseconds: at 60 to 120 fps the median frame is 8 to 17 ms. A ring in seconds or
+  // in ticks would pass every simulated test (the simulator is in ms by construction) and fail only in a native run.
+  const all = polls.flatMap((p) => p.vals).sort((a, b) => a - b);
+  assert.ok(all.length > 100, `${all.length} values`);
+  const median = all[Math.floor(all.length / 2)];
+  assert.ok(median > 5 && median < 40, `median ${median}`);
   assert.ok(Math.max(...big[0].vals) > 10000 && Math.max(...big[1].vals) > 2000);
   // each big entry sits right after a run of still-head polls, and the polls themselves ran at ~85 fps (60 frames per 0.7 s)
   for (const b of big) {

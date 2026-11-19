@@ -72,7 +72,10 @@ windows of about 150 s or 240 s of steady horde either way. See `docs/reports/20
      visible infected; 15 s warmup, 150 s in the ceiling measurement. Primary protocol.
    - `--profiler`: ModProfiler headless capture with 30 s exports around the run. `--path-budget`: DeveloperMode for
      about 13 s after a Dauerlast to read the `Zombie planning jobs` counters.
-   No synthetic kills or spawns.
+   No synthetic kills or spawns. The collector polls every 0.35 s (stand-in: 0.7 s), see the comment at `POLL_WAIT_SECONDS`
+   in `run.mjs`: figures are comparable between cells of this collector, not directly with the ceiling report's. The
+   stand-in's `bots-all` and `final-population` records are not ported (corpses are not measurable; `bots` every 20 s
+   gives the alive count).
 6. `node tools/ZombiePerformanceChecks/analyze.mjs output.jsonl 32 summary.json` reports the combat interior: statistics,
    30 s windows (cumulative frame time, never an average of percentiles), spikes above 100 ms, population, kills, shots,
    weapon and the integrity verdict. The second argument is the alive cap used for the near-cap time. For early evidence
@@ -110,11 +113,17 @@ previous write cursor to this one (pages of at most 200), then the three fields 
 (`ring-analysis.mjs`) takes the record's cursors and proves what it can:
 
 - the slots were not overwritten while they were copied: `n + (w1 - w0) <= 4096`;
-- the cursor advanced as far as the engine frame counter did (tolerance two frames per poll: a frame can be added just
-  before or after the read). One slot per frame is the ring's contract, so this fails when the plugin did not record a
-  frame, when two polls were joined wrongly, or when the cursor arithmetic is not what the source says;
+- the cursor advanced exactly as far as the engine frame counter did (tolerance 0). In the UiBridge source `Plugin.Update`
+  adds the frame first and drains the inspector queue last, in the same call, so the cursor and `Time.frameCount` of one
+  read belong to the same frame; no frame can be "added just before or after the read". One slot per frame is the ring's
+  contract, so this fails when the plugin did not record a frame, when two polls were joined wrongly, or when the cursor
+  arithmetic is not what the source says. A tolerance of one frame would let an error of one frame per poll (about 2 percent
+  at 85 fps) pass both this gate and the 3 percent wall-clock gate. Should the smoke run show deltas other than 0, read the
+  poll records; do not widen the tolerance without an argument from the source;
 - no wrap is guessed: polls 4096 or more engine frames apart cannot be joined, the poller skips the read and a new segment
-  starts (a failed poll costs nothing: the next one covers its interval).
+  starts. A failed poll loses no data (the next one covers its interval) but the run is no longer a qualified pass: any
+  capture error fails `runIntegrity`. A poll is bounded by its start time (the label is the phase at the start, the
+  interval ends at the cursor of the first read).
 
 Analyze the interior of the combat phase, excluding setup, warmup and the final drain: the frames the first
 combat-labelled poll delivered are dropped, the interval ends with the last combat-labelled poll. Never average window
@@ -146,15 +155,16 @@ capacity overwrite) driven by scripted frame times: the reconstruction must equa
 across ring wraps, a falling frame rate, a rate above 136 fps, an 8 s hitch and a failed poll. A test also runs the
 stand-in's head-as-cursor algorithm against the same simulation and shows the late frames and the still head, and a
 fixture cut from the real stand-in data (`fixtures/stand-in-ring-hole.jsonl`, 12 polls of run C-airpit-32) shows the same
-shape in the recorded data. These tests are **not** run by `tools/Run-ArenaVerification.ps1` (no registered step runs
-node tests), and `Verify.ps1` / `Verify-NativeContract.ps1` of this folder check the compiled performance patches, not
-the collector.
+shape in the recorded data. `Verify-Collector.ps1` runs them (a no-game step registered in `tools/verification-steps.txt`, so
+`-ChangedSince` selects it); `Verify.ps1` / `Verify-NativeContract.ps1` of this folder check the compiled performance patches,
+not the collector.
 
 ## Smoke check (pending, native)
 
 Before quoting a figure from this collector: one raid on SPT-GPU-2, a 60 s Dauerlast at the default population, and then
-`analyze.mjs` must show `integrity.frameCountMatches` and `integrity.frameTimeMatchesWall` true, no discontinuity and a
-frame count within 2 % of `Time.frameCount` over the interval. A failing `frameCountMatches` means the cursor reading of
+`analyze.mjs` must show `integrity.frameCountMatches` and `integrity.frameTimeMatchesWall` true, no discontinuity and
+`frameCountRatio` (recorded frames of the interval over `engineFrames`, the `Time.frameCount` advance of the same interval)
+within 2 % of 1; with the exact cursor it should be 1. A failing `frameCountMatches` means the cursor reading of
 the source is wrong somewhere; do not fix the tolerance, read the poll records. Open for that run: whether the 2.4 to
 10 s hitches reappear at the time they happen (with the new cursor they are no longer 30 s late) and what causes them.
 

@@ -22,15 +22,24 @@
 //
 // What the reconstruction can prove:
 //   * the slots read were not overwritten while reading: n + (w1 - w0) <= 4096, otherwise the poll is rejected
-//   * the cursor advance between two polls equals the Time.frameCount advance (within FRAME_COUNT_TOLERANCE): a poll whose
+//   * the cursor advance between two polls equals the Time.frameCount advance (FRAME_COUNT_TOLERANCE, 0): a poll whose
 //     advance differs breaks the claim "one slot per frame", is recorded as an integrity error and blocks a pass
 //   * no wrap is guessed: two polls 4096 or more engine frames apart cannot be joined (a new segment starts)
 // What it cannot prove: that every frame is a "real" one (a hitch is a frame like any other, see README).
 
 export const FRAME_RING_CAPACITY = 4096;
 export const PAGE_SIZE = 200;
-/** The cursor and the engine frame counter are read in one call; a frame can be added just before or after it. */
-export const FRAME_COUNT_TOLERANCE = 2;
+/**
+ * No tolerance, argued from the UiBridge source (Plugin.Update, read 2026-11-19): `_frameStats.Add` runs first in Update and
+ * `_dispatcher.Drain` last, in the same call on the main thread, and the inspector multi-read executes inside Drain. The
+ * cursor (`_head`, `_count`) and `Time.frameCount` of one read therefore belong to the same frame, and between two polls the
+ * cursor advance must equal the engine counter advance exactly. A frame added "just before or after the read" cannot happen:
+ * that earlier reasoning was wrong. A tolerance of one frame would also let a recording error of one frame per poll (about
+ * 2 percent of a 0.7 s poll at 85 fps) through both this gate and the 3 percent wall-clock gate. The only way the source lets
+ * a frame go unrecorded is `Add` dropping a NaN, negative or infinite duration, which does not occur in a running game; if a
+ * smoke run shows deltas other than 0, read the poll records and argue the cause, do not widen this.
+ */
+export const FRAME_COUNT_TOLERANCE = 0;
 
 const modulo = (value, m = FRAME_RING_CAPACITY) => ((value % m) + m) % m;
 const integer = (value) => Number.isSafeInteger(value) && value >= 0;
