@@ -132,6 +132,7 @@ public class Plugin : BaseUnityPlugin
         Performance.PoolPrewarmMonitor.Initialize();
         Bots.TdmSearchTempo.Enable();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
+        Bots.ArenaGunGameFreshGearPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
         Bots.ZombiePerformancePatches.EnablePatch();
         ZombiePftFastPath.EnablePatch();

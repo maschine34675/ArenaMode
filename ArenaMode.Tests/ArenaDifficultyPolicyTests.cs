@@ -333,4 +333,34 @@ public sealed class ArenaDifficultyPolicyTests
         Assert.Equal(Red, ArenaDifficultyPolicy.ReportStep("deathmatch", Red));
         Assert.Equal(Red, ArenaDifficultyPolicy.ReportStep(null, Red));
     }
+
+    [Theory]
+    [InlineData(40, 30, false)]             // exactly ten below the current level is kept
+    [InlineData(40, 29, true)]              // eleven below is stale
+    [InlineData(40, 40, false)]
+    [InlineData(40, 79, false)]             // a profile above the ramp is never stale
+    [InlineData(11, 1, false)]
+    [InlineData(12, 1, true)]
+    public void GunGameGearIsStaleOnlyBeyondTheSlack(int current, int profile, bool stale)
+    {
+        Assert.Equal(10, ArenaDifficultyPolicy.GunGameStaleGearLevels);
+        Assert.Equal(stale, ArenaDifficultyPolicy.IsGunGameGearStale(profile, current));
+    }
+
+    [Fact]
+    public void TheOpeningOfTheRampNeverPurgesTheOpeningProfiles()
+    {
+        // While the centre is at most 11, no profile of level 1..6 (the opening batch) is stale.
+        for (int current = 1; current <= 11; current++)
+            for (int profile = 1; profile <= 6; profile++)
+                Assert.False(ArenaDifficultyPolicy.IsGunGameGearStale(profile, current));
+
+        // The default ramp (Maximum, 1 to 66 in 15 minutes) reaches 11 after about 140 seconds.
+        for (int second = 0; second <= 900; second++)
+        {
+            int centre = ArenaDifficultyPolicy.GearLevelAt(Max, 1, 66, second / 900d);
+            if (centre <= 11)
+                Assert.False(ArenaDifficultyPolicy.IsGunGameGearStale(1, centre));
+        }
+    }
 }

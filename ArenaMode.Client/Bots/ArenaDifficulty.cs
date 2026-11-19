@@ -70,6 +70,36 @@ internal static class ArenaDifficulty
         }
     }
 
+    /// <summary>
+    /// The gear level the server's Gun Game band is centred on right now: the policy's ramp at the
+    /// frozen step over the map's start level, end level and ramp minutes. Null outside Gun Game, on a
+    /// map whose scaleBotTier is off, and on any exception (the callers then leave things alone).
+    /// </summary>
+    public static int? CurrentGunGameGearLevel
+    {
+        get
+        {
+            if (!IsGunGame)
+                return null;
+
+            try
+            {
+                var map = Comfort.Common.Singleton<GameWorld>.Instantiated
+                    ? Comfort.Common.Singleton<GameWorld>.Instance.LocationId
+                    : ArenaSession.ArmedMap;
+                if (!ArenaClientConfig.GetScaleBotTier(map))
+                    return null;
+
+                return ArenaDifficultyPolicy.GearLevelAt(Step,
+                    ArenaClientConfig.GetBotTierStartLevel(map), ArenaClientConfig.GetBotTierEndLevel(map), Progress);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
     /// <summary>The AI level to spawn at: the policy's row for the frozen step.</summary>
     public static BotDifficulty DifficultyFor(bool isPmc)
         => (BotDifficulty)(int)ArenaDifficultyPolicy.BotLevel(Step, isPmc, Progress);

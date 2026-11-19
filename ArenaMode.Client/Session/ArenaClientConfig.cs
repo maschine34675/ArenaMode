@@ -75,6 +75,21 @@ public static class ArenaClientConfig
         return value.HasValue ? Math.Max(1, value.Value) : fallback;
     }
 
+    /// <summary>
+    /// The per-map Gun Game gear level at the start of the raid (botTierStartLevel, the server's key and
+    /// default). Present values are used as they are; the policy clamps them to 1..79 like the server.
+    /// </summary>
+    public static int GetBotTierStartLevel(string map, int fallback = 1)
+        => GetMapValue<int?>(map, "botTierStartLevel") ?? fallback;
+
+    /// <summary>The per-map gear level the Maximum step ends at (botTierEndLevel, the server's key and default).</summary>
+    public static int GetBotTierEndLevel(string map, int fallback = 66)
+        => GetMapValue<int?>(map, "botTierEndLevel") ?? fallback;
+
+    /// <summary>Whether the server ramps the bots' gear at all on this map (scaleBotTier, default on).</summary>
+    public static bool GetScaleBotTier(string map, bool fallback = true)
+        => GetMapValue<bool?>(map, "scaleBotTier") ?? fallback;
+
     public static int GetBurstMinAliveBots(string map, int fallback = 12)
         => GetMapValue<int?>(map, "burstMinAliveBots") ?? fallback;
 

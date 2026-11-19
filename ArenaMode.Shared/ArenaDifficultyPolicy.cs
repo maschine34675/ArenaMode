@@ -189,6 +189,19 @@ public static class ArenaDifficultyPolicy
         return Math.Clamp(level, start, Math.Max(start, target));
     }
 
+    /// <summary>
+    /// Gun Game: how many levels below the current gear level a pooled bot profile may sit before it is
+    /// discarded. The server's band is the centre +/-5, so a freshly generated profile is never below
+    /// centre - 5; another 5 levels of slack is about 70 seconds of the default ramp (65 levels in 15
+    /// minutes). The server's clock starts before the client's match clock, so a fresh batch is never
+    /// stale on arrival.
+    /// </summary>
+    public const int GunGameStaleGearLevels = 10;
+
+    /// <summary>True when a pooled profile's gear level fell more than <see cref="GunGameStaleGearLevels"/> behind the ramp.</summary>
+    public static bool IsGunGameGearStale(int profileLevel, int currentGearLevel)
+        => profileLevel < currentGearLevel - GunGameStaleGearLevels;
+
     /// <summary>Gun Game: hard below progress 0.8, then the step's PMC level.</summary>
     public static ArenaBotLevel PmcLevelAt(ArenaDifficultyStep step, double progress)
         => double.IsNaN(progress) || progress < GunGamePmcStepProgress ? GunGamePmcOpening : PmcLevel(step);
