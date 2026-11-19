@@ -45,6 +45,24 @@ test("a clean simulated Dauerlast passes every gate and reports the combat inter
   assert.equal(summary.weapon, 'AKS-74');
   assert.equal(summary.mode, 'dauerlast');
   assert.equal(summary.actualAliveMax, 32);
+  // the smoke-check figures: the engine's frames of the interval and the share the ring recorded (the simulation is exact)
+  assert.ok(summary.engineFrames > 6800 && summary.engineFrames < 7200, `${summary.engineFrames}`);
+  assert.equal(summary.frameCountRatio, summary.stats.knownFrames / summary.engineFrames);
+  assert.ok(Math.abs(summary.frameCountRatio - 1) < 0.02, `${summary.frameCountRatio}`);
+});
+
+test("the last combat poll may end after the drain event: the interval is bounded by the poll's start", async () => {
+  // The collector runs beside the main loop: a poll that began in combat (and carries that label) can return after the
+  // run script has logged the drain phase. Its start lies in the phase, its end does not.
+  const { events } = await simulatedRun();
+  const drain = events.find((e) => e.kind === 'phase' && e.phase === 'drain');
+  const lastCombat = events.filter((e) => e.kind === 'ring' && e.phase === 'combat').at(-1);
+  assert.ok(lastCombat.wallMs0 < drain.wallMs);
+  lastCombat.wallMs = drain.wallMs + 120;
+  const summary = summarizeRun(events);
+  assert.equal(summary.integrity.phaseOrderValid, true, JSON.stringify(summary.integrity));
+  assert.equal(summary.integrity.passed, true, JSON.stringify(summary.integrity));
+  assert.equal(summary.qualifiedPass, true);
 });
 
 test("a slow run is reported with passing integrity and a failing p95", async () => {
