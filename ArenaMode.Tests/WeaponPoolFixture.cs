@@ -81,12 +81,22 @@ internal static class WeaponPoolFixture
         Languages = new Dictionary<string, string>(),
     };
 
+    /// <summary>What one generator run left behind: the pool JSON and everything it logged, with the logger method.</summary>
+    internal sealed record Run(string Json, List<(string Level, string Text)> Log)
+    {
+        internal JsonArray Pool => JsonNode.Parse(Json)!.AsArray();
+
+        internal int Count(string level, string contains)
+            => Log.Count(l => l.Level == level && l.Text.Contains(contains, StringComparison.Ordinal));
+    }
+
     /// <summary>
     /// Runs the generator once and returns what it left in ArenaContext.LadderJson. The context statics the
-    /// generator writes are restored afterwards; the caller holds the serial collection.
+    /// generator writes are restored afterwards; the caller holds the serial collection. The logger record is
+    /// cleared first, so the Log of the result is this run's alone.
     /// </summary>
-    internal static async Task<string> GenerateAsync(
-        Dictionary<MongoId, TemplateItem> items, Dictionary<MongoId, Preset> presets)
+    internal static async Task<Run> GenerateAsync(
+        Dictionary<MongoId, TemplateItem> items, Dictionary<MongoId, Preset> presets, bool guard = true)
     {
         var ladderBefore = ArenaContext.LadderJson;
         var configBefore = ArenaContext.Config;
@@ -94,12 +104,13 @@ internal static class WeaponPoolFixture
         try
         {
             const string shipped = "[{\"id\":\"shipped\"}]";
+            LadderGeneratorTests.QuietLogger.Clear();
             ArenaContext.LadderJson = shipped;
             ArenaContext.Config = new ArenaModeConfig();
             var logger = LadderGeneratorTests.QuietLogger.Create<LadderGenerator>();
-            var generator = new LadderGenerator(Templates(items), Globals(presets), EmptyLocales(), logger);
+            var generator = new LadderGenerator(Templates(items), Globals(presets), EmptyLocales(), logger) { GuardPresets = guard };
             await generator.OnLoadAsync();
-            return ArenaContext.LadderJson;
+            return new Run(ArenaContext.LadderJson, [.. LadderGeneratorTests.QuietLogger.Entries]);
         }
         finally
         {
@@ -108,6 +119,26 @@ internal static class WeaponPoolFixture
             ArenaContext.WeaponVariants = variantsBefore;
         }
     }
+
+    /// <summary>True when the template is the weapon base or sits (up to twelve levels) below it, like LadderGenerator.DescendsFrom.</summary>
+    internal static bool IsWeapon(IReadOnlyDictionary<MongoId, TemplateItem> items, MongoId tpl)
+    {
+        var node = tpl;
+        for (var depth = 0; depth < 12; depth++)
+        {
+            if (!items.TryGetValue(node, out var item))
+                return false;
+            if (item.Parent == WeaponBase)
+                return true;
+            node = item.Parent;
+        }
+
+        return false;
+    }
+
+    /// <summary>The root template LadderGenerator keys a preset by: its Encyclopedia, else its parentless node.</summary>
+    internal static MongoId? RootOf(Preset preset)
+        => preset.Encyclopedia ?? preset.Items?.FirstOrDefault(i => i.ParentId == null)?.Template;
 
     /// <summary>
     /// Node ids are a fresh random value per run (the generator's NewId), so two pools can never be equal as
