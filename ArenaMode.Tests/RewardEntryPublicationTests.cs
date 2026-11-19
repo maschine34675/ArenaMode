@@ -158,14 +158,19 @@ public sealed class RewardEntryPublicationTests
     }
 
     [Fact]
-    public void EveryOtherRefusalKeepsTheGenericNoticeBecauseTheServerIsStillThere()
+    public void EveryOtherRefusalSaysThatNoProfileWasCopiedAndWhereTheServerLogIs()
     {
         var refused = Assert.ThrowsAny<HelperException>(() => HelperOfflineSession.CompleteStop(
             () => Wire(new(false, "return-unavailable")),
             () => throw new Exception("must not look for proof"), _ => throw new Exception("must not wait for exit"),
             () => throw new Exception("must not ask"), _ => { }));
         Assert.IsNotType<HelperOfflineSession.ServerStoppingException>(refused);
-        Assert.Contains("Keep the SPT server open", HelperRunner.EnterFailureNotice(refused));
+        string notice = HelperRunner.EnterFailureNotice(refused, @"D:\SPT");
+        Assert.Contains("Arena copied no profile", notice);
+        Assert.Contains(@"SPT server log folder: D:\SPT\user\logs\spt", notice);
+        Assert.DoesNotContain("check the logs below", notice);
+        Assert.DoesNotContain("profile was not changed", notice); // only a refusal the server can continue from proves that
+        Assert.Equal("unknown-stage/see-server-log", HelperRunner.EnterFailureCode(refused));
     }
 
     [Fact]

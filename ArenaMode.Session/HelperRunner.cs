@@ -168,7 +168,7 @@ namespace ArenaMode.SessionHelper
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
                     offline = HelperOfflineSession.Entry.Open(request, HelperServerTree.GetTreePath(_runtimeRoot), normal, created, port);
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
-                    offline.StopNormal(normal, Info);
+                    offline.StopNormal(normal, Info, Path.Combine(_runtimeRoot, ArenaSessionContract.HelperLogFileName));
                 }
                 HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, created, Info, offline, _log.Debug);
                 _log.Info("server tree ready at " + tree.TreePath + ": " + tree.Junctions.Count + " junctions, " + tree.Mods.Count + " server mods, "
@@ -248,8 +248,9 @@ namespace ArenaMode.SessionHelper
                             {
                                 // A HelperException carries the reason in words; anything else (a records file that is gone)
                                 // is only in helper.log, but the player still learns why the game restarted.
-                                NotifyFailure("Arena did not start; SPT was reopened unchanged.\n\n"
-                                    + (ex is HelperException ? ex.Message : "See helper.log for the reason."));
+                                NotifyFailure("Arena did not start; SPT was reopened unchanged. Your profile was not changed."
+                                    + " Try again once the problem below is fixed.\n\n"
+                                    + (ex is HelperException ? ex.Message : "See helper.log for the reason."), EnterFailureCode(ex));
                                 return false;
                             }
                         }
@@ -261,7 +262,10 @@ namespace ArenaMode.SessionHelper
                 // can cover a topmost dialog while it initializes, and that must not block another session attempt.
                 // A reopen after an entry refused before the normal server was touched deliberately tells the player why
                 // (above); this final notice is only for the cases where nothing was reopened.
-                if (!_normalGameReopened) NotifyFailure(EnterFailureNotice(ex));
+                // Before Entry.Open the normal server was never asked to stop, so no profile can have been touched.
+                if (!_normalGameReopened)
+                    NotifyFailure(EnterFailureNotice(ex, request.SptRuntimeDir, offline == null && request.Schema == ArenaSessionContract.OfflineRequestSchema),
+                        EnterFailureCode(ex));
                 return false;
             }
             finally { if (offline != null) offline.Dispose(); }
@@ -283,7 +287,7 @@ namespace ArenaMode.SessionHelper
             catch (Exception ex)
             {
                 LogFailure("leave failed", ex);
-                NotifyFailure("SPT could not be reopened. Keep the server open and check the logs below.");
+                NotifyFailure(LeaveFailureNotice(ex, request.SptRuntimeDir), ex is HelperException leaveFailure && leaveFailure.Code != null ? leaveFailure.Code : "leave-failed");
                 return false;
             }
         }
@@ -1044,14 +1048,86 @@ namespace ArenaMode.SessionHelper
             else _log.Error(what + ": " + ex);
         }
 
-        // The server that stopped itself after a failed entry proof is the one case where "keep the server open" is wrong.
-        internal static string EnterFailureNotice(Exception ex)
-            => ex is HelperOfflineSession.ServerStoppingException ? ex.Message
-                : "Arena startup could not finish. Keep the SPT server open and check the logs below.";
-
-        internal void NotifyFailure(string message)
+        // The text of the dialog for a failed start: what happened, whether the profile was changed (only where the path
+        // proves it: a declined entry the server said it can continue from, or a failure before the normal server was asked
+        // to stop), what to do next and where the SPT server log is. NotifyFailure adds the helper.log path and the code.
+        internal static string EnterFailureNotice(Exception ex, string sptFolder = null, bool untouched = false)
         {
-            try { FailureNotice(message + "\n\nDetails: " + Path.Combine(_runtimeRoot, ArenaSessionContract.HelperLogFileName)); }
+            var helper = ex as HelperException;
+            var declined = ex as HelperOfflineSession.EntryDeclinedException;
+            string body;
+            if (ex is HelperOfflineSession.ServerStoppingException) body = ex.Message;
+            else if (declined != null && declined.Resumed)
+                body = "Arena did not start. " + DeclinedWhy(declined.Category) + " Your profile was not changed. " + DeclinedFix(declined.Category);
+            else if (declined != null)
+                body = "Arena did not start. SPT refused to prepare Arena, and Arena copied no profile. "
+                    + "If SPT is not running any more, start it again from the launcher. The SPT server log has the reason.";
+            else if (helper != null)
+                body = "Arena did not start. " + Sentence(helper.Message) + (untouched
+                    ? " Your profile was not changed. Fix the problem above and try again."
+                    : " If SPT is not running, start it again from the launcher.");
+            else
+                body = "Arena did not start because of an unexpected error." + (untouched
+                    ? " Your profile was not changed. Try again; if it keeps happening, report it with the details below."
+                    : " If SPT is not running, start it again from the launcher; if it keeps happening, report it with the details below.");
+            if (sptFolder != null && helper != null && helper.PointsToServerLog)
+                body += "\n\nSPT server log folder: " + Path.Combine(sptFolder, "user", "logs", "spt");
+            return body;
+        }
+
+        // The short reference code at the end of a dialog: the one the failure carries, else a general one.
+        internal static string EnterFailureCode(Exception ex)
+            => ex is HelperException helper && !string.IsNullOrEmpty(helper.Code) ? helper.Code : "start-failed";
+
+        internal static string LeaveFailureNotice(Exception ex, string sptFolder)
+            => "SPT could not be reopened after Arena. Arena rewards that are not paid yet stay queued and are settled when SPT starts normally. "
+                + "If SPT is not running, start it again from the launcher; if it keeps failing, report it with the details below."
+                + (sptFolder == null ? string.Empty : "\n\nSPT server log folder: " + Path.Combine(sptFolder, "user", "logs", "spt"));
+
+        private static string DeclinedWhy(string category)
+        {
+            switch (category)
+            {
+                case "save-not-confirmed":
+                    return "SPT's saved profile did not match the profile in its memory, so Arena stopped before copying anything.";
+                case "session-busy": return "A profile is still in a raid or busy, so SPT could not save it safely.";
+                case "timeout": return "SPT did not finish saving in time.";
+                case "file-access": return "SPT could not read or write the profile files.";
+                default: return "SPT declined to prepare Arena.";
+            }
+        }
+
+        private static string DeclinedFix(string category)
+        {
+            switch (category)
+            {
+                case "save-not-confirmed":
+                    return "Another program or mod usually writes the profile files while SPT runs (cloud sync, backup, antivirus, a profile editor, a second SPT): "
+                        + "close them and try again. If it keeps happening, report it with the \"Session switch refused\" line from the SPT server log.";
+                case "session-busy": return "Finish or leave the raid, wait a moment and try again.";
+                case "timeout": return "Wait a moment and try again; a busy PC or a slow disk can cause this.";
+                case "file-access": return "Close programs that may lock the files (backup, sync, antivirus, editors), check the free disk space and try again.";
+                default: return "The SPT server log has the reason. Try again; if it keeps happening, report it.";
+            }
+        }
+
+        // A message as a sentence: capitalized and ended by a full stop.
+        internal static string Sentence(string message)
+        {
+            string text = (message ?? string.Empty).Trim();
+            if (text.Length == 0) return "SPT reported a problem.";
+            if (char.IsLower(text[0])) text = char.ToUpperInvariant(text[0]) + text.Substring(1);
+            char last = text[text.Length - 1];
+            return last == '.' || last == '!' || last == '?' ? text : text + ".";
+        }
+
+        internal void NotifyFailure(string message, string code = null)
+        {
+            try
+            {
+                FailureNotice(message + "\n\nDetails: " + Path.Combine(_runtimeRoot, ArenaSessionContract.HelperLogFileName)
+                    + (string.IsNullOrEmpty(code) ? string.Empty : "\nCode: " + code));
+            }
             catch (Exception ex) { _log.Warn("the session failure notice could not be shown (" + ex.GetType().Name + ")"); }
         }
 
@@ -1111,7 +1187,9 @@ namespace ArenaMode.SessionHelper
                     return false;
                 default:
                     _log.Error("the game (pid " + request.GamePid + ") did not exit within " + GameExitTimeoutSeconds + " s; nothing was changed and the game was not touched");
-                    NotifyFailure("SPT is still closing. No second game was started.");
+                    NotifyFailure("The game from before is still closing, so Arena did not continue and nothing was changed. "
+                        + "No second game was started. Close the game window (or end EscapeFromTarkov.exe in Task Manager) and try again.",
+                        "game-still-closing");
                     return false;
             }
         }

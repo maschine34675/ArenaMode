@@ -22,6 +22,25 @@ namespace ArenaMode.SessionHelper
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBox(IntPtr window, string text, string caption, uint flags);
 
+        // The three dialogs of the return to the normal server. Each says what happened, that the rewards stay queued (and are
+        // not paid twice), what to do, where the SPT server log is, and ends with a reference code.
+        internal static string ServerLogLine(string runtimeRoot)
+            => "SPT server log folder: " + Path.Combine(runtimeRoot, "user", "logs", "spt");
+
+        internal static string QueuedDialogText(string runtimeRoot)
+            => "Arena ended, but SPT could not restart itself to pay your rewards right now. Your Arena rewards are saved and stay queued; "
+                + "they are paid when SPT starts normally next time, and never twice. The game now returns to the normal session.\n\n"
+                + ServerLogLine(runtimeRoot) + "\nCode: return-rewards-queued";
+
+        internal static string PausedDialogText(string failure, string runtimeRoot)
+            => failure + "\n\nRetry checks again; keep the SPT server open meanwhile. Cancel leaves SPT as it is: no profile is replaced "
+                + "to force the return, and your Arena rewards stay queued.\n\n" + ServerLogLine(runtimeRoot) + "\nCode: return-paused";
+
+        internal static string NotReadyDialogText(string runtimeRoot)
+            => "SPT is not ready yet after the Arena session. Retry keeps waiting or tries its start again. "
+                + "Cancel leaves any running server open; start the game normally once SPT is ready. "
+                + "Your Arena rewards are protected against duplicate payment.\n\n" + ServerLogLine(runtimeRoot) + "\nCode: return-server-not-ready";
+
         internal sealed class Grant
         {
             internal string ControlId, ProfileId, Token, RuntimeRoot, CertificateSha256;
@@ -162,14 +181,13 @@ namespace ArenaMode.SessionHelper
                         var reply = Send(grant, operation);
                         if (ArenaMiniJson.GetBool(reply, "accepted", false)) break;
                         if (ArenaMiniJson.GetBool(reply, "held", true))
-                            failure = "The normal SPT server could not safely finish saving. Your profile is still held in memory and your Arena rewards remain queued. Keep the server open.";
+                            failure = "SPT has not finished saving your profile yet. It is still held in SPT's memory and your Arena rewards stay queued.";
                         else
                         {
                             if (ArenaMiniJson.GetString(reply, "reason") != "no-pending-rewards")
                             {
                                 log("The normal server deferred automatic reward settlement; returning without changing the queued rewards.");
-                                MessageBox(IntPtr.Zero, "Arena could not safely restart the normal SPT server. Your rewards are saved and remain queued for its next start. The game will now return to the normal session.",
-                                    "ArenaMode - rewards queued", 0x30);
+                                MessageBox(IntPtr.Zero, QueuedDialogText(grant.RuntimeRoot), "ArenaMode - rewards queued", 0x30);
                             }
                             return false;
                         }
@@ -178,13 +196,12 @@ namespace ArenaMode.SessionHelper
                     {
                         // A lost response during Kestrel shutdown is safe only after this exact process exits.
                         if (server.WaitForExit(3000)) break;
-                        failure = "The normal SPT server has not confirmed a safe return. Keep it open; your Arena rewards remain queued.";
+                        failure = "SPT has not confirmed that it is safe to continue. Keep it open; your Arena rewards stay queued.";
                     }
                     log("Return paused; preserving the normal server and queued rewards.");
                     // This exceptional path must be visible after EFT closed. Retry keeps the same
                     // helper/process-bound operation; Cancel never force-closes the server.
-                    if (MessageBox(IntPtr.Zero, failure + "\n\nRetry to check again, or Cancel and review the SPT server log. No profile will be replaced to force the return.",
-                        "ArenaMode - return paused", 0x35) != 4) // MB_RETRYCANCEL | MB_ICONWARNING, IDRETRY
+                    if (MessageBox(IntPtr.Zero, PausedDialogText(failure, grant.RuntimeRoot), "ArenaMode - return paused", 0x35) != 4) // MB_RETRYCANCEL | MB_ICONWARNING, IDRETRY
                         throw new HelperException("Return paused by the player; the normal server and queued rewards were retained.");
                 }
                 CompleteRestart(() => server.WaitForExit(60000),
@@ -193,8 +210,7 @@ namespace ArenaMode.SessionHelper
                     // The reward path requires actual listener ownership; unlike legacy recovery,
                     // a previously free port alone is not enough if the TCP owner lookup fails.
                     replacement => wait(normal.ServerHost, normal.ServerPort, replacement, "the normal server after reward settlement", false),
-                    () => MessageBox(IntPtr.Zero, "The normal SPT server is not ready yet. Retry to continue waiting or retry its start. Cancel leaves any running server open; you can start the game normally once it is ready.\n\nArena rewards remain protected against duplicate payment.",
-                        "ArenaMode - return paused", 0x35) == 4, log);
+                    () => MessageBox(IntPtr.Zero, NotReadyDialogText(grant.RuntimeRoot), "ArenaMode - return paused", 0x35) == 4, log);
                 return true;
             }
         }

@@ -157,7 +157,8 @@ namespace ArenaMode.SessionHelper
                         new Dictionary<string, object> { { "SessionId", sessionId } }, verify);
                     object accepted;
                     if (!reply.TryGetValue("Accepted", out accepted) || !(accepted is bool) || !(bool)accepted)
-                        throw new HelperException("SPT could not prepare Arena. Finish any active raid and check the server log.");
+                        throw new HelperException("SPT could not prepare Arena. Finish any active raid and try again; if it keeps happening, the SPT server log has the reason.")
+                            { Code = "prepare-refused", PointsToServerLog = true };
                     // Policy changes during preparation must not strand the player after the restart.
                     if (ReadPolicy(GameRoot).Hash != policy.Hash) throw new HelperException("The Arena mod list changed. Start Arena again.");
                     var request = BuildRequest(GameRoot, profileId, origin, sessionId, policy.Hash, mods);
@@ -170,7 +171,9 @@ namespace ArenaMode.SessionHelper
             catch (Exception ex)
             {
                 _log.Error("direct start failed: " + ex.Message);
-                _runner.FailureNotice(ex is HelperException ? ex.Message : "Arena could not start. Check helper.log and the SPT server log.");
+                // Everything thrown here happens before the normal server is asked to stop (EnterDirect reports its own
+                // failures), so the profile is untouched.
+                _runner.NotifyFailure(HelperRunner.EnterFailureNotice(ex, Runtime, true), HelperRunner.EnterFailureCode(ex));
                 return false;
             }
         }

@@ -1547,7 +1547,10 @@ public sealed class ArenaSessionHelperProcessTests
             Assert.True(log.Contains("recovery finished"), log);
             if (gameExitsImmediately)
             {
-                Assert.Contains("Arena startup could not finish", Assert.Single(notices));
+                string notice = Assert.Single(notices);
+                Assert.StartsWith("Arena did not start.", notice);
+                Assert.DoesNotContain("check the logs below", notice);
+                Assert.Contains("Code: start-failed", notice);
                 Assert.DoesNotContain("has been reopened", notices[0]);
             }
             else Assert.Empty(notices); // a hidden desktop dialog must not block the recovered game
