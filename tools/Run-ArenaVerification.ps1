@@ -14,7 +14,7 @@ before the run and after every step; a step that changed any of them fails, what
 failing step does not stop the rest; the summary names every verdict and the exit code is the number of
 failures (1 when nothing ran at all). Logs: artifacts/run-arena-verification/<step>.log (xunit.log).
 
-Parallel steps (-Parallel, default 4): parallel dotnet builds in one checkout collide, so the steps run in
+Parallel steps (-Parallel, default 6): parallel dotnet builds in one checkout collide, so the steps run in
 worker checkouts, persistent sibling worktrees ArenaMode-vw<k> that the runner makes byte-identical to the
 checkout under test (HEAD plus every uncommitted, untracked and deleted file) before it starts, and checks
 file by file (tools/ArenaVerificationWorkers.ps1). The longest steps start first. Every process of a worker
@@ -74,9 +74,11 @@ Adds every registered step.
 Prints the selection and the named steps, runs nothing, exits 0.
 
 .PARAMETER Parallel
-How many steps run at the same time, each in its own worker checkout (default 4; 1 = sequentially in this
-checkout). Measured on 12 cores/26 GB: 4 to 6 workers ran 3.3 to 3.4 times faster than one, with about 8 GB
-left free; above 6, memory and the longest step bound the gain.
+How many steps run at the same time, each in its own worker checkout (default 6; 1 = sequentially in this
+checkout). Measured on 12 cores/26 GB, full pass of 163 steps, 2026-11-19: 4 workers 35.8 min, 6 workers
+30.1 min with at least 9.1 GB left free and the CPU at 55 % on average; the step times grow by about 15 %
+from 4 to 6, and VerificationRunnerChecks (13 min) bounds the pass from below. Before 2026-11-19 at most
+five steps ran at a time whatever this said (Start-ThreadJob's default throttle).
 
 .EXAMPLE
 pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness PoolPrewarmChecks,ArenaAreaChecks:Server
@@ -92,7 +94,7 @@ param(
     [string]$ChangedSince,
     [switch]$All,
     [switch]$ListOnly,
-    [ValidateRange(1, 8)][int]$Parallel = 4
+    [ValidateRange(1, 8)][int]$Parallel = 6
 )
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

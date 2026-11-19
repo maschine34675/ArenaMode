@@ -161,7 +161,7 @@ set by hand: `-ChangedSince <ref>` adds every step registered in `tools/verifica
 that compiles, names (mutant targets) or contains a file changed since `<ref>` (committed,
 staged, unstaged, untracked), one `SELECT` line with the reasons each, and reports changed
 harness folders that are not registered; `-ListOnly` only prints, `-All` takes the whole
-register. Register every new offline harness there. Steps run four at a time (`-Parallel`,
+register. Register every new offline harness there. Steps run six at a time (`-Parallel`,
 1 to 8; 1 is the old sequential run in this checkout), each in a worker checkout
 `D:\SPT41\Development\ArenaMode-vw<k>`: a persistent sibling worktree the runner makes
 byte-identical to this checkout (HEAD plus every uncommitted, untracked and deleted file,

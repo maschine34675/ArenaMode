@@ -704,6 +704,10 @@ Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `
   process; a variable set with `$env:` there reaches every worker. The runner starts each step (and the sync's
   `dotnet restore`) through `ProcessStartInfo` with the worker's variables, and merges standard output and error
   into the log in arrival order. Nested processes inherit them, so a nested runner's builds stay in the worker.
+- **`Start-ThreadJob` runs at most five jobs at a time** unless `-ThrottleLimit` says otherwise; further jobs wait in
+  its queue. Until 2026-11-19 `-Parallel 6` therefore kept one worker idle all the time (5.0 busy workers of 6 in
+  every minute of a full pass, 33.8 min); with the limit set to the number of workers the same pass took 30.1 min
+  (4 workers: 35.8 min; 6 is the default since). VerificationRunnerChecks `parallel-six` pins it.
 - **A process started from a thread job does not stop with the job.** The native call `& $exe` it replaced was
   stopped by `Stop-Job`; a `Process` waited on in one .NET call kept `Stop-Job` waiting until the step ended (40 s in
   a test) and could leave it running in a worker the next run syncs. `Invoke-ArenaWorkerProcess` waits in 250 ms
