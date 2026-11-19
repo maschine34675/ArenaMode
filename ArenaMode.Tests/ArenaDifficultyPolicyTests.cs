@@ -382,9 +382,9 @@ public sealed class ArenaDifficultyPolicyTests
             int slowShare = ArenaDifficultyPolicy.ZombieSlowPercent(Max, 30, wave);
 
             Assert.False(shooter == 0 && applied == ZombieWaveTheme.Shooters);
-            Assert.False(shooter == 100 && applied == ZombieWaveTheme.Runners);
-            Assert.Equal(scheduled == ZombieWaveTheme.Runners && shooter == 100
-                || scheduled == ZombieWaveTheme.Shooters && shooter == 0 ? ZombieWaveTheme.None : scheduled, applied);
+            Assert.False(shooter == 100 && applied != ZombieWaveTheme.None);
+            Assert.Equal(shooter == 100 || scheduled == ZombieWaveTheme.Shooters && shooter == 0
+                ? ZombieWaveTheme.None : scheduled, applied);
             if (applied == ZombieWaveTheme.Runners)
             {
                 Assert.Equal(0, shooterShare);

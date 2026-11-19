@@ -318,17 +318,22 @@ public static class ArenaDifficultyPolicy
     }
 
     /// <summary>
-    /// The theme that actually applies and is announced: a theme that would take away what the
-    /// user fixed is dropped. Shooters never run at a shooter share of 0 (the user switched
-    /// them off) and Runners never run at 100 (the user fixed every infected as a shooter, and
-    /// the draw is exact at both values). The two share functions below return exactly these
-    /// themes' shares, which a test checks for every setting and wave.
+    /// The theme that actually applies and is announced: a theme that would change nothing for
+    /// the user's setting, or take away what the user fixed, is dropped. At a shooter share of
+    /// exactly 100 every wave is already all shooters, so neither theme is announced (a "NEXT:
+    /// ALL SHOOTERS" in a match where every wave is all shooters would be a landmark that marks
+    /// nothing, and Runners would contradict the setting). At exactly 0 Shooters is dropped (the
+    /// user switched them off) and Runners stays: it still removes the slow infected of wave 5,
+    /// and from wave 12 on, when the slow share has faded to 0 anyway, it equals an ordinary
+    /// wave at that setting, which is accepted. The two share functions below return exactly
+    /// these themes' shares (their exact-0/100 returns come first), which a test checks for
+    /// every setting and wave.
     /// </summary>
     public static ZombieWaveTheme ZombieWaveThemeFor(ArenaDifficultyStep step, int configuredShooter, int waveNumber)
     {
         int share = Math.Clamp(configuredShooter, 0, 100);
         var theme = ZombieScheduledTheme(step, waveNumber);
-        if (theme == ZombieWaveTheme.Runners && share == 100) return ZombieWaveTheme.None;
+        if (share == 100) return ZombieWaveTheme.None;
         if (theme == ZombieWaveTheme.Shooters && share == 0) return ZombieWaveTheme.None;
         return theme;
     }
@@ -367,7 +372,7 @@ public static class ArenaDifficultyPolicy
             return share;
         // The special waves override the growth after the exact-0/100 return above, so a user's
         // 0 % never meets a Shooters wave and 100 % never loses a shooter (ZombieWaveThemeFor
-        // drops exactly those two themes). Step is Maximum here: Reduced has returned already.
+        // drops the Shooters theme at 0 and both themes at 100). Step is Maximum here: Reduced has returned already.
         switch (ZombieScheduledTheme(step, waveNumber))
         {
             case ZombieWaveTheme.Runners: return 0;

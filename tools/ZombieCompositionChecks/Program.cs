@@ -71,9 +71,9 @@ internal static class Program
 
             Check(applied == ZombieWaveTheme.None || applied == scheduled, "an applied theme is always the scheduled one");
             Check(!(setting == 0 && applied == ZombieWaveTheme.Shooters), "a shooter share of 0 never gets a shooters wave");
-            Check(!(setting == 100 && applied == ZombieWaveTheme.Runners), "a shooter share of 100 never gets a runners wave");
-            Check(applied == (scheduled == ZombieWaveTheme.Runners && setting == 100 || scheduled == ZombieWaveTheme.Shooters && setting == 0
-                ? ZombieWaveTheme.None : scheduled), "the theme drops only the two themes the user's exact setting contradicts");
+            Check(!(setting == 100 && applied != ZombieWaveTheme.None), "a shooter share of 100 announces no special wave");
+            Check(applied == (setting == 100 || scheduled == ZombieWaveTheme.Shooters && setting == 0
+                ? ZombieWaveTheme.None : scheduled), "the theme is dropped only at 100 (both themes) and for shooters at 0");
             // The decider and the draw agree: a Runners wave has no shooter and no slow share, a Shooters wave is all shooters,
             // and the exact settings stay exact on every wave.
             if (applied == ZombieWaveTheme.Runners)

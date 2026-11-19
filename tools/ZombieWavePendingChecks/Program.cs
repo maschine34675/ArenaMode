@@ -255,7 +255,8 @@ internal static class Program
             Check(Callouts(f).Count(c => c == "NEXT: ALL RUNNERS") == 1, "the warning is not repeated during the intermission");
         }
 
-        // The user's shooter share is respected: 0 never gets an all-shooter wave, 100 never an all-runner wave.
+        // The user's shooter share is respected: 0 never gets an all-shooter wave, and at 100, where every wave is
+        // already all shooters, no special wave is announced at all (neither a runners nor a shooters wave).
         foreach (int shooter in new[] { 0, 100 })
         using (var f = new Fixture(size: 1, maxAlive: 2, shooter: shooter))
         {
@@ -263,11 +264,13 @@ internal static class Program
             for (int wave = 1; wave <= 4; wave++) ClearAndStartNext(f, ref t, wave);
             bool runners = Callouts(f).Contains("WAVE 5: ALL RUNNERS"), warned = Callouts(f).Contains("NEXT: ALL RUNNERS");
             Check(shooter == 0 ? runners && warned : !runners && !warned && Callouts(f).Contains("WAVE 5"),
-                shooter == 0 ? "a shooter share of 0 still gets the runner wave" : "a shooter share of 100 never gets a runner wave");
+                shooter == 0 ? "a shooter share of 0 still gets the runner wave" : "a shooter share of 100 announces no special wave");
             for (int wave = 5; wave <= 9; wave++) ClearAndStartNext(f, ref t, wave);
-            Check(shooter == 0 ? Callouts(f).Contains("WAVE 10") && !Callouts(f).Any(c => c.Contains("SHOOTERS"))
-                : Callouts(f).Contains("WAVE 10: ALL SHOOTERS"),
-                shooter == 0 ? "a shooter share of 0 never gets an all-shooter wave" : "a shooter share of 100 keeps the shooter wave");
+            Check(Callouts(f).Contains("WAVE 10") && !Callouts(f).Any(c => c.Contains("SHOOTERS")),
+                shooter == 0 ? "a shooter share of 0 never gets an all-shooter wave" : "a shooter share of 100 announces no special wave");
+            if (shooter == 100)
+                Check(!Callouts(f).Any(c => c.StartsWith("NEXT") || c.Contains("RUNNERS")) && !f.Mode.HudStatusLine.Contains("("),
+                    "a shooter share of 100 announces no special wave");
         }
 
         // Reduced has no special waves at all, even when the live step changes after the match started.
