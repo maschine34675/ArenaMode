@@ -31,7 +31,7 @@ namespace ArenaMode.Bots;
 /// one per spawn. The state is per world and is also reset by <see cref="Reset"/>.
 ///
 /// It does not cover profiles that are already assigned to a bot, and at the end of the ramp the
-/// pool can still hold profiles up to centre - 10 (the rule's slack).
+/// pool can still hold profiles up to centre - 5 (the rule's slack, the server's band spread).
 /// The same hook shape, with the same safety conditions, was the v0.6.0 Team Deathmatch clock patch.
 /// </summary>
 internal sealed class ArenaGunGameFreshGearPatch : ModulePatch

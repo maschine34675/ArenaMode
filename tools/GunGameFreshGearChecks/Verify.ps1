@@ -27,7 +27,7 @@ $faults=@(
     (Fault 'data-creator-not-checked' $patch 'PatchSource' '&& ReferenceEquals(data._botCreator, creator);' ';' 'a demand of another creator purges nothing'),
     (Fault 'purge-ignores-role' $patch 'PatchSource' '|| info.Settings.Role != role' '' 'profiles of other roles are untouched'),
     (Fault 'purge-ignores-difficulty' $patch 'PatchSource' '|| info.Settings.BotDifficulty != difficulty' '' 'profiles of another difficulty are untouched'),
-    (Fault 'purge-everything-of-the-pair' $patch 'PatchSource' '|| !ArenaDifficultyPolicy.IsGunGameGearStale(info.Level, current))' '|| false)' 'a profile exactly ten levels below the current one is kept'),
+    (Fault 'purge-everything-of-the-pair' $patch 'PatchSource' '|| !ArenaDifficultyPolicy.IsGunGameGearStale(info.Level, current))' '|| false)' 'a profile exactly five levels below the current one is kept'),
     (Fault 'stale-arguments-swapped' $patch 'PatchSource' 'ArenaDifficultyPolicy.IsGunGameGearStale(info.Level, current)' 'ArenaDifficultyPolicy.IsGunGameGearStale(current, info.Level)' 'stale profiles of the demanded pair are dropped'),
     (Fault 'interval-not-held' $patch 'PatchSource' '&& now - last < PurgeIntervalSeconds' '&& false' 'a second purge of the same pair within 30 seconds is held back'),
     (Fault 'interval-boundary-held' $patch 'PatchSource' 'now - last < PurgeIntervalSeconds' 'now - last <= PurgeIntervalSeconds' 'the purge resumes after 30 seconds'),
@@ -54,9 +54,9 @@ $faults=@(
     (Fault 'gear-level-ignores-progress' $difficulty 'DifficultySource' 'GetBotTierEndLevel(map), Progress);' 'GetBotTierEndLevel(map), 1f);' 'the Gun Game gear level opens at the start level'),
     (Fault 'gear-level-on-exception' $difficulty 'DifficultySource' "            catch (Exception)`n            {`n                return null;" "            catch (Exception)`n            {`n                return 1;" 'an unreadable config gives no gear level'),
     # The policy.
-    (Fault 'slack-halved' $policy 'PolicySource' 'public const int GunGameStaleGearLevels = 10;' 'public const int GunGameStaleGearLevels = 5;' 'the slack is ten levels'),
-    (Fault 'stale-boundary-inclusive' $policy 'PolicySource' '=> profileLevel < currentGearLevel - GunGameStaleGearLevels;' '=> profileLevel <= currentGearLevel - GunGameStaleGearLevels;' 'ten below is fresh, eleven below is stale'),
-    (Fault 'stale-direction-flipped' $policy 'PolicySource' '=> profileLevel < currentGearLevel - GunGameStaleGearLevels;' '=> profileLevel > currentGearLevel - GunGameStaleGearLevels;' 'ten below is fresh, eleven below is stale'),
+    (Fault 'slack-doubled' $policy 'PolicySource' 'public const int GunGameStaleGearLevels = 5;' 'public const int GunGameStaleGearLevels = 10;' 'the slack is five levels'),
+    (Fault 'stale-boundary-inclusive' $policy 'PolicySource' '=> profileLevel < currentGearLevel - GunGameStaleGearLevels;' '=> profileLevel <= currentGearLevel - GunGameStaleGearLevels;' 'five below is fresh, six below is stale'),
+    (Fault 'stale-direction-flipped' $policy 'PolicySource' '=> profileLevel < currentGearLevel - GunGameStaleGearLevels;' '=> profileLevel > currentGearLevel - GunGameStaleGearLevels;' 'five below is fresh, six below is stale'),
     # Wiring that cannot be linked.
     (Fault 'plugin-does-not-enable' $plugin 'PluginText' 'Bots.ArenaGunGameFreshGearPatch.EnablePatch();' '' 'Plugin.Load enables the Gun Game fresh gear patch'),
     (Fault 'raid-reset-does-not-reset' $driver 'DriverText' 'Bots.ArenaGunGameFreshGearPatch.Reset();' '' 'the raid reset resets the Gun Game fresh gear patch'),

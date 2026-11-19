@@ -335,32 +335,31 @@ public sealed class ArenaDifficultyPolicyTests
     }
 
     [Theory]
-    [InlineData(40, 30, false)]             // exactly ten below the current level is kept
-    [InlineData(40, 29, true)]              // eleven below is stale
+    [InlineData(40, 35, false)]             // exactly five below the current level is kept
+    [InlineData(40, 34, true)]              // six below is stale
     [InlineData(40, 40, false)]
     [InlineData(40, 79, false)]             // a profile above the ramp is never stale
-    [InlineData(11, 1, false)]
-    [InlineData(12, 1, true)]
+    [InlineData(6, 1, false)]
+    [InlineData(7, 1, true)]
     public void GunGameGearIsStaleOnlyBeyondTheSlack(int current, int profile, bool stale)
     {
-        Assert.Equal(10, ArenaDifficultyPolicy.GunGameStaleGearLevels);
+        Assert.Equal(5, ArenaDifficultyPolicy.GunGameStaleGearLevels);
         Assert.Equal(stale, ArenaDifficultyPolicy.IsGunGameGearStale(profile, current));
     }
 
     [Fact]
     public void TheOpeningOfTheRampNeverPurgesTheOpeningProfiles()
     {
-        // While the centre is at most 11, no profile of level 1..6 (the opening batch) is stale.
-        for (int current = 1; current <= 11; current++)
-            for (int profile = 1; profile <= 6; profile++)
-                Assert.False(ArenaDifficultyPolicy.IsGunGameGearStale(profile, current));
+        // While the centre is at most 6, a level-1 profile (the lowest of the opening batch) is not stale.
+        for (int current = 1; current <= 6; current++)
+            Assert.False(ArenaDifficultyPolicy.IsGunGameGearStale(1, current));
 
-        // The default ramp (Maximum, 1 to 66 in 15 minutes) reaches 11 after about 140 seconds.
+        // The default ramp (Maximum, 1 to 66 in 15 minutes) reaches 6 after about 70 seconds: a level-1
+        // profile is stale exactly once the centre is above 6, and never before.
         for (int second = 0; second <= 900; second++)
         {
             int centre = ArenaDifficultyPolicy.GearLevelAt(Max, 1, 66, second / 900d);
-            if (centre <= 11)
-                Assert.False(ArenaDifficultyPolicy.IsGunGameGearStale(1, centre));
+            Assert.Equal(centre > 6, ArenaDifficultyPolicy.IsGunGameGearStale(1, centre));
         }
     }
 }

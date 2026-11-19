@@ -509,8 +509,9 @@ the shooter share grows from wave 2 and the slow share fades from wave 4, the fi
 native run or a protocol change: Gun Game server gear clock (from the local-start prefix) versus client AI clock (from
 match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (confirmed
 natively on 2026-11-19: the pool keeps stale profiles; addressed in source by `ArenaGunGameFreshGearPatch`,
-which drops unused pooled PMC profiles more than 10 levels below the ramp, native re-check owed: PMC levels
-near the centre and the purge lines in the log); that no bot request of an armed raid precedes the local-start prefix (pinned as native
+which drops unused pooled PMC profiles more than 5 levels below the ramp (a first native pass with 10 left the end of
+the ramp at 55..65 against 61..71), native re-check owed: PMC levels in the band and 61..71
+after the end of the ramp); that no bot request of an armed raid precedes the local-start prefix (pinned as native
 by a test, confirm in the first native log). Four native measurements are owed before the numbers are final:
 (1) impossible against hard under SAIN 4.5.1 with identical gear, which decides the PMC row of Maximum;
 (2) Tactical solo round one, the 250,000 starting money against five opponents at the Maximum band;

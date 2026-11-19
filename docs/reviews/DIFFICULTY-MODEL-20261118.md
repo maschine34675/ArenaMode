@@ -249,26 +249,33 @@ decisions in "Direction" are untouched.
   `BotProfileClient.CreateProfile(BotCreationData, CancellationToken, bool)`. Before a PMC
   demand (pmcUSEC, pmcBEAR) in the exact active Arena raid, with `scaleBotTier` on and the
   mode Gun Game, it removes the unused pool entries of exactly the demanded (role, difficulty)
-  whose level is below `current - 10` (`ArenaDifficultyPolicy.GunGameStaleGearLevels`,
+  whose level is below `current - 5` (`ArenaDifficultyPolicy.GunGameStaleGearLevels`,
   `IsGunGameGearStale`); `current` is `ArenaDifficulty.CurrentGunGameGearLevel`, the policy's
   ramp at the frozen step over the map's `botTierStartLevel`, `botTierEndLevel` and
   `botTierRampMinutes`. The native miss path then asks the server for a fresh batch at the
-  current band. The 10 levels: the server band is centre +/-5, so a fresh profile is never
-  below centre - 5, and another 5 levels are about 70 seconds of the default ramp (65 levels in
-  15 minutes). Expected, not yet measured natively (HANDOFF lists the server gear clock
-  against the client AI clock as open): the server's clock starts earlier than the client's
-  match clock, so a fresh batch is not stale on arrival; the 30-second limit below bounds the
-  cost if it is. Per (role, difficulty) at most one purge every 30 seconds
+  current band. The 5 levels: the server band is centre +/-5 (`Spread` in
+  `ArenaBotTierScalePatch`), so a pooled profile below centre - 5 is below anything the server
+  would generate now. The first slack, 10, was measured natively (arena_bay5, Maximum, 8
+  participants, 2026-11-19): 19 purge lines, no warning; the opening profiles (level 3..11)
+  were served until about minute 4.6, from minute 6 to 12 the sampled bots were 13 to 18
+  levels below the centre of the sampling minute, and after the end of the ramp (minutes 15.5
+  to 18.4, 32 bots) the levels were 55..65 against a band of 61..71, because profiles
+  generated shortly before the end stay fresh under a slack of 10 and feed the spawns for
+  minutes. With 5, every pooled profile below the end level - 5 is dropped after the ramp and
+  new bots land in the step's band like in the fixed modes. A fresh batch is not stale on
+  arrival as long as the server's clock is not behind the client's (the server counts from
+  the local-start request, the client from the match start; natively the first fresh profile
+  was above the client's centre); the 30-second limit below bounds the cost if it is. Per (role, difficulty) at most one purge every 30 seconds
   of unscaled time (a server that answers below the client's expectation, for example a
   configuration edited during the raid, costs one batch per 30 seconds, not one per spawn);
   the state is per world. One Debug line per purge; an exception keeps the native behaviour
   and warns once per raid. **Not covered:** Scav roles (their gear barely follows the level,
   their batch is 45), profiles that are already assigned to a bot, other difficulties, the
-  backup loader and the request itself; and a pooled profile can still sit up to 10 levels
-  below the centre, so at the end of the ramp the floor is centre - 10. Checks:
+  backup loader and the request itself; and a pooled profile can still sit up to 5 levels
+  below the centre (the lower edge of the band). Checks:
   `GunGameFreshGearChecks` (the real patch against host stubs, 53 mutants) and
-  `ArenaDifficultyPolicyTests`. Nothing of this has run in the game; a native Gun Game raid
-  must show the purge lines and PMC levels near the centre.
+  `ArenaDifficultyPolicyTests`. Slack 5 has not run natively yet; a native Gun Game raid must show PMC levels in the
+  band throughout and 61..71 after the end of the ramp.
 - **Gun Game progress on the client** is `ArenaMatchService.Current.Elapsed` over the ramp
   minutes of `GameWorld.LocationId` (the armed map if no world exists yet); without a match or
   on an exception it counts as 0. The refill wait factor is not ramped in Gun Game: it applies

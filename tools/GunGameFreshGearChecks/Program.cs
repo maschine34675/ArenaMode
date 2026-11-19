@@ -26,7 +26,7 @@ internal static class Program
         => new() { Info = new Info { Settings = new ProfileSettings { Role = role, BotDifficulty = difficulty }, Level = level } };
 
     // The raid of the measurement: Gun Game, Maximum, 600 s into a 15 minute ramp 1..66, so the gear level is 44
-    // and a profile below 34 is stale. The pool holds one of everything the patch must tell apart.
+    // and a profile below 39 is stale. The pool holds one of everything the patch must tell apart.
     private static void Raid(bool reset = true)
     {
         if (reset) ArenaGunGameFreshGearPatch.Reset();
@@ -50,7 +50,8 @@ internal static class Program
         client._simpleProfiles = new List<Profile>
         {
             P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 20),
-            P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 34), P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 50),
+            P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 38), P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 39),
+            P(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 50),
             P(WildSpawnType.pmcUSEC, BotDifficulty.hard, 3), P(WildSpawnType.pmcBEAR, BotDifficulty.impossible, 3),
             P(WildSpawnType.assault, BotDifficulty.impossible, 3),
         };
@@ -75,13 +76,13 @@ internal static class Program
     private static void Purge()
     {
         Log.Debugs.Clear(); Log.Warnings = 0; Raid(); Demand();
-        Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5) && !Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 20), "stale profiles of the demanded pair are dropped");
-        Check(Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 34), "a profile exactly ten levels below the current one is kept");
+        Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5) && !Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 20) && !Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 38), "stale profiles of the demanded pair are dropped");
+        Check(Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 39), "a profile exactly five levels below the current one is kept");
         Check(Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 50), "a fresh profile of the demanded pair is kept");
         Check(Has(WildSpawnType.pmcUSEC, BotDifficulty.hard, 3), "profiles of another difficulty are untouched");
         Check(Has(WildSpawnType.pmcBEAR, BotDifficulty.impossible, 3) && Has(WildSpawnType.assault, BotDifficulty.impossible, 3), "profiles of other roles are untouched");
         Check(client._simpleProfiles.Count == 5, "nothing but the stale profiles leaves the pool");
-        Check(Log.Debugs.Count == 1 && Log.Debugs[0].Contains("dropped 2 pooled pmcUSEC/impossible profile(s), lowest level 5, gear level now 44"), "a purge logs one line with role, difficulty, count, lowest and current level");
+        Check(Log.Debugs.Count == 1 && Log.Debugs[0].Contains("dropped 3 pooled pmcUSEC/impossible profile(s), lowest level 5, gear level now 44"), "a purge logs one line with role, difficulty, count, lowest and current level");
         Check(Log.Warnings == 0, "a purge logs at Debug, never a warning");
         // The BEAR demand is its own pair: the USEC purge above does not use its interval.
         Demand(WildSpawnType.pmcBEAR);
@@ -109,7 +110,7 @@ internal static class Program
         NoPurge("an unreadable config purges nothing", () => ArenaClientConfig.Throw = true);
         Check(Log.Warnings == 0, "an unreadable config is no failure");
         NoPurge("the opening of the ramp purges nothing", () => ArenaMatchService.Current!.Elapsed = 0);
-        NoPurge("a profile client with no stale profile purges nothing", () => client._simpleProfiles.RemoveAll(p => p.Info.Level < 34));
+        NoPurge("a profile client with no stale profile purges nothing", () => client._simpleProfiles.RemoveAll(p => p.Info.Level < 39));
     }
 
     private static void Interval()
@@ -131,7 +132,7 @@ internal static class Program
         Raid(); Demand(); ArenaGunGameFreshGearPatch.Reset(); Fill(); UnityEngine.Time.unscaledTime = 1001f; Demand();
         Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "Reset starts the next raid with no interval");
         // An empty purge starts no interval.
-        Raid(); client._simpleProfiles.RemoveAll(p => p.Info.Level < 34); Demand();
+        Raid(); client._simpleProfiles.RemoveAll(p => p.Info.Level < 39); Demand();
         Fill(); UnityEngine.Time.unscaledTime = 1001f; Demand();
         Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "a demand that found nothing to drop starts no interval");
     }
@@ -170,11 +171,11 @@ internal static class Program
 
     private static void Policy()
     {
-        Check(ArenaDifficultyPolicy.GunGameStaleGearLevels == 10, "the slack is ten levels");
-        Check(!ArenaDifficultyPolicy.IsGunGameGearStale(34, 44) && ArenaDifficultyPolicy.IsGunGameGearStale(33, 44), "ten below is fresh, eleven below is stale");
+        Check(ArenaDifficultyPolicy.GunGameStaleGearLevels == 5, "the slack is five levels");
+        Check(!ArenaDifficultyPolicy.IsGunGameGearStale(39, 44) && ArenaDifficultyPolicy.IsGunGameGearStale(38, 44), "five below is fresh, six below is stale");
         Check(!ArenaDifficultyPolicy.IsGunGameGearStale(44, 44) && !ArenaDifficultyPolicy.IsGunGameGearStale(60, 44), "a profile at or above the ramp is fresh");
-        for (int centre = 1; centre <= 11; centre++) for (int level = 1; level <= 6; level++)
-            Check(!ArenaDifficultyPolicy.IsGunGameGearStale(level, centre), "the opening of the ramp never purges the opening profiles");
+        for (int centre = 1; centre <= 6; centre++)
+            Check(!ArenaDifficultyPolicy.IsGunGameGearStale(1, centre), "the opening of the ramp never purges the opening profiles");
     }
 
     private static string Text(string key)
