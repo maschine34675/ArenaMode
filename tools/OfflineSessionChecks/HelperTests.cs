@@ -899,6 +899,271 @@ public sealed class OfflineSessionHelperTests
         Private = area.Tree, MarkerCreated = area.Lease.MarkerCreatedUtc, Port = 6970, Operation = Operation,
         HelperPid = area.Lease.EntryHelperPid, HelperStarted = area.Lease.EntryHelperStartedUtc.UtcDateTime
     };
+    // ---- a normal server that started with Arena recovery paused ----
+
+    // The note exactly as the server writes it (RewardPausedNote), so the helper's reader is checked against the real writer.
+    private static void PausedNote(Area area, int pid, DateTime started, string reason = "offline-consent-conflict")
+        => RewardPausedNote.Write(area.Source, reason, true, pid, new DateTimeOffset(started, TimeSpan.Zero));
+
+    private static (Process Process, DateTime Started) Self()
+    {
+        var self = Process.GetCurrentProcess();
+        Assert.True(HelperProcesses.TryGetStartTimeUtc(self, out DateTime started));
+        return (self, started);
+    }
+
+    private static HelperHttpEndpoint FreeEndpoint()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(); int port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
+        return new HelperHttpEndpoint { ServerHost = "127.0.0.1", ServerPort = port, BackendPort = port };
+    }
+
+    [Fact]
+    public void ANormalServerThatPausedItsRecoveryIsKeptAndNamesItsReasonInsteadOfFailingTheReturn()
+    {
+        using var area = new Area();
+        area.Active(true); // the Arena session is not settled: no closure, the pointer is still there
+        var lease = HelperOfflineSession.ReadPrivate(area.Tree);
+        var (self, started) = Self();
+        int starts = 0, waits = 0;
+        string? reason = HelperOfflineSession.StartNormal(lease, FreeEndpoint(), (exe, args, working) =>
+        {
+            starts++;
+            PausedNote(area, self.Id, started); // what the paused server writes before it listens
+            return Process.GetCurrentProcess();
+        }, (host, port, process, what, free) => waits++, _ => { });
+        Assert.Equal("offline-consent-conflict", reason);
+        Assert.Equal(1, starts); Assert.Equal(1, waits); // started once, never restarted
+        Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source))); // the session is left for the next start
+        Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree)); // and its private tree is kept
+        // The note proves nothing about a closure: with the pointer present a new entry is still refused.
+        Assert.Throws<HelperException>(() => HelperOfflineSession.RequireNoUnsettledSession(area.Source));
+    }
+
+    public static IEnumerable<object[]> NotesThatDoNotNameThisServer() => new[]
+    {
+        new object[] { "none" }, new object[] { "other-pid" }, new object[] { "other-start" }, new object[] { "written-before-start" },
+        new object[] { "bad-reason" }, new object[] { "garbage" },
+    };
+
+    [Theory]
+    [MemberData(nameof(NotesThatDoNotNameThisServer))]
+    public void ANoteThatDoesNotNameTheStartedServerNeverExcusesAnUnsettledSession(string kind)
+    {
+        using var area = new Area();
+        area.Active(true);
+        var lease = HelperOfflineSession.ReadPrivate(area.Tree);
+        var (self, started) = Self();
+        int starts = 0;
+        Assert.ThrowsAny<Exception>(() => HelperOfflineSession.StartNormal(lease, FreeEndpoint(), (exe, args, working) =>
+        {
+            starts++;
+            switch (kind)
+            {
+                case "other-pid": PausedNote(area, self.Id + 1, started); break;
+                case "other-start": PausedNote(area, self.Id, started.AddHours(-3)); break;
+                case "written-before-start":
+                    RewardStartupFiles.WriteAtomic(area.Source, RewardPausedNote.PathFor(area.Source), JsonSerializer.Serialize(new
+                    {
+                        schema = 1, reason = "offline-consent-conflict", recoveryPending = true, serverPid = self.Id,
+                        serverStartedUtc = started.ToString("O"), writtenUtc = started.AddHours(-1).ToString("O")
+                    }));
+                    break;
+                case "bad-reason":
+                    RewardStartupFiles.WriteAtomic(area.Source, RewardPausedNote.PathFor(area.Source), JsonSerializer.Serialize(new
+                    {
+                        schema = 1, reason = "bad reason with spaces", recoveryPending = true, serverPid = self.Id,
+                        serverStartedUtc = started.ToString("O"), writtenUtc = started.AddSeconds(1).ToString("O")
+                    }));
+                    break;
+                case "garbage":
+                    Directory.CreateDirectory(Path.GetDirectoryName(RewardPausedNote.PathFor(area.Source))!);
+                    File.WriteAllText(RewardPausedNote.PathFor(area.Source), "{ not json");
+                    break;
+            }
+            return Process.GetCurrentProcess();
+        }, (host, port, process, what, free) => { }, _ => { }));
+        Assert.Equal(1, starts);
+    }
+
+    [Fact]
+    public void ASettledSessionIsNeverReportedAsPausedEvenWithAMatchingNote()
+    {
+        using var area = new Area();
+        area.Active(true);
+        var lease = HelperOfflineSession.ReadPrivate(area.Tree);
+        var (self, started) = Self();
+        PausedNote(area, self.Id, started);
+        Assert.Null(HelperOfflineSession.StartNormal(lease, FreeEndpoint(), (exe, args, working) => Process.GetCurrentProcess(), (host, port, process, what, free) =>
+        {
+            area.Close();
+            File.Delete(HelperOfflineSession.ActivePath(area.Source));
+        }, _ => { }));
+    }
+
+    [Fact]
+    public void AnEntryIsRefusedLocallyOnlyWhileAnEarlierSessionIsUnsettled()
+    {
+        using var area = new Area();
+        HelperOfflineSession.RequireNoUnsettledSession(area.Source); // no pointer: nothing blocks
+        area.Active(true);
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireNoUnsettledSession(area.Source));
+        Assert.Equal("session-unsettled", refused.Code);
+        Assert.True(refused.PointsToServerLog);
+        string text = HelperRunner.EnterFailureNotice(refused, area.Source, true);
+        Assert.Contains("earlier Arena session is not settled yet", text);
+        Assert.Contains("Your profile was not changed.", text);
+        Assert.Equal("session-unsettled", HelperRunner.EnterFailureCode(refused));
+        Assert.DoesNotContain("Arena startup could not finish", text);
+    }
+
+    // A real runner leave against a stand-in normal server that listens but did not settle the session: the server is neither
+    // stopped nor started a second time, the game opens against it, and the one dialog names what happened and the reason code.
+    [SkippableFact]
+    public void ALeaveWhoseNormalServerPausedItsRecoveryOpensTheGameOnceAndShowsOneDialog()
+    {
+        Skip.IfNot(OperatingSystem.IsWindows(), "real server stand-in");
+        using var area = new Area();
+        area.Active(true);
+        HelperHttpEndpoint endpoint = FreeEndpoint();
+        string configs = Path.Combine(area.Source, "SPT_Data", "configs");
+        Directory.CreateDirectory(configs);
+        File.WriteAllText(Path.Combine(configs, HelperLayout.HttpJsonFileName),
+            "{ \"ip\": \"127.0.0.1\", \"port\": " + endpoint.ServerPort + ", \"backendIp\": \"127.0.0.1\", \"backendPort\": " + endpoint.ServerPort + " }");
+        string gameExe = Path.Combine(area.Root, "ArenaC4Game.exe");
+        File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), gameExe);
+        var request = new HelperRequest
+        {
+            Schema = 3, Direction = "leave", GamePid = FinishedProcessId(), GameDir = area.Root, GameExe = gameExe,
+            GameArgs = ["-token=" + Profile, "-config={'BackendUrl':'https://127.0.0.1:6970','Version':'live','MatchingVersion':'live'}"],
+            ProfileId = Profile, OfflineSessionId = Session, SptRuntimeDir = area.Source,
+        };
+        var serverIds = new List<int>(); var games = new List<int>(); var starts = new List<string>();
+        string? notice = null;
+        HelperRunner runner = RunnerFor(area);
+        runner.FailureNotice = message => notice = message;
+        runner.ProcessStarter = (exe, arguments, working) =>
+        {
+            starts.Add(Path.GetFileName(exe));
+            if (exe == gameExe)
+            {
+                var game = Process.Start(new ProcessStartInfo(exe, "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
+                games.Add(game.Id); // the runner disposes the Process it is handed, so remember the id
+                return game;
+            }
+            var server = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
+                "-NoProfile -NonInteractive -Command \"$l=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback," + endpoint.ServerPort + ");$l.Start();Start-Sleep 120\"")
+                { UseShellExecute = false, CreateNoWindow = true })!;
+            serverIds.Add(server.Id);
+            Assert.True(HelperProcesses.TryGetStartTimeUtc(server, out DateTime serverStarted));
+            PausedNote(area, server.Id, serverStarted, "offline-activation-proof-missing");
+            return server;
+        };
+        try
+        {
+            Task<bool> leaving = Task.Run(() => runner.Leave(request));
+            Assert.True(leaving.Wait(TimeSpan.FromSeconds(60)), "the leave did not finish");
+            Assert.True(leaving.Result);
+            Assert.Equal(2, starts.Count); // the server once, the game once: no restart loop
+            Assert.Equal("ArenaC4Game.exe", starts[1]);
+            using (Process kept = Process.GetProcessById(serverIds[0])) Assert.False(kept.HasExited); // the paused server was kept
+            Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source))); // and the session left for its next start
+            Assert.NotNull(notice);
+            Assert.Contains("Arena ended and SPT is running again", notice);
+            Assert.Contains("could not settle the Arena session", notice);
+            Assert.Contains("retried the next time SPT starts", notice);
+            Assert.Contains("offline-activation-proof-missing", notice);
+            Assert.Contains(@"user\arena-rewards", notice);
+            Assert.Contains("helper.log", notice);
+            Assert.EndsWith("Code: return-rewards-paused", notice);
+            Assert.DoesNotContain("could not be reopened", notice);
+            Assert.DoesNotContain("not changed", notice); // the helper cannot prove the profile state, so it does not claim it
+        }
+        finally
+        {
+            foreach (int id in games) { try { using Process game = Process.GetProcessById(id); game.Kill(); game.WaitForExit(5000); } catch (Exception) { } }
+            foreach (int id in serverIds) { try { using Process p = Process.GetProcessById(id); p.Kill(); p.WaitForExit(5000); } catch (Exception) { } }
+        }
+    }
+
+    // The player entered while an earlier session is unsettled: the helper refuses before it stops anything, reopens the game
+    // against the unchanged normal server (whose pointer belongs to the OLD session, not to this entry) and says why.
+    [SkippableFact]
+    public void AnEnterWhileAnEarlierSessionIsUnsettledReopensTheNormalGameWithItsOwnTextAndCode()
+    {
+        Skip.IfNot(OperatingSystem.IsWindows(), "real server stand-in");
+        using var area = new Area();
+        area.Active(true); // the earlier session: pointer present, never closed
+        HelperHttpEndpoint endpoint = FreeEndpoint();
+        int port = endpoint.ServerPort;
+        string newSession = Guid.NewGuid().ToString("N");
+        string configs = Path.Combine(area.Source, "SPT_Data", "configs");
+        Directory.CreateDirectory(configs);
+        File.WriteAllText(Path.Combine(configs, HelperLayout.HttpJsonFileName),
+            "{ \"ip\": \"127.0.0.1\", \"port\": " + port + ", \"backendIp\": \"127.0.0.1\", \"backendPort\": " + port + " }");
+        string serverExe = Path.Combine(area.Source, HelperLayout.ServerExeName);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"), serverExe);
+        string gameExe = Path.Combine(area.Source, "ArenaC4Game.exe");
+        File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), gameExe);
+        using Process normal = Process.Start(new ProcessStartInfo(serverExe,
+            "-NoProfile -NonInteractive -Command \"$l=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback," + port + ");$l.Start();Start-Sleep 120\"")
+            { UseShellExecute = false, CreateNoWindow = true })!;
+        var games = new List<int>();
+        try
+        {
+            var clock = Stopwatch.StartNew();
+            while (!HelperProcesses.CanConnect("127.0.0.1", port, 500))
+                Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), "the stand-in server did not listen");
+            Assert.True(HelperProcesses.TryGetStartTimeUtc(normal, out DateTime started));
+            var grant = new RewardEntryGrant(1, "arena-entry", newSession, Profile, Convert.ToBase64String(new byte[32]), area.Source,
+                "https://127.0.0.1:" + port, new string('a', 64), new DateTimeOffset(DateTime.UtcNow), new DateTimeOffset(DateTime.UtcNow.AddMinutes(5)),
+                normal.Id, new DateTimeOffset(started, TimeSpan.Zero), ["--normal-arg"]);
+            string grantDirectory = Path.Combine(area.Source, "user", "arena-rewards", Profile);
+            Directory.CreateDirectory(grantDirectory);
+            File.WriteAllBytes(Path.Combine(grantDirectory, "entry.json"), Bytes(grant));
+            var request = new HelperRequest
+            {
+                Schema = 3, Direction = "enter", GamePid = FinishedProcessId(), GameDir = area.Source, GameExe = gameExe,
+                GameArgs = ["-token=" + Profile, "-config={'BackendUrl':'https://127.0.0.1:6969','Version':'live','MatchingVersion':'live'}", "-force-gfx-jobs"],
+                ProfileId = Profile, OfflineSessionId = newSession, SptRuntimeDir = area.Source,
+                ServerMods = [new HelperServerMod { Guid = "com.maschine.ArenaMode", Folder = Path.Combine(area.Source, "user", "mods", "ArenaMode") }],
+            };
+            var starts = new List<string>();
+            string? notice = null;
+            HelperRunner runner = RunnerFor(area);
+            runner.FailureNotice = message => notice = message;
+            runner.ProcessStarter = (exe, arguments, working) =>
+            {
+                starts.Add(exe + " " + arguments);
+                Process game = Process.Start(new ProcessStartInfo(exe, "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
+                games.Add(game.Id);
+                return game;
+            };
+            // Without the refusal the helper would ask the stand-in to stop and wait on a desktop prompt; the bound turns that into a failure.
+            Task<bool> entering = Task.Run(() => runner.Enter(request));
+            Assert.True(entering.Wait(TimeSpan.FromSeconds(45)), "the enter went on to stop the normal server instead of refusing first");
+            Assert.False(entering.Result);
+            Assert.True(starts.Count == 1, "notice: " + notice + " / log: " + File.ReadAllText(Path.Combine(area.Runtime, "helper.log")));
+            Assert.DoesNotContain("-arena-session", starts[0]);
+            Assert.False(normal.HasExited); // the normal server was never stopped
+            Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source))); // the old session is untouched
+            Assert.NotNull(notice);
+            Assert.Contains("SPT was reopened unchanged", notice);
+            Assert.Contains("earlier Arena session is not settled yet", notice);
+            Assert.EndsWith("Code: session-unsettled", notice);
+            Assert.DoesNotContain("Arena startup could not finish", notice);
+        }
+        finally
+        {
+            foreach (int id in games)
+            {
+                try { using Process game = Process.GetProcessById(id); game.Kill(); game.WaitForExit(5000); } catch (Exception) { }
+            }
+            try { normal.Kill(); normal.WaitForExit(5000); } catch (Exception) { }
+        }
+    }
+
     private static HelperRequest Request(Area area, string direction) => new()
     {
         Schema = 3, Direction = direction, GamePid = 123, GameDir = area.Root, GameExe = Path.Combine(area.Root, "EscapeFromTarkov.exe"),

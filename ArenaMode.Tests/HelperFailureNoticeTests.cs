@@ -72,6 +72,37 @@ public sealed class HelperFailureNoticeTests
         Assert.DoesNotContain("did not match the profile in its memory", text); // that text belongs to save-not-confirmed alone
     }
 
+    // The server declines an entry on top of an earlier session it could not settle at its start (the pointer is still there,
+    // or its recovery paused): the player gets the unsettled-session text and code, not "SPT declined to prepare Arena."
+    [Theory]
+    [InlineData("offline-session-already-active")]
+    [InlineData("rewards-paused-recovery-pending")]
+    public void AnEntryDeclinedForAnUnsettledSessionHasItsOwnTextAndCode(string detail)
+    {
+        var ex = Declined("entry-preflight", detail);
+        Assert.Equal("entry-preflight/session-unsettled", ex.Code);
+        string text = Notice(ex);
+        Assert.Contains("could not settle your last Arena session when it started", text);
+        Assert.Contains("will not start a new one on top of it", text);
+        Assert.Contains("Close SPT and start it again", text);
+        Assert.Contains("Arena rewards are paused", text);
+        Assert.Contains("Your profile was not changed.", text);
+        Assert.Contains(@"SPT server log folder: D:\SPT\user\logs\spt", text);
+        Assert.EndsWith("Code: entry-preflight/session-unsettled", text);
+        Assert.DoesNotContain("SPT declined to prepare Arena.", text);
+        Assert.DoesNotContain("See the \"Session switch refused\"", text);
+    }
+
+    [Fact]
+    public void AnUnsettledSessionRefusalThatWasNotResumedStillSaysWhyWithoutClaimingTheProfile()
+    {
+        var ex = new HelperOfflineSession.EntryDeclinedException("entry-preflight/session-unsettled", "session-unsettled", false);
+        string text = Notice(ex);
+        Assert.Contains("could not settle your last Arena session", text);
+        Assert.DoesNotContain("Your profile was not changed.", text);
+        Assert.DoesNotContain("SPT refused to prepare Arena", text);
+    }
+
     [Fact]
     public void ADeclinedEntryNeverGetsTheGenericSentence()
     {
