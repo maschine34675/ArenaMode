@@ -6,6 +6,7 @@ namespace UnityEngine
         public static GameObject Named;
         public object Component;
         public Scene scene = new();
+        public string name = "---Level---";
         public static GameObject Find(string name) => Named;
         public T GetComponent<T>() => Component is T value ? value : default;
     }
@@ -24,7 +25,13 @@ namespace EFT
 namespace EFT.CameraControl
 {
     public class CameraManager { public static CameraManager Instance = new(); public Camera Camera = new(); }
-    public class Camera { public UnityEngine.GameObject gameObject = new(); }
+    public class Camera
+    {
+        // A destroyed Unity camera can throw on .gameObject; ThrowOnRead models that for the "never the thrower" case.
+        public bool ThrowOnRead, NullObject;
+        private readonly UnityEngine.GameObject _object = new();
+        public UnityEngine.GameObject gameObject => ThrowOnRead ? throw new InvalidOperationException("destroyed camera") : NullObject ? null : _object;
+    }
 }
 namespace ArenaMode.Session
 {
@@ -38,7 +45,6 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Shared
 {
-    public static class ArenaMapCatalog { public const string LabyrinthId = "labyrinth"; }
     public static class Protocol
     {
         public static bool IsLifecycleRequestId(string value) => value == "current";
@@ -51,7 +57,7 @@ namespace Redeploy.Core.GameAccess { public static class LocalGameAccessor { pub
 namespace ArenaMode
 {
     public static class Plugin { public const string PluginGuid = "test.arena"; public static Log ModLogger = new(); }
-    public class Log { public void LogDebug(string text) { } }
+    public class Log { public List<string> Lines = new(); public void LogDebug(string text) => Lines.Add(text); }
 }
 namespace BepInEx.Bootstrap
 {

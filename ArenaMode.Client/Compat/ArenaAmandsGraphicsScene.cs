@@ -16,7 +16,46 @@ using UnityEngine;
 
 namespace ArenaMode.Compat;
 
-/// <summary>Repairs Amand's startup lookup in Arena Labyrinth before Core can capture the first body's camera.</summary>
+/// <summary>
+/// Repairs Amand's startup lookup of the level settings in exact Arena raids, on every Arena map, before Core can
+/// capture the first body's camera.
+/// <para>
+/// Amand's Graphics 1.8.0 finds the object that carries the scene's <c>LevelSettings</c> by NAME: a table keyed by the
+/// active scene name, <c>!settings</c> for unknown scenes, then <c>GameObject.Find(..).GetComponent</c> without a null
+/// check. A scene the table does not know (Labyrinth, every ArenaMapPort map) names no existing object, so Amand
+/// throws, its static <c>levelSettings</c> stays null and Core refuses the kit swap and every respawn. The transpiler
+/// below only replaces the stack argument of that one <c>Find</c> and routes it through
+/// <see cref="FindLevelObject"/>; Amand's own <c>GetComponent</c>, assignment and defaults stay native.
+/// </para>
+/// <para>
+/// Decisions, in the order of <see cref="FindLevelObject"/>:
+/// (1) Amand's own lookup wins whenever it yields a <c>LevelSettings</c>, and nothing of Arena is consulted first. A map
+/// Amand resolves by scene name (Factory, Laboratory, Customs, any future vanilla map) therefore behaves exactly as without
+/// Arena, and an ordinary raid is untouched. The earlier version tested for the literal name <c>!settings</c> and for
+/// Labyrinth only; neither was a safety argument (the 2026-11-08 run simply covered Factory and Labyrinth), and a name
+/// filter would leave a table entry whose object name drifted as a latent NullReferenceException. An existing object
+/// WITHOUT a <c>LevelSettings</c> is treated like a missing one: the alternative is a silent null that Core refuses anyway.
+/// (2) The substitute is <c>Singleton&lt;LevelSettings&gt;.Instance</c>, the object EFT itself drives in every started raid
+/// (<c>TarkovApplication</c> calls <c>OnPostLoadingScene</c> on it), never a name search and never
+/// <c>FindObjectOfType</c> (no order guarantee, could return a hideout leftover). It must be live, enabled, in a loaded
+/// scene and the very component <c>GetComponent</c> will return from its object.
+/// (3) No write into Amand's scene table (the BEAQO approach mutates a static, persistent table for every raid) and no
+/// stand-in object: when no usable <c>LevelSettings</c> exists the original result is returned, which is what Amand gets
+/// today on any map, and the Debug line says why.
+/// (4) The Fika, camera, world, map and exact-raid gates are unchanged. The map gate is the Arena catalogue; the exact-raid
+/// or loading-arm identity already implies an Arena map, this keeps the statement in one place.
+/// (5) Everything after (1) is wrapped so that this code is never the thrower: a failure returns the original object.
+/// </para>
+/// <para>
+/// Known consequences, deliberately not handled in code. Amand treats an unknown scene like the hideout ("default"
+/// branch): with its SkyColor option on it writes dim sky, equator and ground colours into the same
+/// <c>LevelSettings</c> fields that ArenaMapPort's lighting repairs write, so ambient light on the ported maps can differ
+/// from MapPort's own look while Graphics is on. Core's lease requires the same <c>LevelSettings</c> object at every
+/// re-activation; if the native lookup flipped between two activations (a named object appearing later) the lease would
+/// fault, which fails safe. The Debug lines name the branch taken ("native" or "Arena") so a log shows such a flip.
+/// The six ported maps are covered by code and offline checks only; they have not been run natively with Graphics.
+/// </para>
+/// </summary>
 internal static class ArenaAmandsGraphicsScene
 {
     private const string Guid = "com.Amanda.Graphics";
@@ -90,19 +129,47 @@ internal static class ArenaAmandsGraphicsScene
     private static GameObject FindLevelObject(string name, GameObject cameraObject)
     {
         var original = GameObject.Find(name);
-        if (original != null || name != "!settings" || (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid)) return original;
+        // Amand's own lookup wins whenever it yields a LevelSettings: no Arena state decides anything, so maps it resolves
+        // by scene name and every ordinary raid behave exactly as without Arena (the log below only reads two flags).
+        if (original != null && original.GetComponent<LevelSettings>() != null)
+        {
+            if (ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) NoteBranch("native", original);
+            return original;
+        }
+        try { return FindArenaLevelObject(original, cameraObject); }
+        catch (Exception ex)
+        {
+            // Never the thrower: a destroyed camera object or a vanished singleton must end as Amand's own result.
+            Plugin.ModLogger.LogDebug("Amand's Graphics level lookup left to Graphics after " + ex.GetType().Name + ".");
+            return original;
+        }
+    }
+
+    private static GameObject FindArenaLevelObject(GameObject original, GameObject cameraObject)
+    {
+        if (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid) return original;
         if (FikaCompatCheck.IsFikaLoaded || cameraObject == null || !ReferenceEquals(cameraObject, CameraManager.Instance?.Camera?.gameObject)) return original;
         var world = Singleton<GameWorld>.Instance;
         if (world == null || !(Singleton<AbstractGame>.Instance is LocalGame game) || !ReferenceEquals(game.GameWorld, world)
-            || !string.Equals(world.LocationId, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)) return original;
+            || !ArenaMapCatalog.IsSupportedMap(world.LocationId)) return original;
         // Prism can activate before OnGameStarted publishes IsActive. Only accept the actual native arm on
         // this local game's settings in that window. An ordinary load, stale arm or detached camera falls through.
         if (ArenaSession.IsActive ? !ArenaSession.IsExactActiveRaid(game, world) : !MatchesLoadingArm(game, world)) return original;
         var level = Singleton<LevelSettings>.Instance;
-        if (level == null || !level.isActiveAndEnabled || !level.gameObject.scene.isLoaded) return original;
-        Plugin.ModLogger.LogDebug("Amand's Graphics uses Labyrinth's live LevelSettings for the Arena FPS camera.");
+        if (level == null || !level.isActiveAndEnabled || !level.gameObject.scene.isLoaded
+            || !ReferenceEquals(level.gameObject.GetComponent<LevelSettings>(), level))
+        {
+            Plugin.ModLogger.LogDebug("Amand's Graphics found no usable live LevelSettings on " + world.LocationId + "; Graphics keeps its own lookup result.");
+            return original;
+        }
+        NoteBranch("Arena", level.gameObject, world.LocationId);
         return level.gameObject;
     }
+
+    private static void NoteBranch(string branch, GameObject level, string map = null)
+        => Plugin.ModLogger.LogDebug(map == null
+            ? "Amand's Graphics keeps its own LevelSettings lookup (" + branch + " branch): '" + level.name + "'."
+            : "Amand's Graphics uses the live LevelSettings '" + level.name + "' of " + map + " for the Arena FPS camera (" + branch + " branch).");
 
     private static bool MatchesLoadingArm(LocalGame game, GameWorld world)
     {

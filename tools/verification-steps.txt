@@ -91,6 +91,7 @@ NativeSideViewChecks
 NativeStopChecks
 OfflineSessionChecks
 OfflineStartupChecks
+AmandsGraphicsSceneChecks
 OptionalModAdmissionChecks
 ParticipantCountChecks
 ParticipantMenuChecks
