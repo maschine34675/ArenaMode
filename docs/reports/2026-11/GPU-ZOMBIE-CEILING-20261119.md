@@ -38,7 +38,7 @@ owner and is not designed here.
 ## First pass (18:25 to 19:41): 32, 40, 48, 56 on Factory, controls on Labs and Air Pit
 
 One run per cell. fps is the mean over the window, ms values are frame times; "max entry" is the largest single frame
-in the window, with the number of ModProfiler spikes of 100 ms or more where it recorded any.
+in the window. ModProfiler's own spikes are listed under "Integrity notes", not in this table.
 
 | run | protocol | s | alive (polls) | fps | mean ms | p95 ms | p99 ms | max entry ms | frame-s vs wall | kills/shots |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -142,8 +142,8 @@ and shot count are not separable from N in these runs; for a comparison between 
 Every window had some host sync activity, and the VM was scanning or preparing throughout (its offline builds). Host 2's own
 Syncthing REST is not reachable, so "host needing items" is the VM's view of the host's completion. Before/after states and
 the most host 2 was still missing in any window (at most 6.0 MB, in the 36 windows D-02 and D-04) were recorded per run. The
-two repeats D-09 and D-10 had the quietest sync (at most 13 to 17 KB) and gave the worst 36 results, so sync does not explain
-the misses.
+two repeats D-09 and D-10 had the least sync traffic of the Factory 36 windows (at most 13 to 17 KB) and gave the worst 36
+results, so sync does not explain the misses. (Labs 36, D-08, needed at most 1.3 KB and gave the best 36 result, which agrees.)
 
 ## Integrity notes
 
@@ -155,9 +155,20 @@ the misses.
 - **Frame-count ratio**: recorded frames were 0.5 to 12 % above the `Time.frameCount` delta (1.0046 to 1.1253 in the first
   pass). Unexplained at the time; "complete coverage" held by time, not by frame count.
 - **One capture error** (D-01, during the ModProfiler scan).
-- ModProfiler spikes of 100 ms or more: first pass, Factory 40 Dauerlast 304 ms (`BotOwner.UpdateManual` 119, `AICoreController.Update`
-  214, gc), Factory 48 Dauerlast 306 (150 gc), Factory 56 806 (260 gc, `ProfileBuildBudget` 227); second pass D-05 246 and 262,
-  D-07 153, 230 and 216 (the last two `ProfileBuildBudget`), D-08 244 (`ProfileBuildBudget` 222), D-09 267.
+- Large single entries and ModProfiler spikes of 100 ms or more. The first-pass figures (Factory 40 Dauerlast 304 ms,
+  Factory 48 Dauerlast 306, Factory 56 806) are **ring entries** that sit near a ModProfiler spike of that size, not
+  ModProfiler's own numbers: the 304 ms of Factory 40 is the entry about 14.8 s into the window that the 30 s retention
+  explains as the start of the warmup, and the 119 and 214 ms (`BotOwner.UpdateManual`, `AICoreController.Update`, gc) were
+  matched to ring entries at about 92.6 s and 109.3 s; 150 gc for Factory 48, 260 gc and `ProfileBuildBudget` 227 for
+  Factory 56. ModProfiler's own spikes are those of the second pass: D-05 246 and 262, D-07 153, 230 and 216 (the last two
+  `ProfileBuildBudget`), D-08 244 (`ProfileBuildBudget` 222), D-09 267.
+- **Loading stalls at the start of a run**: reading the raw files after the review, almost every run holds one entry of
+  4 to 13 s in its first polls (D-10 12.9 s, Air Pit 40 11.4 s, D-09 12.1 s), most of them in polls labelled warmup, and
+  the first-pass runs also hold 7.3 s (Factory 56), 8.2 s (Labs 32), 8.7 s (Labs 40) and 10.4 s (Air Pit 32). With the
+  30 s retention a poll delivers frames that are about 30 s old, so these are frames of the raid start. The table's max
+  entry for Factory 56 (805.7) and Air Pit 32 (2654.3) is smaller than the 7.3 s and 10.4 s in their raw files, so those
+  two entries lie outside the analysed window; the Labs 32 and 40 entries lie inside it (frame time against wall above).
+  The position of the others relative to their window was not re-checked. What stalled the game is not known.
 - **Invalid first Factory-32 Dauerlast** (kept as `dauer-run1-anchor0-watchdog100*`): the player stood in the spawn pocket
   with 2 kills, the 100 s no-kill watchdog fired and the population fell from 32 to 9. Repeated at route place 3 with
   `StuckWaveTimeoutSeconds` 0; all later raids used that. The Factory-32 harness ran with 100 and the watchdog did not fire.

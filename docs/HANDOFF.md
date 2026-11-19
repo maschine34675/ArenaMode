@@ -524,6 +524,14 @@ slow); the BEAQO add-on's Tactical cap (level 20) would override these stages if
 passes 5 arguments to a 7-parameter method today). The Tactical start money text said 180k to 590k and "the bottom
 third"; the shipped kits cost 180k to 669k and 250k buys the five cheapest (text corrected).
 
+**Zombie follow-up, 2026-11-19 (same branch, local commits only):** the alive-limit ceiling was measured on SPT-GPU-2 and
+stays 32, the growth is not built ([report](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)); the performance collector in
+`tools/ZombiePerformanceChecks` was ported to the UiBridge 0.10.1 frame ring and the 100 % shooter share no longer takes a
+theme. Open: (1) the owner's decision whether a softer frame-time criterion is acceptable (40 alive is about 71 to 74 fps
+mean with p95 17.5 to 21 ms on that host) or another escalation after wave 11 is wanted that costs no frame time; (2) the
+native smoke run of the ported collector (60 s Dauerlast; `frameCountMatches`, `frameTimeMatchesWall` and no discontinuity,
+README "Smoke check"), before any figure from it is quoted; what stalled the game for 2.4 to 12 s in some runs is unknown.
+
 **Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
 pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
 [native report](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):** done and accepted natively on GPU-2 (dev

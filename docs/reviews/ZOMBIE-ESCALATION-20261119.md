@@ -180,7 +180,9 @@ godmode and infinite ammunition, a fresh raid per cell. Two protocols: Dauerlast
 harness route (240 s). Thresholds fixed **before** the measurement: primary Dauerlast p95 at most 16.67 ms; secondary
 harness-route p95(N) at most `max(16.67 ms, p95(32, same session) + 1.5 ms)`; a candidate passes only if it holds both.
 
-**Result**, Factory, p95 frame time in ms (mean fps in brackets):
+**Result**, Factory, p95 frame time in ms (mean fps in brackets). The windows are the frames the stand-in collector
+delivered, shifted by about 30 s from the labelled phase, and its coverage criterion was time against wall clock, not
+the complete frame count the plan asked for; see "How the frame times were collected" in the report:
 
 | alive | Dauerlast runs | harness-route runs |
 |---|---|---|
@@ -200,8 +202,8 @@ Controls (Dauerlast): Labs 32 / 36 / 40 = 14.28 / 10.88 / 13.93; Air Pit 32 / 36
   the kit weapon is random per raid and could not be controlled, so the spread is part of the result. A value that
   passes or fails depending on the run is not a ceiling.
 - 32 holds in every run, with little margin under heavy fire (16.05 ms in the harness run with 443 shots).
-- Syncthing traffic on the host during the windows was recorded and does not explain the misses (the quietest windows
-  gave the worst 36 results).
+- Syncthing traffic on the host during the windows was recorded and does not explain the misses (among the Factory 36
+  windows the two repeats had the least sync traffic and gave the worst 36 results).
 - With a ceiling of 32 the planned rule would only raise limits that a player lowered below the default, which is the
   opposite of what that player asked for.
 
