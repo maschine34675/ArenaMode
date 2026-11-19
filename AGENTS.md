@@ -170,7 +170,7 @@ only with `git worktree remove`. A build in a worker that reaches `../Redeploy` 
 project reference to Redeploy.Core) writes that project's obj/ and bin/ into the worker's own
 `artifacts\redeploy-build` (`tools/ArenaWorkerRedeploy.props`, handed to every process of a
 worker step through its own environment), so steps that build the client run side by side
-and the shared Redeploy checkout is only read. The mutants of `Test-ArenaSourceFaults` build side by side
+and the shared Redeploy checkout's sources are only read. The mutants of `Test-ArenaSourceFaults` build side by side
 too (`ARENA_MUTANT_PARALLEL`); every mutant must still fail its named assertion, and one that
 does not compile is never a kill. `tools/VerificationRunnerChecks` runs its baseline and its
 faults side by side the same way, each in a sandbox of its own (its README says why the cases

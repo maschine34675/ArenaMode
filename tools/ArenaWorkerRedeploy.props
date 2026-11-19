@@ -12,9 +12,9 @@
        gets its default; CustomBeforeMicrosoftCommonProps comes too late for it. A BaseIntermediateOutputPath or
        BaseOutputPath given on the command line is a global property and still wins. -->
   <PropertyGroup Condition="'$(ARENA_VERIFICATION_REDEPLOY_BUILD)' != '' and '$(ARENA_VERIFICATION_REDEPLOY_CHECKOUT)' != ''">
-    <_ArenaRedeployCheckout>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ARENA_VERIFICATION_REDEPLOY_CHECKOUT)'))))</_ArenaRedeployCheckout>
-    <_ArenaProjectDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))</_ArenaProjectDirectory>
-    <_ArenaInRedeploy>$(_ArenaProjectDirectory.ToUpperInvariant().StartsWith($(_ArenaRedeployCheckout.ToUpperInvariant())))</_ArenaInRedeploy>
+    <_ArenaRedeployCheckout>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ARENA_VERIFICATION_REDEPLOY_CHECKOUT)'))).ToUpperInvariant())</_ArenaRedeployCheckout>
+    <_ArenaProjectDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)').ToUpperInvariant())</_ArenaProjectDirectory>
+    <_ArenaInRedeploy>$(_ArenaProjectDirectory.StartsWith('$(_ArenaRedeployCheckout)'))</_ArenaInRedeploy>
   </PropertyGroup>
   <PropertyGroup Condition="'$(_ArenaInRedeploy)' == 'true'">
     <BaseIntermediateOutputPath>$([MSBuild]::EnsureTrailingSlash('$(ARENA_VERIFICATION_REDEPLOY_BUILD)'))$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>

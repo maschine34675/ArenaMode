@@ -100,6 +100,8 @@ $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'Read-ArenaInstalledSnapshot.ps1')
 . (Join-Path $PSScriptRoot 'ArenaVerificationInputs.ps1')
 . (Join-Path $PSScriptRoot 'ArenaVerificationWorkers.ps1')
+# The thread jobs of worker steps run the same helper code as this runner, not whatever the files hold later.
+$jobHelpers = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ArenaVerificationInputs.ps1')) + "`n" + [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ArenaVerificationWorkers.ps1'))
 $results = Join-Path $repo 'artifacts\run-arena-verification'
 New-Item -ItemType Directory -Path $results -Force | Out-Null
 $noDeploy = Join-Path $results 'must-not-exist-no-deploy'
@@ -414,7 +416,7 @@ try {
                     continue
                 }
                 $work = [pscustomobject]@{
-                    Tools = $PSScriptRoot; Root = $slot.Path; Exe = $command.Exe; Arguments = $command.Arguments; Log = $step.Log
+                    Helpers = $jobHelpers; Root = $slot.Path; Exe = $command.Exe; Arguments = $command.Arguments; Log = $step.Log
                     Environment = (Get-ArenaWorkerEnvironment $slot.Path); Encoding = $stepEncoding
                     Model = $cacheModel; KeyInfo = $step.KeyInfo; Item = $step.Item; Snapshot = $slot.Snapshot; RepoRoot = $repo
                     InstallRoots = $installRoots; RunnerArguments = $runnerArguments; SmallHashes = $smallHashes
@@ -423,17 +425,18 @@ try {
                     param($work)
                     # Only a real exit code of the step's process may come back; anything else is -1.
                     $code = -1
+                    $watch = [Diagnostics.Stopwatch]::StartNew()
                     try {
-                        . (Join-Path $work.Tools 'ArenaVerificationWorkers.ps1')
+                        . ([scriptblock]::Create($work.Helpers))
                         $code = (Invoke-ArenaWorkerProcess $work.Exe $work.Arguments $work.Root $work.Environment $work.Log $work.Encoding).ExitCode
                     }
                     catch { Add-Content -LiteralPath $work.Log -Value "runner: the step did not run: $($_.Exception.Message)" }
+                    $stepSeconds = $watch.Elapsed.TotalSeconds
                     # The checks after the step run here, beside the other workers, not in the runner's one thread:
                     # whether the worker still matches the checkout under test (else it is synced before its next
                     # step), and for a PASS that may be cached whether its inputs moved while it ran.
                     $drift = 'the drift check failed'; $checked = [pscustomobject]@{ Ran = $false; AfterRun = $null; Error = $null }
                     try {
-                        . (Join-Path $work.Tools 'ArenaVerificationInputs.ps1')
                         Set-ArenaSmallHashMemo $work.SmallHashes
                         $drift = Test-ArenaSnapshotStillValid $work.Snapshot @($work.Snapshot.Files.Keys)
                         if ($code -eq 0 -and $work.KeyInfo -and $work.KeyInfo.Cacheable) {
@@ -442,7 +445,7 @@ try {
                         }
                     }
                     catch { $checked.Error = $_.Exception.Message; $drift = "$drift ($($_.Exception.Message))" }
-                    [pscustomobject]@{ ExitCode = [int]$code; Drift = $drift; Checked = $checked }
+                    [pscustomobject]@{ ExitCode = [int]$code; Seconds = $stepSeconds; Drift = $drift; Checked = $checked }
                 }
                 $running.Add([pscustomobject]@{ Step = $step; Slot = $slot; Job = $job; Start = Get-Date })
             }
@@ -460,7 +463,8 @@ try {
             $checked = if ($reported) { $reported.Checked } else { [pscustomobject]@{ Ran = $false; AfterRun = $null; Error = 'the step reported nothing' } }
             if (-not (Test-Path -LiteralPath $entry.Step.Log)) { Set-Content -LiteralPath $entry.Step.Log -Value 'runner: the step wrote no output' }
             Remove-Job -Job $entry.Job -Force
-            $seconds = ((Get-Date) - $entry.Start).TotalSeconds
+            # The step's own time, without the checks after it (they ran in its job).
+            $seconds = if ($reported -and $null -ne $reported.Seconds) { [double]$reported.Seconds } else { ((Get-Date) - $entry.Start).TotalSeconds }
             $verdict = Get-StepVerdict $entry.Step ([int]$code)
             $passed = $verdict.Passed; $detail = $verdict.Detail
             # The live install is shared: a change fails every step that ran since the last clean check, and

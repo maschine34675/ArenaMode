@@ -60,16 +60,25 @@ function Invoke-ArenaWorkerProcess([string]$Exe, [string[]]$Arguments, [string]$
             $readOut = $out.ReadLineAsync(); $readErr = $err.ReadLineAsync()
             while ($readOut -or $readErr) {
                 $open = [Threading.Tasks.Task[]]@(@($readOut, $readErr) | Where-Object { $_ })
-                $ready = $open[[Threading.Tasks.Task]::WaitAny($open)]
+                # Short waits: a stop of the job (Stop-Job when the run is interrupted) only gets through between
+                # two statements, never during a .NET wait.
+                $index = [Threading.Tasks.Task]::WaitAny($open, 250)
+                if ($index -lt 0) { continue }
+                $ready = $open[$index]
                 $line = $ready.Result
                 if ([object]::ReferenceEquals($ready, $readOut)) { $readOut = if ($null -eq $line) { $null } else { $out.ReadLineAsync() } }
                 else { $readErr = if ($null -eq $line) { $null } else { $err.ReadLineAsync() } }
                 if ($null -ne $line) { if ($writer) { $writer.WriteLine($line) } else { [void]$collected.AppendLine($line) } }
             }
-            $process.WaitForExit()
+            while (-not $process.WaitForExit(250)) { }
             return [pscustomobject]@{ ExitCode = $process.ExitCode; Output = $collected.ToString() }
         }
-        finally { $process.Dispose() }
+        finally {
+            # An interrupted run leaves no step running behind it (the native call this replaced was stopped with
+            # its job): a step left running would go on writing into a worker the next run syncs and uses.
+            try { if (-not $process.HasExited) { $process.Kill($true) } } catch { }
+            $process.Dispose()
+        }
     }
     finally { if ($writer) { $writer.Dispose() } }
 }
