@@ -580,8 +580,9 @@ hooks, the wave policy or its stuck-wave watchdog.
 Individual recovery, fair native planning admission and slow/fast/shooting wave
 composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. At Maximum every fifth wave
 from wave 5 is a special wave (ALL RUNNERS or ALL SHOOTERS, composition only, announced as
-text) and the menu row ALIVE AT ONCE shows the effective value at Reduced; a growth of the
-alive limit after wave 11 is planned and waits for a native measurement, see
+text; none at a shooter share of exactly 100) and the menu row ALIVE AT ONCE shows the
+effective value at Reduced; a growth of the alive limit after wave 11 was measured on
+2026-11-19 and is not built (the ceiling stays 32), see
 docs/reviews/ZOMBIE-ESCALATION-20261119.md (read it before changing the wave callouts, the
 status line or the profile pool). Preserve exact
 arrival ownership, confirmed administrative-death accounting and pending-spawn

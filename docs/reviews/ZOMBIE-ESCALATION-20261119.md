@@ -1,10 +1,10 @@
 # Zombie escalation after the plateau (2026-11-19)
 
 Contract for what Zombies do once the fade of [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md)
-has run out. Built in two stages, in the owner's order: special waves first, the alive-limit growth only
+has run out. Planned in two stages, in the owner's order: special waves first, the alive-limit growth only
 after a native measurement. This document describes **stage Z1 as built** (special waves, their text
-announcement, the per-wave composition line, the menu row at Reduced) and records **stage Z2 as planned**
-(the alive-limit growth), which is not built.
+announcement, the per-wave composition line, the menu row at Reduced) and records the alive-limit growth
+(stage Z2) as **measured on 2026-11-19 and not built**: the ceiling stays 32.
 
 Read [ZOMBIE-MODE-REVIEW.md](ZOMBIE-MODE-REVIEW.md) before touching the wave policy or its watchdog and
 [ZOMBIE-FLOW-20261115.md](ZOMBIE-FLOW-20261115.md) for the composition this builds on.
@@ -31,13 +31,15 @@ but the wave length escalates: wave 12 and wave 40 are the same fight with diffe
   Shooters wave only `hard`. No new role and no new difficulty: `infectedTagilla` is a boss on its own brain
   and `BurstSpawnService.SpawnInfected` rejects it on purpose, and `impossible` throws in the native
   constructor, so neither is a theme.
-- **The user's shooter share wins at its exact values.** With `ShooterPercent` 0 there is never a Shooters
-  wave (that wave is an ordinary Maximum wave); with 100 there is never a Runners wave. Values 1 to 99 get
-  both. `ZombieWaveThemeFor` drops exactly those two themes and the two share functions apply the schedule
-  after their exact-0/100 early returns, so the announcement and the draw agree by construction; a test
-  checks the decider against the shares for every setting 0..100 and waves 1..60. At 100 the Shooters wave is
-  still announced although every wave is already all shooters; that is accepted (it is what the user chose,
-  announced as the landmark it is).
+- **The user's shooter share wins at its exact values.** At exactly 100 every wave is already all shooters, so
+  **no special wave is announced at all**: `ZombieWaveThemeFor` returns `None` for every wave (an earlier build still
+  announced NEXT: ALL SHOOTERS there, a landmark that marks nothing; changed on 2026-11-19, together with the
+  decider's doc comment, the xunit rows, the harness tables and the mutants). With `ShooterPercent` 0 there is never
+  a Shooters wave (that wave is an ordinary Maximum wave) but Runners stays: it still removes the slow infected of
+  wave 5, and from wave 12 on, when the faded slow share is 0 anyway, it equals an ordinary wave at that setting,
+  which is accepted. Values 1 to 99 get both. The two share functions are unchanged (their exact-0/100 returns come
+  before the schedule, and at 100 the slow roll is never consulted), so the announcement and the draw agree by
+  construction; a test checks the decider against the shares for every setting 0..100 and waves 1..60.
 - **Effect at the default settings (shooter 20, Maximum).**
 
 | Wave | Without themes | With themes |
@@ -156,46 +158,63 @@ the pool.
   spawn slot about a third of a second; nothing else stalls. Bundle loads for the pistol and ammunition of each new
   hard profile add to that (assumed, not run).
 - Composition-only themes need no pool change: a Runners wave needs the `normal` pair (present whenever the
-  shooter share is below 100) and a Shooters wave the `hard` pair (present whenever it is above 0), exactly the
-  complement of the two dropped themes; a test pins it for every shooter setting.
+  shooter share is below 100, which is where a Runners wave applies) and a Shooters wave the `hard` pair (present
+  whenever it is above 0, where it applies below 100); a test pins it for every shooter setting.
 - If the miss storm hurts in the native run, the options are owner decisions, not built: (a) accept the miss path;
   (b) cap `BackupCountForWaveStartSize` so that pairs x count is at most 100 (12 pairs x 8 = 96 is loaded in full;
   this touches the pinned `ZombieProfilePlan` checks); (c) pre-build the Hard pool in the intermission before the
   themed wave. A larger target is not a remedy: it is ignored when a target exists and only enlarges the collapsed
   sum.
 
-## The alive-limit growth (planned, not built)
+## The alive-limit growth (measured on 2026-11-19, not built)
 
-Owner decision (b): from wave 12 the alive limit rises step by step to a ceiling that is **measured natively
-before the number is fixed**. Nothing of it is in the code: no constants, no `ZombieAliveLimit`, no per-wave limit
-in `ZombieWavePolicy`, no change of the native bot cap in `ArenaBotPatches.cs` (it still reads
-`ZombieMaxAlive + 2 + companions`), no hint in the menu row.
+Owner decision (b) was that from wave 12 the alive limit rises step by step to a ceiling **measured natively before the
+number is fixed**. The measurement was made on 2026-11-19 on SPT-GPU-2 and the decision is: **the ceiling stays 32, which
+is today's default; the growth is not built.** Nothing of it is in the code: no constants, no `ZombieAliveLimit`, no
+per-wave limit in `ZombieWavePolicy`, no change of the native bot cap in `ArenaBotPatches.cs` (it still reads
+`ZombieMaxAlive + 2 + companions`), no hint in the menu row. The full record, with both passes, the integrity notes and
+where the raw data lies, is [GPU-ZOMBIE-CEILING-20261119.md](../reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md).
 
-Decisions recorded for stage Z2:
+**Setup.** Build `0.6.0+72273354`, Maximum step, shooter share 20 %, `WaveStartSize` 200, `WaveGrowth` 0, Arena kits,
+godmode and infinite ammunition, a fresh raid per cell. Two protocols: Dauerlast (the player stands, 150 s) and the
+harness route (240 s). Thresholds fixed **before** the measurement: primary Dauerlast p95 at most 16.67 ms; secondary
+harness-route p95(N) at most `max(16.67 ms, p95(32, same session) + 1.5 ms)`; a candidate passes only if it holds both.
 
-- Maximum only; from wave 12; +4 per wave; limit = `max(setting, min(ceiling, ceil(1.5 x setting)))`, never above
-  the slider maximum 96 (a low setting was chosen for performance, a high one never shrinks).
-- A `ZombieAliveLimit(configured, ceiling)` seam with the ceiling constant behind a one-argument overload, so every
-  table test passes an explicit ceiling and survives the drop-in of the measured number.
-- Grown on top of `config.MaxAlive` (the live source of the base stays the `ZombieMaxAlive(_step, ...)` line), so
-  the existing `alive-limit-ignores-step` mutant still dies; a seam that recomputed the base from the step would
-  make that mutant equivalent.
-- The native bot cap follows the limit (it clips the growth silently otherwise: 34 at a setting of 32), with a pin
-  that `limit + 2 + companions` stays within the server floor of 104 and that the slider maximum equals the hard
-  limit. No menu hint.
+**Result**, Factory, p95 frame time in ms (mean fps in brackets):
 
-**Measurement plan** (Factory at 32, 40 and 48 alive, one small ported map, 56 as the known-bad control): a fresh
-raid per value, `Zombie/MaxAlive` = N through `uibridge_config_set persist=false`, `WaveStartSize` 200,
-`WaveGrowth` 0, the same kit, route and shooter share, godmode and infinite ammunition,
-`ZombiePerformanceChecks/run.mjs` with `analyze.mjs` and the quiet Dauerlast protocol of 2026-10-17. Threshold:
-p95 frame time over the combat interior at most **16.67 ms** (60 fps) with complete frame coverage, **and** at most
-`max(16.67 ms, p95(32 in the same session) + 1.5 ms)` as the relative guard against a harness whose own baseline
-already misses (32 measured 17.1 to 17.8 ms there). Also recorded: the maximum frame and the spike list around wave
-changes, the path-budget counters (`OldestWaitFrames`, at most 1.5x those at 32), the corpses left on the ground and
-the `Arena bot cap set to` line. One control pass on Labs (the 13.10 data show maps disagreeing: Labs 28 missed where
-Factory 28 passed) and one on the small ported map (Chop Shop, solo: a yard of about 1,900 m2 is a different problem
-than Factory). The highest passing N becomes the ceiling; if none passes above 32 it is 32 (growth inert) and only
-the special waves ship.
+| alive | Dauerlast runs | harness-route runs |
+|---|---|---|
+| 32 | 13.49 (96), 13.68 (92) | 13.32 (101), 16.05 (88) |
+| 36 | 14.25 (93), 15.58 (87), **21.20** (74) | 15.26 (86), **18.52** (77) |
+| 40 | **17.54** (74), **21.24** (71) | **18.26** (76) |
+| 48 | **25.60** (57) | **21.82** (64) |
+| 56 (control) | **22.67** (62) | not run |
+
+Controls (Dauerlast): Labs 32 / 36 / 40 = 14.28 / 10.88 / 13.93; Air Pit 32 / 36 / 40 = 15.12 / 13.77 / **17.37**.
+
+**Reading.**
+
+- 40 and 48 miss both thresholds; 40 misses again in its repeat.
+- 36 holds in three runs and misses in two repeats (one per protocol), a spread of up to 7 ms between identical cells.
+  Runs with many shots (automatic kit weapons, 350 to 455 shots) are the slow ones, runs with few shots the fast ones;
+  the kit weapon is random per raid and could not be controlled, so the spread is part of the result. A value that
+  passes or fails depending on the run is not a ceiling.
+- 32 holds in every run, with little margin under heavy fire (16.05 ms in the harness run with 443 shots).
+- Syncthing traffic on the host during the windows was recorded and does not explain the misses (the quietest windows
+  gave the worst 36 results).
+- With a ceiling of 32 the planned rule would only raise limits that a player lowered below the default, which is the
+  opposite of what that player asked for.
+
+**Open for the owner, nothing designed or built:** whether a softer criterion is acceptable (40 alive is about 71 to
+74 fps mean with p95 17.5 to 21 ms on that host), or another escalation after wave 11 is wanted that costs no frame time.
+
+**What was considered (kept as a record).** Maximum only; from wave 12; +4 per wave; limit =
+`max(setting, min(ceiling, ceil(1.5 x setting)))`, never above the slider maximum 96; a `ZombieAliveLimit(configured,
+ceiling)` seam with the ceiling constant behind a one-argument overload; grown on top of `config.MaxAlive` (the live
+source of the base stays the `ZombieMaxAlive(_step, ...)` line, so the `alive-limit-ignores-step` mutant keeps its
+meaning); the native bot cap following the limit (otherwise it clips the growth silently: 34 at a setting of 32) with a
+pin that `limit + 2 + companions` stays within the server floor of 104; no menu hint. The measurement plan was Factory at
+32, 40 and 48 alive, one small ported map, 56 as the known-bad control, with the thresholds above.
 
 ## Native acceptance of stage Z1 (not run)
 
@@ -217,7 +236,7 @@ shooter 20 (80 % at 40: the share is `round(setting x 2)`), the callouts in scre
 the wave start (fit of the 21-character text), `HudStatusLine` through the F9 panel, and for the pool the
 `Arena profile build budget: N bot profiles built over F frame(s)` lines during wave 10. Acceptance: shooters' hit
 rate against the player at wave 10 (the fallback above), PitFireTeam with one companion (no warning in the barrier,
-one after it), shooter 0 (wave 10 ordinary) and shooter 100 (wave 5 ordinary, no warning), the menu row read through
+one after it), shooter 0 (wave 10 ordinary) and shooter 100 (waves 5 and 10 ordinary, no warning at all), the menu row read through
 `uibridge_snapshot` while F12 switches the step (`24 (setting 32, Reduced)` and back) and a screenshot of the longest
 text, the whole-profile before/after comparison and the loaded hashes. The watchdog skipper invalidates reward capture
 (`ArenaRewardCapture.Invalidate`); a run must not count on Zombie rewards. A dated report
@@ -228,7 +247,8 @@ text, the whole-profile before/after comparison and the loaded hashes. The watch
 - `ZombieCompositionChecks`: the calendar table, the decider against both share functions for every shooter
   setting and wave, the draw buckets of waves 5 and 10 (`faded[4] = 0`, shooter share 0 at wave 5 and 100 at wave 10
   except at the exact settings), and the faults on each rule (interval, wave 0, Reduced, order, slow kept, shooters
-  kept, shooters not all hard, shooters at 0, runners at 100, the decider's two drops).
+  kept, shooters not all hard, shooters at 0, runners at 100, the decider's drops: Shooters and Runners at 100, Shooters
+  at 0).
 - `ZombieWavePendingChecks`: the callout sequence of waves 1 to 10, the status line, one warning per wave, shooter 0
   and 100, Reduced and a later live step, the zero-length intermission, the PitFireTeam barrier, the composition line
   (counts, once per wave, reset per wave, rejected dispatches, theme); `ZombieSoloChecks`, `ZombieTeamChecks` and
@@ -237,4 +257,6 @@ text, the whole-profile before/after comparison and the loaded hashes. The watch
   directions, the frozen step when armed, the cell geometry, the slider keeping the setting, no config write.
 - xunit: `ArenaDifficultyPolicyTests`, `ZombieRoleMixTests`, `ZombieProfilePlanTests`.
 - Existing expectations changed because the decided behaviour changed them: waves 5 and 10 in
-  `ZombieCompositionChecks` and the `(5, 20, 10)` and `(20, 50, 40)` rows of `ArenaDifficultyPolicyTests`.
+  `ZombieCompositionChecks` and the `(5, 20, 10)` and `(20, 50, 40)` rows of `ArenaDifficultyPolicyTests`; on
+  2026-11-19 the decider's expectation at a shooter share of 100 (xunit, `ZombieCompositionChecks`, the shooter-100 case
+  of `ZombieWavePendingChecks`: no theme at all instead of "Shooters kept").

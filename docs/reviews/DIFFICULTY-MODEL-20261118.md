@@ -96,8 +96,8 @@ position reports. Followers stay at the level PitFireTeam requires.
 ## Zombies
 
 The step does not touch `MaxAlive`, wave sizes or the spawn interval at `Maximum`; 32 alive
-from wave one stays (a growth of the alive limit from wave 12 is planned and waits for a native
-measurement, see [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md)). Escalation comes from the composition:
+from wave one stays (a growth of the alive limit from wave 12 was measured on 2026-11-19 and is not
+built, the ceiling stays 32, see [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md)). Escalation comes from the composition:
 
 - `Maximum`: the melee slow share keeps the opening 75/50/25 % and the 40/20/30 rhythm, but
   fades by 5 percentage points per wave from wave 4 on and never below 0 (35, 10, 15, 20, 0,
@@ -106,7 +106,7 @@ measurement, see [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md))
   0 % and 100 % stay exact. Every fifth wave from wave 5 replaces that mix by a special wave
   (2026-11-19): ALL RUNNERS on waves 5, 15, 25, ... (no shooters and no slow infected) and ALL
   SHOOTERS on waves 10, 20, ... (every infected a shooter), announced as text; never ALL SHOOTERS
-  at exactly 0 % and never ALL RUNNERS at exactly 100 %. Contract: [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md).
+  at exactly 0 % and no special wave at all at exactly 100 % (every wave is already all shooters). Contract: [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md).
 - `Reduced`: the composition of 2026-11-15 without the fade, a flat shooter share, and at most
   24 infected alive (the lower of the setting and 24).
 

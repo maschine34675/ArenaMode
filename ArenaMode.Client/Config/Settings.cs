@@ -1357,7 +1357,7 @@ public static class Settings
                 "Never easy (too slow to matter) or impossible (the native brain throws on construction). " +
                 "At the Maximum difficulty step every fifth wave is a special wave: waves 5, 15, 25, ... are ALL RUNNERS " +
                 "(no shooters and no slow infected) and waves 10, 20, ... are ALL SHOOTERS (every infected a shooter). " +
-                "Exactly 0 never gets ALL SHOOTERS and exactly 100 never gets ALL RUNNERS; Reduced has no special waves. " +
+                "Exactly 0 never gets ALL SHOOTERS and exactly 100 has no special waves at all; Reduced has none either. " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
 

@@ -5,6 +5,8 @@ a higher supported zombie population or an FPS improvement. Client/server alive
 limits, the wave director and simulation cadence are unchanged. See
 `ZOMBIE-KIT-WARMUP-REVIEW.md` for the separate catalogue-preload change.
 
+> Note 2026-11-19: the alive ceiling was measured again on 2026-11-19 (32, 36, 40, 48 and 56 alive, two passes, a quiet Dauerlast protocol); the figures for 32 alive in the 2026-11 build are in [GPU-ZOMBIE-CEILING-20261119.md](../reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md). The history below is unchanged.
+
 ## Scope and native basis
 
 `ZombiePerformancePatches.EnablePatch()` registers precisely two prefixes:

@@ -1,5 +1,7 @@
 # Zombie-Populationsgrenze — SPT-GPU-2, 13.10.2026
 
+> Note 2026-11-19: the alive ceiling was measured again on 2026-11-19 (32, 36, 40, 48 and 56 alive, two passes, a quiet Dauerlast protocol); the figures for 32 alive in the 2026-11 build are in [GPU-ZOMBIE-CEILING-20261119.md](../2026-11/GPU-ZOMBIE-CEILING-20261119.md). The history below is unchanged.
+
 **Empfehlung: MaxAlive 24 als gemeinsamer Ausgangswert für Factory und Labs.**
 Das ist die höchste auf beiden Karten bestandene Teststufe. 28 besteht auf
 Factory im Gesamtwert, scheitert aber auf Labs; 32 scheitert schon auf Factory.

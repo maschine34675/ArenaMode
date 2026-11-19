@@ -372,7 +372,8 @@ public static class ArenaDifficultyPolicy
             return share;
         // The special waves override the growth after the exact-0/100 return above, so a user's
         // 0 % never meets a Shooters wave and 100 % never loses a shooter (ZombieWaveThemeFor
-        // drops the Shooters theme at 0 and both themes at 100). Step is Maximum here: Reduced has returned already.
+        // drops the Shooters theme at 0 and both themes at 100). Step is Maximum here: Reduced has
+        // returned already.
         switch (ZombieScheduledTheme(step, waveNumber))
         {
             case ZombieWaveTheme.Runners: return 0;

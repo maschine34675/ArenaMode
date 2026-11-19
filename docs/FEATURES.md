@@ -240,10 +240,11 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - **Special waves at Maximum:** every fifth wave from wave 5 is ALL RUNNERS (no
   shooters, no slow infected; waves 5, 15, ...) or ALL SHOOTERS (every infected a
   shooter; waves 10, 20, ...), announced as text before and at the start of the
-  wave. Exactly 0 % shooters never gets ALL SHOOTERS and exactly 100 % never ALL
-  RUNNERS; Reduced has none. The menu row ALIVE AT ONCE shows the effective value
-  first at Reduced when the cap bites (`24 (setting 32, Reduced)`). A growth of the
-  alive limit after wave 11 is planned, not built
+  wave. Exactly 0 % shooters never gets ALL SHOOTERS and exactly 100 % has no special
+  wave at all (every wave is already all shooters); Reduced has none. The menu row
+  ALIVE AT ONCE shows the effective value first at Reduced when the cap bites
+  (`24 (setting 32, Reduced)`). A growth of the alive limit after wave 11 was measured
+  on 2026-11-19 and is not built: the ceiling stays 32
   ([contract](reviews/ZOMBIE-ESCALATION-20261119.md)).
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.

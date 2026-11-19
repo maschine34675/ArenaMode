@@ -1,5 +1,7 @@
 # Zombie-Modus: weitere Performance-Stellschrauben (Bewertung, 17.10.2026)
 
+> Note 2026-11-19: the alive ceiling was measured again on 2026-11-19 (32, 36, 40, 48 and 56 alive, two passes, a quiet Dauerlast protocol); the figures for 32 alive in the 2026-11 build are in [GPU-ZOMBIE-CEILING-20261119.md](../2026-11/GPU-ZOMBIE-CEILING-20261119.md). The history below is unchanged.
+
 Zweiter Blick nach den Arbeiten vom 09.–15.10. (Hör-/Sozialfilter, Stimmbudget,
 PFT-Schnellpfad, Crowd-Variante, Benchmarks `GPU-ZOMBIE-PERFORMANCE-20261013.md`,
 `GPU-ZOMBIE-REVIEW-20261014.md`). Ziel des Nutzers: mehr gleichzeitige Zombies bei

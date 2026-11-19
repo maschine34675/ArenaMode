@@ -536,7 +536,7 @@ settings with a one-time migration, of `ArenaBotDifficultyClockPatch`, `TimedWav
 and the prewarm readiness gate. Seen natively: both steps in Deathmatch, Tactical and Zombies, Maximum in Team DM,
 Domination, Gun Game and a protected PitFireTeam raid, an ordinary raid, the frozen step, the old `.cfg`, the bot
 speed at both steps, the 60-minute raid timer on a ported map, `impossible` against `hard` and `hard` against
-`normal` value by value. Not run natively: Zombie waves beyond the first (fade, shooter growth and, since 2026-11-19, the special waves are harness-only; the ALIVE AT ONCE row now shows the effective value first at Reduced, stage Z1 of docs/reviews/ZOMBIE-ESCALATION-20261119.md on `feature/opening-rounds-zombie-waves`),
+`normal` value by value. Not run natively: Zombie waves beyond the first (fade, shooter growth and, since 2026-11-19, the special waves are harness-only; the ALIVE AT ONCE row now shows the effective value first at Reduced, stage Z1 of docs/reviews/ZOMBIE-ESCALATION-20261119.md on `feature/opening-rounds-zombie-waves`; stage Z2, the alive-limit growth, was measured on SPT-GPU-2 on 2026-11-19 and is not built, the ceiling stays 32: docs/reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md),
 Gun Game at Reduced and its scav switch, a long Team DM or Domination match with the full reserve per request,
 loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
 maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a

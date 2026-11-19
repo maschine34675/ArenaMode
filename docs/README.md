@@ -273,7 +273,7 @@ Sorted by file name.
 - [Arena weapon variants: automatic attachment generation, validation and lifecycle](reviews/WEAPON-VARIANTS-REVIEW.md)
 - [Zombie body culling and bot hot-path switches (four performance toggles)](reviews/ZOMBIE-BODY-CULLING-20261017.md)
 - [Optional Zombie Crowd: behaviour, OFF semantics and ownership](reviews/ZOMBIE-CROWD-REVIEW.md)
-- [Zombie escalation after wave 11: special waves (ALL RUNNERS / ALL SHOOTERS), the effective-value menu row, the composition line, the planned alive-limit growth and its measurement](reviews/ZOMBIE-ESCALATION-20261119.md)
+- [Zombie escalation after wave 11: special waves (ALL RUNNERS / ALL SHOOTERS), the effective-value menu row, the composition line, and the alive-limit growth, measured on 2026-11-19 and not built: the ceiling stays 32](reviews/ZOMBIE-ESCALATION-20261119.md)
 - [Zombie recovery, native planning budget and wave composition](reviews/ZOMBIE-FLOW-20261115.md)
 - [Zombie kit prewarming: capped optional preload and unchanged required work](reviews/ZOMBIE-KIT-WARMUP-REVIEW.md)
 - [Zombie Mode: architecture, native melee suppression, waves, own gear and performance](reviews/ZOMBIE-MODE-REVIEW.md)
@@ -290,6 +290,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [Zombie alive ceiling on GPU-2, 2026-11-19: 32, 36, 40, 48 and 56 alive on Factory, controls on Labs and Air Pit, two passes with the protocols, the thresholds, the integrity notes, the weapon confound and the decision (the ceiling stays 32, the growth is not built)](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)
 - [Rewards paused at start: a copied install with an unsettled session of another folder starts with rewards paused and settles at the next start; a private Arena round trip on GPU-2 with the new helper](reports/2026-11/FAIL-SOFT-NATIVE-20261119.md)
 - [Moved installation (GitHub #3): the server started from a copied folder with 46 finished Arena sessions stops on v0.6.0 and starts with the fix, archiving the old reward records](reports/2026-11/MOVED-INSTALL-NATIVE-20261119.md)
 - [Difficulty model on GPU-2: acceptance per mode and step, impossible against hard under SAIN, stock kits against Maximum bots, the Gun Game gear ramp before and after the pool purge](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)

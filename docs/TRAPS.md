@@ -35,9 +35,10 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
   `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A
   per-wave delegate that recomputed the base limit from the step would make that mutant equivalent: it
-  would survive and the harness would fail with "not killed". Grow on top of the existing config value
-  instead (stage Z2 of the Zombie escalation), and re-anchor the two mode mutants that read the frozen
-  step and the limit when a line near them moves.
+  would survive and the harness would fail with "not killed". If an alive-limit growth is ever built (stage
+  Z2 of the Zombie escalation was measured on 2026-11-19 and not built, the ceiling stays 32), grow on top of
+  the existing config value instead, and re-anchor the two mode mutants that read the frozen step and the
+  limit when a line near them moves.
 - **Shooting infected do not stop at 15 m (2026-11-19)** — `InfectedAttackLayer.GetSlowShootingZombieDecision`
   shoots from place when the enemy is visible and closer than 15 m, but shoots **while moving** (`attackMoving`)
   at any other distance with a line of fire; 15 m is not an engagement limit. An earlier design leaned on it

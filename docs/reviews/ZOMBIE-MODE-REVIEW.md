@@ -2,7 +2,8 @@
 
 **2026-11-19 escalation:** at Maximum every fifth wave from wave 5 is a special wave (ALL RUNNERS or
 ALL SHOOTERS, text announcement, one Debug composition line per wave), the menu row ALIVE AT ONCE shows
-the effective value at Reduced, and a growth of the alive limit after wave 11 is planned but not built:
+the effective value at Reduced, and a growth of the alive limit after wave 11 was measured on 2026-11-19 and
+is not built (the ceiling stays 32):
 [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md). Read it before changing the wave
 callouts, the status line or the profile pool.
 
