@@ -40,8 +40,8 @@ namespace ArenaMode.Compat;
 /// (<c>TarkovApplication</c> calls <c>OnPostLoadingScene</c> on it), never a name search and never
 /// <c>FindObjectOfType</c> (no order guarantee, could return a hideout leftover). It must be live, enabled, in a loaded
 /// scene and the very component <c>GetComponent</c> will return from its object.
-/// (3) No write into Amand's scene table (the BEAQO approach mutates a static, persistent table for every raid) and no
-/// stand-in object: when no usable <c>LevelSettings</c> exists the original result is returned, which is what Amand gets
+/// (3) No write into Amand's scene table (a stand-in entry written into that static, persistent table would outlive
+/// the raid and reach every later one) and no stand-in object: when no usable <c>LevelSettings</c> exists the original result is returned, which is what Amand gets
 /// today on any map, and the Debug line says why.
 /// (4) The Fika, camera, world, map and exact-raid gates are unchanged. The map gate is the Arena catalogue; the exact-raid
 /// or loading-arm identity already implies an Arena map, this keeps the statement in one place.
