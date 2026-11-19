@@ -195,6 +195,16 @@ internal static class Program
         Verify(Lookup() == named, "Amand's own object that carries a LevelSettings wins over the live singleton");
         Verify(patched(null, fps) == own && levelSettings == own, "patched native sequence keeps Amand's own component");
         Verify(log.Any(x => x.Contains("native branch")), "native branch is named while Arena is armed");
+        // The line belongs to a raid: armed or active alone (a hideout activation while the next raid is armed) names nothing.
+        log.Clear();
+        var hideout = game.GameWorld;
+        game.GameWorld = new GameWorld { LocationId = world.LocationId };
+        Verify(Lookup() == named && !log.Any(x => x.Contains("native branch")), "native branch is not named outside the local game's own world");
+        game.GameWorld = hideout;
+        world.LocationId = "shoreline";
+        Verify(Lookup() == named && !log.Any(x => x.Contains("native branch")), "native branch is not named on a map Arena does not cover");
+        world.LocationId = ArenaMapCatalog.CustomsId;
+        Verify(Lookup() == named && log.Any(x => x.Contains("native branch")), "native branch is named again once world and map agree");
         // An existing object without a LevelSettings is treated like a missing one.
         named.Component = null;
         Verify(Lookup() == level.gameObject, "named object without a LevelSettings is replaced by the live one");
@@ -249,6 +259,18 @@ internal static class Program
         CameraManager.Instance.Camera.ThrowOnRead = false;
         Verify(!escaped && thrown == null, "an exception inside the Arena lookup ends as Amand's own result");
         Verify(log.Any(x => x.Contains("InvalidOperationException")), "the swallowed exception is named in the Debug log");
+        // The native branch is inside the same net: Graphics' own object comes back even when reading its component throws.
+        Arm(ArenaMapCatalog.CustomsId);
+        GameObject.Named = named;
+        GameObject.ThrowOnGetComponent = true;
+        log.Clear();
+        GameObject nativeThrown = null;
+        bool nativeEscaped = false;
+        try { nativeThrown = FindLevel("!settings", fps); } catch (Exception) { nativeEscaped = true; }
+        GameObject.ThrowOnGetComponent = false;
+        GameObject.Named = null;
+        Verify(!nativeEscaped && nativeThrown == named, "an exception inside the native branch ends as Amand's own result");
+        Verify(log.Any(x => x.Contains("InvalidOperationException")), "the exception swallowed in the native branch is named in the Debug log");
 
         Redeploy.Core.Compat.FikaCompatCheck.IsFikaLoaded = true;
         Verify(Lookup() == null, "Fika excluded");

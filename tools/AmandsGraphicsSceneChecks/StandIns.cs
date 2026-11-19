@@ -4,11 +4,13 @@ namespace UnityEngine
     public class GameObject
     {
         public static GameObject Named;
+        // A destroyed Unity object can throw on GetComponent; models the native branch's "never the thrower" case.
+        public static bool ThrowOnGetComponent;
         public object Component;
         public Scene scene = new();
         public string name = "---Level---";
         public static GameObject Find(string name) => Named;
-        public T GetComponent<T>() => Component is T value ? value : default;
+        public T GetComponent<T>() => ThrowOnGetComponent ? throw new InvalidOperationException("destroyed object") : Component is T value ? value : default;
     }
     public class Scene { public bool isLoaded = true; }
 }

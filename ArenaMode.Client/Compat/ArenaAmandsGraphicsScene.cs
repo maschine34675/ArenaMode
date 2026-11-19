@@ -30,8 +30,9 @@ namespace ArenaMode.Compat;
 /// <para>
 /// Decisions, in the order of <see cref="FindLevelObject"/>:
 /// (1) Amand's own lookup wins whenever it yields a <c>LevelSettings</c>, and nothing of Arena is consulted first. A map
-/// Amand resolves by scene name (Factory, Laboratory, Customs, any future vanilla map) therefore behaves exactly as without
-/// Arena, and an ordinary raid is untouched. The earlier version tested for the literal name <c>!settings</c> and for
+/// Amand resolves by scene name (only Factory day was run natively; Laboratory, Customs and Factory night are expected, not
+/// proven, to resolve that way) therefore behaves exactly as without Arena, and an ordinary raid is untouched. Which way a
+/// map goes does not matter for correctness: the substitute only ever fills a lookup that came back empty. The earlier version tested for the literal name <c>!settings</c> and for
 /// Labyrinth only; neither was a safety argument (the 2026-11-08 run simply covered Factory and Labyrinth), and a name
 /// filter would leave a table entry whose object name drifted as a latent NullReferenceException. An existing object
 /// WITHOUT a <c>LevelSettings</c> is treated like a missing one: the alternative is a silent null that Core refuses anyway.
@@ -44,7 +45,9 @@ namespace ArenaMode.Compat;
 /// today on any map, and the Debug line says why.
 /// (4) The Fika, camera, world, map and exact-raid gates are unchanged. The map gate is the Arena catalogue; the exact-raid
 /// or loading-arm identity already implies an Arena map, this keeps the statement in one place.
-/// (5) Everything after (1) is wrapped so that this code is never the thrower: a failure returns the original object.
+/// (5) Everything after the name lookup, the native branch of (1) included, is wrapped so that this code is never the
+/// thrower: a failure returns the original object. The native branch only reads a component and writes a log line, but
+/// a destroyed object can throw on either, and a throw there would take Graphics' activation down.
 /// </para>
 /// <para>
 /// Known consequences, deliberately not handled in code. Amand treats an unknown scene like the hideout ("default"
@@ -129,20 +132,35 @@ internal static class ArenaAmandsGraphicsScene
     private static GameObject FindLevelObject(string name, GameObject cameraObject)
     {
         var original = GameObject.Find(name);
-        // Amand's own lookup wins whenever it yields a LevelSettings: no Arena state decides anything, so maps it resolves
-        // by scene name and every ordinary raid behave exactly as without Arena (the log below only reads two flags).
-        if (original != null && original.GetComponent<LevelSettings>() != null)
+        try
         {
-            if (ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) NoteBranch("native", original);
-            return original;
+            // Amand's own lookup wins whenever it yields a LevelSettings: no Arena state decides anything, so maps it
+            // resolves by scene name and every ordinary raid behave exactly as without Arena (the log only reads state).
+            if (original != null && original.GetComponent<LevelSettings>() != null)
+            {
+                if (ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) NoteNativeInRaid(original);
+                return original;
+            }
+            return FindArenaLevelObject(original, cameraObject);
         }
-        try { return FindArenaLevelObject(original, cameraObject); }
         catch (Exception ex)
         {
-            // Never the thrower: a destroyed camera object or a vanished singleton must end as Amand's own result.
+            // Never the thrower: a destroyed object, camera or a vanished singleton must end as Amand's own result.
             Plugin.ModLogger.LogDebug("Amand's Graphics level lookup left to Graphics after " + ex.GetType().Name + ".");
             return original;
         }
+    }
+
+    /// <summary>
+    /// Names the native branch, but only inside a started local game on an Arena map. Arena being active or armed is
+    /// not a raid by itself: a hideout activation while the next raid is armed would otherwise log "native branch" and
+    /// mislead the reading of a native/Arena flip. The line is diagnostics only and decides nothing.
+    /// </summary>
+    private static void NoteNativeInRaid(GameObject original)
+    {
+        var world = Singleton<GameWorld>.Instance;
+        if (world != null && Singleton<AbstractGame>.Instance is LocalGame game && ReferenceEquals(game.GameWorld, world) && ArenaMapCatalog.IsSupportedMap(world.LocationId))
+            NoteBranch("native", original);
     }
 
     private static GameObject FindArenaLevelObject(GameObject original, GameObject cameraObject)

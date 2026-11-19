@@ -25,7 +25,9 @@ $faults = @(
     # Amand's own lookup wins whenever it yields a LevelSettings.
     (Fault 'r1-skip-component-check' 'if (original != null && original.GetComponent<LevelSettings>() != null)' 'if (original != null)' 'named object without a LevelSettings is replaced by the live one'),
     (Fault 'r1-drop-early-return' 'if (original != null && original.GetComponent<LevelSettings>() != null)' 'if (false)' 'Amand''s own object that carries a LevelSettings wins over the live singleton'),
-    (Fault 'native-log-leak' 'if (ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) NoteBranch("native", original);' 'NoteBranch("native", original);' 'ordinary raid logs nothing'),
+    (Fault 'native-log-leak' 'if (ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) NoteNativeInRaid(original);' 'NoteNativeInRaid(original);' 'ordinary raid logs nothing'),
+    (Fault 'native-log-world' 'ReferenceEquals(game.GameWorld, world) && ArenaMapCatalog.IsSupportedMap(world.LocationId))' 'ArenaMapCatalog.IsSupportedMap(world.LocationId))' 'native branch is not named outside the local game''s own world'),
+    (Fault 'native-log-map' '&& ArenaMapCatalog.IsSupportedMap(world.LocationId))' ')' 'native branch is not named on a map Arena does not cover'),
     # The gates in front of the substitution.
     (Fault 'no-arena-gate' 'if (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid) return original;' '' 'ordinary raid with a valid-looking arm but no Arena flag preserves the missing lookup'),
     (Fault 'fika' 'FikaCompatCheck.IsFikaLoaded || ' '' 'Fika excluded'),
