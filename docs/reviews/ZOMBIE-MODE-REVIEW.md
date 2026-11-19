@@ -1,5 +1,11 @@
 # Zombie Mode
 
+**2026-11-19 escalation:** at Maximum every fifth wave from wave 5 is a special wave (ALL RUNNERS or
+ALL SHOOTERS, text announcement, one Debug composition line per wave), the menu row ALIVE AT ONCE shows
+the effective value at Reduced, and a growth of the alive limit after wave 11 is planned but not built:
+[ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md). Read it before changing the wave
+callouts, the status line or the profile pool.
+
 **2026-11-15 flow extension:** individual confirmed stuck-body replacement,
 fair native approach/melee planning admission and slow/fast/shooting wave
 composition are defined in [ZOMBIE-FLOW-20261115.md](ZOMBIE-FLOW-20261115.md).
@@ -257,7 +263,9 @@ with any other mode's clone.
 - **`ZombieRoleMix`** (`Modes/ZombieRoleMix.cs`) is the pure, deterministic
   role/difficulty draw: `infectedAssault` 50% / `infectedPmc` 25% /
   `infectedCivil` 15% / `infectedLaborant` 10%, `normal` unless an
-  independent `ZombieShooterPercent` chance rolls `hard`.
+  independent `ZombieShooterPercent` chance rolls `hard` (the share and the slow
+  share of the melee remainder are per wave: the difficulty step's fade and growth and
+  the special waves of 2026-11-19 live in `ArenaDifficultyPolicy`, not here).
 - **`ZombieProfilePlan`** (`Modes/ZombieProfilePlan.cs`) is the pure
   apportionment layer: `OpeningProfiles` turns the same weight table into
   the native preload's opening-wave list (replacing the 498-profile dump),

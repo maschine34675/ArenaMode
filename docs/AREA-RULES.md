@@ -559,7 +559,12 @@ selected replay; only the PFT squad restores fallen members between cleared wave
 See docs/reviews/ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.
 Individual recovery, fair native planning admission and slow/fast/shooting wave
-composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. Preserve exact
+composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. At Maximum every fifth wave
+from wave 5 is a special wave (ALL RUNNERS or ALL SHOOTERS, composition only, announced as
+text) and the menu row ALIVE AT ONCE shows the effective value at Reduced; a growth of the
+alive limit after wave 11 is planned and waits for a native measurement, see
+docs/reviews/ZOMBIE-ESCALATION-20261119.md (read it before changing the wave callouts, the
+status line or the profile pool). Preserve exact
 arrival ownership, confirmed administrative-death accounting and pending-spawn
 barriers. The navigation limit counts whole jobs, not nested NavMesh calls.
 The opening wave now waits for player/kit/team readiness and then the configured

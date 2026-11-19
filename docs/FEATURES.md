@@ -226,6 +226,14 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   The difficulty step works on top of that (see the difficulty section below):
   at Maximum the slow share fades and the shooter share grows wave by wave, at
   Reduced the mix stays and at most 24 infected are alive at once.
+- **Special waves at Maximum:** every fifth wave from wave 5 is ALL RUNNERS (no
+  shooters, no slow infected; waves 5, 15, ...) or ALL SHOOTERS (every infected a
+  shooter; waves 10, 20, ...), announced as text before and at the start of the
+  wave. Exactly 0 % shooters never gets ALL SHOOTERS and exactly 100 % never ALL
+  RUNNERS; Reduced has none. The menu row ALIVE AT ONCE shows the effective value
+  first at Reduced when the cap bites (`24 (setting 32, Reduced)`). A growth of the
+  alive limit after wave 11 is planned, not built
+  ([contract](reviews/ZOMBIE-ESCALATION-20261119.md)).
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.
 - Optional PFT squad with **1–4 companions**. Surviving members can finish a

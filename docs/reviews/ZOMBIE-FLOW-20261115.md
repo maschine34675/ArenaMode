@@ -66,6 +66,12 @@ except for the Reduced limit of 24. No
 additional health or damage scaling is introduced; boss and impossible variants
 remain excluded.
 
+**Special waves (2026-11-19).** At Maximum every fifth wave from wave 5 replaces this mix: ALL
+RUNNERS (waves 5, 15, ...: no shooters and no slow infected) or ALL SHOOTERS (waves 10, 20, ...:
+every infected a shooter); exactly 0% never gets ALL SHOOTERS and exactly 100% never ALL RUNNERS;
+Reduced has none. The draw, the roll order and everything else of this section are unchanged.
+Contract and native acceptance: [ZOMBIE-ESCALATION-20261119.md](ZOMBIE-ESCALATION-20261119.md).
+
 The opening profile plan uses wave one's composition. Backup preparation covers
 all possible later role/difficulty pairs while excluding melee at 100% shooters
 and shooters at 0%. Settings remain frozen for the raid. No additional menu rows

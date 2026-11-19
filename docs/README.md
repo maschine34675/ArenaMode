@@ -135,6 +135,7 @@ Sorted by file name.
 - [Unified Deathmatch rules and runtime](reviews/DEATHMATCH-MODE-REVIEW.md)
 - [Arena default full-auto fire mode: contract, native seam and verification](reviews/DEFAULT-FIRE-MODE-REVIEW.md)
 - [Difficulty model: one step, fixed strength, scaling only in Gun Game and Zombies](reviews/DIFFICULTY-MODEL-20261118.md)
+- [Zombie escalation after wave 11: special waves (ALL RUNNERS / ALL SHOOTERS), the effective-value menu row, the composition line, the planned alive-limit growth and its measurement](reviews/ZOMBIE-ESCALATION-20261119.md)
 - [Direct Arena start: Session.exe picker, handover contract and checks](reviews/DIRECT-START-20261028.md)
 - [Domination follow-up: map-menu performance, pickup separation and ownership rings](reviews/DOMINATION-FOLLOWUP-20261026.md)
 - [Domination monitor projection review (MapPort score monitors)](reviews/DOMINATION-MONITOR-REVIEW-20261026.md)

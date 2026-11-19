@@ -20,6 +20,29 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
   disagreed with its chamber shipped once and threw nothing.
 
+- **`AddToTargetBackup` is first-write-wins, and the backup loader's top-up collapses (2026-11-19)** —
+  `BotSpawner.AddToTargetBackup` adds a (role, difficulty) target only when none exists
+  (`BotProfileBackuploader.cs:257-263`), so a pool cannot be raised mid-raid and a second call is
+  ignored without a sign; the target is whatever the match start registered. And
+  `CacheSimpleProfilesChecker` computes `int num4 = 100 / num3;` after summing the pending loads: with
+  more than 100 profiles wanted that is integer division and 0, and every pair's load is clamped to 1.
+  Arena's default Zombie targets are 12 pairs x 25 = 300, so the loader adds about one profile per pair
+  per 30 s (and only when the deficit exceeds 3) and never reaches 25. A wave that draws a pair in bulk
+  (the all-shooter wave) goes through the native miss path (`BotProfileClient.CreateProfile`, batches of
+  `presetBatch` 30). Do not plan on a pool being full, and a bigger target is no remedy; 12 pairs x 8 would
+  be loaded in full. Argued in docs/reviews/ZOMBIE-ESCALATION-20261119.md.
+- **A test double or seam that replaces a Config-derived value turns an anchored mutant equivalent
+  (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
+  `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A
+  per-wave delegate that recomputed the base limit from the step would make that mutant equivalent: it
+  would survive and the harness would fail with "not killed". Grow on top of the existing config value
+  instead (stage Z2 of the Zombie escalation), and re-anchor the two mode mutants that read the frozen
+  step and the limit when a line near them moves.
+- **Shooting infected do not stop at 15 m (2026-11-19)** — `InfectedAttackLayer.GetSlowShootingZombieDecision`
+  shoots from place when the enemy is visible and closer than 15 m, but shoots **while moving** (`attackMoving`)
+  at any other distance with a line of fire; 15 m is not an engagement limit. An earlier design leaned on it
+  to soften an all-shooter wave; the walking speed is the only real mitigation.
+
 - **Pooled bot profiles keep the gear of their generation time (2026-11-19)** — SPT rounds
   every requested (role, difficulty) pair up to `presetBatch` and the client serves spawns
   from `BotProfileClient._simpleProfiles` before it asks the server, so a ramping gear band
