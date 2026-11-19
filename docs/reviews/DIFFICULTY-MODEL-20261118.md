@@ -213,9 +213,9 @@ decisions in "Direction" are untouched.
   **Correction:** the text above says the prewarm covers exactly the PMC levels the step can
   request. `PmcRequestLevels` does list them (Gun Game at Maximum: hard and impossible), but
   the prewarm warms only the opening level in Gun Game: the server builds a profile with the
-  band of the moment it is asked, and a profile pooled at second 0 would reach the field
-  minutes later in start-level gear. The step's level is requested fresh once progress reaches
-  0.8. The Tactical squad setting is read live. The prewarm has no readiness gate and does
+  band of the moment it is asked. The step's level is requested fresh once progress reaches
+  0.8. **Second correction (2026-11-19):** that was not enough. The opening prewarm is not the
+  only pooled gear (see "Stale pooled gear in Gun Game" below). The Tactical squad setting is read live. The prewarm has no readiness gate and does
   nothing outside an active session.
 - **Preload skip.** The raid-start preload of Team DM and Domination is still skipped
   (`SkipsProfilePreload`); only its comments changed. Loading time is not measured.
@@ -234,6 +234,39 @@ decisions in "Direction" are untouched.
 - **Speed and reports.** The user's multiplier is capped at 1.5 first and only then is the
   surplus scaled, so Reduced with a setting of 99 gives 1.25. The sweep interval is the per-map
   value, then the Tactical halving, then the step's factor.
+- **Stale pooled gear in Gun Game (2026-11-19).** A bot's gear is fixed when its profile is
+  generated, and the client serves a spawn from the pool of already generated profiles
+  (`BotProfileClient._simpleProfiles`) before it asks the server. SPT rounds every requested
+  (role, difficulty) pair up to `presetBatch` (15 for a PMC), the raid-start preload fills the
+  pool and the backup loader refills it, so one request yields a batch of one moment. Measured
+  natively (dev build 6a2865f7, Gun Game on arena_bay5, Maximum, 8 participants): 150 profiles
+  were generated at second 0, every PMC of the first 9 minutes had level 2..7 (expected centre
+  at minute 9: 41); bots of minute 11 had 37..50; the first impossible batch was generated at
+  minute 12.95 (levels 53..58) and fed every spawn of minutes 15..20 (levels 49..63, expected
+  61..71). The AI level switch, the build-up percentage and the raid timer were correct. The
+  same staleness existed in v0.6.0, where the removed clock patch solved it only for timed
+  Team Deathmatch. Fix: `ArenaGunGameFreshGearPatch`, a prefix on
+  `BotProfileClient.CreateProfile(BotCreationData, CancellationToken, bool)`. Before a PMC
+  demand (pmcUSEC, pmcBEAR) in the exact active Arena raid, with `scaleBotTier` on and the
+  mode Gun Game, it removes the unused pool entries of exactly the demanded (role, difficulty)
+  whose level is below `current - 10` (`ArenaDifficultyPolicy.IsGunGameStaleGearLevels`,
+  `IsGunGameGearStale`); `current` is `ArenaDifficulty.CurrentGunGameGearLevel`, the policy's
+  ramp at the frozen step over the map's `botTierStartLevel`, `botTierEndLevel` and
+  `botTierRampMinutes`. The native miss path then asks the server for a fresh batch at the
+  current band. The 10 levels: the server band is centre +/-5, so a fresh profile is never
+  below centre - 5, and another 5 levels are about 70 seconds of the default ramp (65 levels in
+  15 minutes); the server's clock starts earlier than the client's match clock, so a fresh
+  batch is never stale on arrival. Per (role, difficulty) at most one purge every 30 seconds
+  of unscaled time (a server that answers below the client's expectation, for example a
+  configuration edited during the raid, costs one batch per 30 seconds, not one per spawn);
+  the state is per world. One Debug line per purge; an exception keeps the native behaviour
+  and warns once per raid. **Not covered:** Scav roles (their gear barely follows the level,
+  their batch is 45), profiles that are already assigned to a bot, other difficulties, the
+  backup loader and the request itself; and a pooled profile can still sit up to 10 levels
+  below the centre, so at the end of the ramp the floor is centre - 10. Checks:
+  `GunGameFreshGearChecks` (the real patch against host stubs, 49 mutants) and
+  `ArenaDifficultyPolicyTests`. Nothing of this has run in the game; a native Gun Game raid
+  must show the purge lines and PMC levels near the centre.
 - **Gun Game progress on the client** is `ArenaMatchService.Current.Elapsed` over the ramp
   minutes of `GameWorld.LocationId` (the armed map if no world exists yet); without a match or
   on an exception it counts as 0. The refill wait factor is not ramped in Gun Game: it applies
@@ -252,7 +285,7 @@ decisions in "Direction" are untouched.
   the HuntPlayer sweep interval of the table is not applied in Zombies
   (`ArenaDifficultyPolicy.ReportStep`): the Zombie section names no report change, and the
   horde has its own hunt nudge.
-- **Harnesses.** `DurationDifficultyChecks` pins the client reader, the prewarm list and the
+- **Harnesses.** `GunGameFreshGearChecks` runs the pool purge; `DurationDifficultyChecks` pins the client reader, the prewarm list and the
   frozen step with mutants; `BotMovementChecks` pins the halved speed surplus. The xunit
   tests `ArenaDifficultyPolicyTests`, `BotTierScalePatchTests` (partial files
   `BotTierDifficultyBandTests` and `BotTierDurationTests`) and `ArenaAreaServerTests` (partial

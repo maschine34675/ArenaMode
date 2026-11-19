@@ -90,6 +90,10 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - The first three selected, validated stages preload during the loading screen.
 - Select the total participant count, including the player; Arena replaces
   casualties while respecting that total.
+- Difficulty builds up over the map's ramp time. A bot's gear is fixed when its
+  profile is generated, so before a PMC is requested Arena drops pooled profiles of
+  that PMC type that lag more than 10 gear levels behind the ramp and has fresh ones
+  generated. Scavs and bots that already exist are not touched.
 
 ### Deathmatch
 

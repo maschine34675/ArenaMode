@@ -507,8 +507,10 @@ the server's wire-clock branch and the prewarm readiness gate; the prewarm limit
 Zombies: the slow-share fade, the growing shooter share and the Reduced limit of 24 are in source (not run natively;
 the shooter share grows from wave 2 and the slow share fades from wave 4, the first native Zombie raid at both steps is owed). Deferred, need a
 native run or a protocol change: Gun Game server gear clock (from the local-start prefix) versus client AI clock (from
-match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (does
-the pool keep stale profiles?); that no bot request of an armed raid precedes the local-start prefix (pinned as native
+match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (confirmed
+natively on 2026-11-19: the pool keeps stale profiles; addressed in source by `ArenaGunGameFreshGearPatch`,
+which drops unused pooled PMC profiles more than 10 levels below the ramp, native re-check owed: PMC levels
+near the centre and the purge lines in the log); that no bot request of an armed raid precedes the local-start prefix (pinned as native
 by a test, confirm in the first native log). Four native measurements are owed before the numbers are final:
 (1) impossible against hard under SAIN 4.5.1 with identical gear, which decides the PMC row of Maximum;
 (2) Tactical solo round one, the 250,000 starting money against five opponents at the Maximum band;

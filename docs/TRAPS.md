@@ -20,6 +20,14 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
   disagreed with its chamber shipped once and threw nothing.
 
+- **Pooled bot profiles keep the gear of their generation time (2026-11-19)** — SPT rounds
+  every requested (role, difficulty) pair up to `presetBatch` and the client serves spawns
+  from `BotProfileClient._simpleProfiles` before it asks the server, so a ramping gear band
+  (Gun Game) only reaches bots whose profile is generated late. Measured: PMCs of the first
+  nine minutes had level 2..7 where the ramp stood at 41. `ArenaGunGameFreshGearPatch` drops
+  stale unused PMC entries; anything else that ramps with time needs the same, not a
+  server-side change.
+
 - **Location mutation** — raid time, bot cap, boss handling, and that every generated
   wave names exactly ONE real zone. The engine matches a zone by exact string, so a
   comma-separated list matches nothing and the wave is dropped in silence; that shipped,

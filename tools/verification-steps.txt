@@ -160,6 +160,7 @@ ZombieWavePendingChecks
 ArenaBleedingChecks
 CustomKitChecks
 DurationDifficultyChecks
+GunGameFreshGearChecks
 PmcVoiceChecks
 PoolPrewarmChecks
 SainExtractGuardChecks
