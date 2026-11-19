@@ -187,7 +187,8 @@ public sealed partial class RewardOfflineSessionTests
         StopPrivate(f);
         string profile = f.Profile;
 
-        var paused = await PauseOf(f, s => { if (s == stage) throw new IOException("synthetic"); });
+        int tries = 0;
+        var paused = await PauseOf(f, s => { if (s == stage) { if (++tries > 3) throw new InvalidOperationException("retried"); throw new IOException("synthetic"); } });
 
         Assert.Equal("offline-recovery-IOException", paused!.Code);
         Assert.True(RewardOfflineSession.HasActive(f.Root));
