@@ -197,15 +197,18 @@ public class ArenaMapConfig
     public bool ScaleBotTier { get; set; } = true;
 
     /// <summary>
-    /// Gun Game only: the bot gear level at the start of the raid, tier 1 territory. Other modes
-    /// hold the difficulty step's gear level from the first bot; Reduced never goes below this.
+    /// The bot gear level at the start of a Gun Game raid, tier 1 territory, and the floor of the
+    /// Tactical opening rounds (a lighter round never goes below it). Other modes hold the
+    /// difficulty step's gear level from the first bot; Reduced never goes below this.
     /// </summary>
     [JsonPropertyName("botTierStartLevel")]
     public int BotTierStartLevel { get; set; } = 1;
 
     /// <summary>
-    /// The Maximum gear level of the map: held from the first bot in every mode but Gun Game,
-    /// where it is the level the ramp ends at. The Reduced step uses 60 % of it. The band spreads five levels either
+    /// The Maximum gear level of the map: held from the first bot in every mode but Gun Game
+    /// (where it is the level the ramp ends at) and solo Tactical (whose first two rounds are
+    /// lighter, see ArenaDifficultyPolicy.TacticalGearLevel, and which holds it from round 3).
+    /// The Reduced step uses 60 % of it. The band spreads five levels either
     /// side, so aim at the MIDDLE of the tier you want: 45 straddles tiers 4
     /// and 5, while 66 sits entirely inside tier 7, the top one. Values above
     /// 79 are clamped — the experience table ends there, and past it the band

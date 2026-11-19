@@ -42,7 +42,9 @@ public enum ZombieWaveTheme
 ///
 /// Pure and static: client, server and tests read the same numbers, and no call site holds
 /// a level literal. Progress is 1 in every mode except Gun Game, so a fixed value holds from
-/// the first spawn request; only Gun Game ramps, over the map's configured ramp minutes.
+/// the first spawn request; only Gun Game ramps, over the map's configured ramp minutes. The one
+/// other thing that moves is the gear level of the first two rounds of solo Tactical (see
+/// <see cref="TacticalGearLevel"/>), which follows the round and not the clock.
 /// </summary>
 public static class ArenaDifficultyPolicy
 {
