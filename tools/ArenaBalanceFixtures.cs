@@ -75,6 +75,8 @@ namespace ArenaMode.Config
         public static Entry<float> BleedingDamageMultiplier = new(3);
         // The one difficulty setting; the frozen copy lives in ArenaSession.Difficulty.
         public static Entry<ArenaMode.Shared.ArenaDifficultyStep> DifficultyStep = new(ArenaMode.Shared.ArenaDifficultyStep.Maximum);
+        // Tactical: whether the enemy squad is PMC (read live; the opening-rounds checks flip it).
+        public static Entry<bool> TacticalSquadIsPmc = new(true);
     }
 }
 namespace ArenaMode.Modes
@@ -104,7 +106,7 @@ namespace ArenaMode.Session
     }
 }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool StandDown, IsRespawnInProgress; } }
-namespace ArenaMode.Compat { public static class PitFireTeamCompat { public static bool HasFrozenTeamRoster; } }
+namespace ArenaMode.Compat { public static class PitFireTeamCompat { public static bool HasFrozenTeamRoster, TeamArenaActive; } }
 namespace ArenaMode.Bots
 {
     public static class TeamDeathmatchRelations

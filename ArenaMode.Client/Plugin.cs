@@ -133,6 +133,7 @@ public class Plugin : BaseUnityPlugin
         Bots.TdmSearchTempo.Enable();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
         Bots.ArenaGunGameFreshGearPatch.EnablePatch();
+        Bots.ArenaTacticalFreshGearPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
         Bots.ZombiePerformancePatches.EnablePatch();
         ZombiePftFastPath.EnablePatch();

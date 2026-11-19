@@ -119,6 +119,7 @@ SpawnShieldScopeChecks
 TacticalCorpseChecks
 TacticalObjectiveChecks
 TacticalOpeningChecks
+TacticalFreshGearChecks
 TacticalPolishChecks
 TdmMatchMenuChecks
 TdmMonitorChecks
