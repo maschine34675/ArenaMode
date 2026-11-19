@@ -151,6 +151,11 @@ public sealed class LadderGeneratorTests
         var baseline = await WeaponPoolFixture.GenerateAsync(items, vanilla);
         var (presets, weapon) = WithBrokenDefaultPreset(items, vanilla, PooledWeapons(baseline));
 
+        // Precondition of the dense-numbering assertions below: a skipped candidate leaves a hole only when a
+        // later rung exists, so the injected weapon must not be the last one in score order.
+        var position = baseline.Pool.Select(WeaponOf).ToList().IndexOf(weapon.ToString());
+        Assert.InRange(position, 0, baseline.Pool.Count - 2);
+
         // Guard on: the broken preset is left out BEFORE Plainer, so the weapon keeps its vanilla build and the
         // pool is exactly the baseline. One Warning names the preset and the reason; nothing fell back.
         var guarded = await WeaponPoolFixture.GenerateAsync(items, presets);
@@ -184,6 +189,7 @@ public sealed class LadderGeneratorTests
         // A logger whose Warning throws: the report fails, the pool is still served.
         var ladderBefore = ArenaContext.LadderJson;
         var configBefore = ArenaContext.Config;
+        var variantsBefore = ArenaContext.WeaponVariants;
         try
         {
             ArenaContext.LadderJson = "[{\"id\":\"shipped\"}]";
@@ -203,7 +209,7 @@ public sealed class LadderGeneratorTests
             QuietLogger.Clear();
             ArenaContext.LadderJson = ladderBefore;
             ArenaContext.Config = configBefore;
-            ArenaContext.WeaponVariants = null;
+            ArenaContext.WeaponVariants = variantsBefore;
         }
     }
 
@@ -222,7 +228,15 @@ public sealed class LadderGeneratorTests
             // Not a weapon, no Encyclopedia, a null element: the root lookup itself throws. Nobody's business.
             [new MongoId("d00000000000000000000003")] = new Preset { Id = new MongoId("d00000000000000000000003"), Name = "Armour with a hole", Parent = new MongoId("d00000000000000000000009"), Items = [null!] },
             // A weapon (known by its Encyclopedia) with a null element: reported, and only itself is lost.
+            // A null preset: the root lookup throws before any weapon is known, so the net contains it silently.
+            [new MongoId("d00000000000000000000002")] = null!,
             [new MongoId("d00000000000000000000004")] = new Preset { Id = new MongoId("d00000000000000000000004"), Name = "Weapon with a hole", Parent = new MongoId("d00000000000000000000009"), Items = [null!], Encyclopedia = new MongoId(weapon) },
+            // No Encyclopedia, a null element BEFORE the root: the weapon is still found through the root node, so the
+            // hole is reported (no-parts) instead of the preset vanishing silently.
+            [new MongoId("d00000000000000000000005")] = new Preset { Id = new MongoId("d00000000000000000000005"), Name = "Hole before root", Parent = new MongoId("d00000000000000000000006"), Items = [null!, new Item { Id = new MongoId("d00000000000000000000006"), Template = new MongoId(weapon) }] },
+            // No Encyclopedia and no parentless node: the declared root part (Preset.Parent) names the weapon, so the
+            // preset is reported as no-root instead of being lost without a trace.
+            [new MongoId("d00000000000000000000007")] = new Preset { Id = new MongoId("d00000000000000000000007"), Name = "No root part", Parent = new MongoId("d00000000000000000000008"), Items = [new Item { Id = new MongoId("d00000000000000000000008"), Template = new MongoId(weapon), ParentId = "d00000000000000000000008", SlotId = "mod_barrel" }] },
         };
 
         var run = await WeaponPoolFixture.GenerateAsync(items, presets);
@@ -230,6 +244,13 @@ public sealed class LadderGeneratorTests
         Assert.Equal(0, run.Count("Error", "generation failed"));
         Assert.Equal(1, run.Count("Warning", "left out"));
         Assert.Equal(1, run.Count("Warning", "'Weapon with a hole'"));
+        // The reasons are read from the per-entry Debug lines: the Warning shows only the first three entries.
+        void Reported(string name, string reason)
+            => Assert.Equal(1, run.Log.Count(l => l.Level == "Debug" && l.Text.Contains($"preset '{name}'", StringComparison.Ordinal)
+                                                  && l.Text.EndsWith("left out: " + reason, StringComparison.Ordinal)));
+        Reported("Weapon with a hole", "no-parts");
+        Reported("Hole before root", "no-parts");
+        Reported("No root part", "no-root");
         Assert.Equal(0, run.Count("Warning", "Armour with a hole"));
         Assert.Equal(WeaponPoolFixture.Normalise(baseline.Json), WeaponPoolFixture.Normalise(run.Json));
     }

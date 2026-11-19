@@ -99,6 +99,7 @@ public sealed class ArenaPresetGuardTests
         yield return Row("a part whose template is not in the database", () => Preset(null, [.. Complete(), I(P8, Unknown, P1, "mod_stock")]), $"unknown-template:{Unknown}");
 
         yield return Row("slot the parent does not have", () => Preset(null, [.. Complete(), I(P8, Other, P1, "mod_gone")]), $"slot-missing:mod_gone on {Weapon}");
+        yield return Row("slot id differing from the parent's only in case", () => Preset(null, [.. Complete(), I(P8, Other, P1, "MOD_STOCK")]), $"slot-missing:MOD_STOCK on {Weapon}");
         yield return Row("slot only a chamber offers", () => Preset(null, [.. Complete().Where(i => i.Id.ToString() != P5), I(P8, Ammo, P1, "patron_in_weapon")]), null);
 
         yield return Row("required slot of the root left empty", () => Preset(null, I(P1, Weapon, null, null)), $"required-empty:mod_barrel on {Weapon}");

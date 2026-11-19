@@ -116,6 +116,11 @@ and skips the part). The credit for the failure analysis belongs to Sankese's BE
   (Slots, Chambers or Cartridges of the parent), required-empty (required `Slots` only). Parent ids compare as
   `MongoId` (case-insensitive like `BuildEntry`), slot ids ordinally. Deliberately NOT rules: duplicate slots
   (vanilla `saiga12_nerf` repeats a stack slot 20 times), slot filters, a part cap.
+- **Which presets are weapon candidates.** The generator resolves a preset's weapon from its Encyclopedia, else
+  from its first non-null parentless node, else from the node `Preset.Parent` names (the declared root part), so
+  a weapon preset whose root node was damaged (null element, no parentless node) is reported with a reason
+  (`no-parts`, `no-root`) instead of vanishing. What still cannot be attributed to a weapon (no Encyclopedia and no
+  usable root node at all, or a null preset) is not reported: it is not known to be a weapon.
 - **Second net:** each preset, candidate and entry is built in its own try; the rung number follows the pool
   position, so a skipped candidate leaves no hole. One Warning per start (first three, details at Debug); the
   report has its own try so it can never discard the pool.
@@ -135,7 +140,7 @@ and skips the part). The credit for the failure analysis belongs to Sankese's BE
   depends on the SPT data version, and the fixture (no handbook, no English locale) is not the live pool.
 - **Injection:** `OneBrokenPresetCostsOnlyItself` injects a preset named "default" (so `Plainer` takes it) with an
   orphan part: guard on gives the baseline pool and one Warning with `orphan:`; guard off gives one entry fewer, a
-  `build-threw:KeyNotFoundException` line and dense numbering. `tools/WeaponPoolGuardChecks` holds 23 mutants
+  `build-threw:KeyNotFoundException` line and dense numbering. `tools/WeaponPoolGuardChecks` holds 33 mutants
   of the guard and of the wiring; the Consider net has no vanilla trigger and is exercised with a template that
   throws when read.
 - **Not covered offline:** presets that content mods add at server load. Native acceptance is one server start

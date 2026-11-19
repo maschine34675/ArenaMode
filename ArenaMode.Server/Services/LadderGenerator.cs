@@ -327,8 +327,14 @@ public class LadderGenerator(
             MongoId? weapon = null;
             try
             {
+                // Null-safe on purpose: a null element must reach the guard (rule no-parts) and be reported
+                // as itself, not throw here as a NullReferenceException or, worse, hide the root and drop the
+                // preset unreported. The last line is for a preset that has no parentless node at all: its
+                // declared root part (Preset.Parent is that part's id) still names the weapon, so the guard
+                // can say no-root instead of the preset vanishing without a trace.
                 var root = preset.Encyclopedia
-                           ?? preset.Items?.FirstOrDefault(i => i.ParentId == null)?.Template;
+                           ?? preset.Items?.FirstOrDefault(i => i is not null && i.ParentId == null)?.Template
+                           ?? preset.Items?.FirstOrDefault(i => i is not null && i.Id == preset.Parent)?.Template;
 
                 if (root == null || !DescendsFrom(root.Value, WeaponBase))
                     continue;
@@ -337,7 +343,7 @@ public class LadderGenerator(
 
                 // A preset carrying a placeholder part is not a build the game
                 // finished, whatever its root looks like. Expected, so silent.
-                if (preset.Items?.Any(i => Excluded(i.Template)) == true)
+                if (preset.Items?.Any(i => i is not null && Excluded(i.Template)) == true)
                     continue;
 
                 // BEFORE Plainer, on purpose: a broken "default" preset must not

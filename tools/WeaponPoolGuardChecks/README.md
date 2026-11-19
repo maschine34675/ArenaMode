@@ -9,7 +9,7 @@ vanilla database (`SPT_DATABASE`; a missing database is a failure, not a skip): 
 pool with and without the guard, an injected broken "default" preset that costs nothing, build and consider
 isolation, dense rung numbers, a failing report, null elements.
 
-`Verify.ps1` runs it, then 23 mutants through `Test-ArenaSourceFaults` (each one literal line of
+`Verify.ps1` runs it, then 33 mutants through `Test-ArenaSourceFaults` (each one literal line of
 `ArenaPresetGuard.cs` or `LadderGenerator.cs` changed; each must fail the check it names), then the xunit
 side (`ArenaPresetGuardTests`, `LadderGeneratorTests`) with a TRX judged by `Assert-ArenaTestRun`, which
 tolerates no skip for a missing database and requires the data-bound families to have passed.

@@ -153,6 +153,7 @@ internal static class Program
         Check("root mismatch rejected", () => Problem(Pre(Barrel, Complete())) == $"root-mismatch:{Barrel}!={Weapon}");
         Check("unknown template rejected", () => Problem(Pre(null, [.. Complete(), I(P8, Unknown, P1, "mod_stock")])) == $"unknown-template:{Unknown}");
         Check("missing slot rejected", () => Problem(Pre(null, [.. Complete(), I(P8, Other, P1, "mod_gone")])) == $"slot-missing:mod_gone on {Weapon}");
+        Check("slot id differing in case only rejected", () => Problem(Pre(null, [.. Complete(), I(P8, Other, P1, "MOD_STOCK")])) == $"slot-missing:MOD_STOCK on {Weapon}");
         Check("required slot of root rejected", () => Problem(Pre(null, I(P1, Weapon, null, null))) == $"required-empty:mod_barrel on {Weapon}");
         Check("required slot of deeper part rejected", () => Problem(Pre(null, Complete().Where(i => i.Id.ToString() != P3).ToArray())) == $"required-empty:mod_muzzle on {Barrel}");
     }
@@ -172,6 +173,11 @@ internal static class Program
         public JsonArray Pool => JsonNode.Parse(Json)!.AsArray();
 
         public int Count(string level, string contains) => Log.Count(l => l.Level == level && l.Text.Contains(contains, StringComparison.Ordinal));
+
+        /// <summary>Per-entry Debug lines of one left-out preset, optionally with the exact reason it ends with.</summary>
+        public int Reported(string name, string? reason = null)
+            => Log.Count(l => l.Level == "Debug" && l.Text.Contains($"preset '{name}'", StringComparison.Ordinal)
+                              && (reason == null || l.Text.EndsWith("left out: " + reason, StringComparison.Ordinal)));
     }
 
     private static async Task<Run> Generate(Dictionary<MongoId, TemplateItem> items, Dictionary<MongoId, Preset> presets, bool guard = true, bool throwOnWarning = false)
@@ -282,6 +288,10 @@ internal static class Program
         var injected = new Preset { Id = new MongoId("d00000000000000000000002"), Name = "Injected default", Parent = source.Parent, Items = broken, Encyclopedia = group.Key };
         var withBroken = new Dictionary<MongoId, Preset>(vanilla) { [injected.Id] = injected };
 
+        // Precondition of the numbering mutant: a skipped candidate leaves a hole only when a later rung exists.
+        var injectedAt = baseline.Pool.Select(WeaponOf).ToList().IndexOf(group.Key.ToString());
+        Check("injected weapon is not the last rung of the baseline pool", injectedAt >= 0 && injectedAt < baseline.Pool.Count - 1, $"index {injectedAt} of {baseline.Pool.Count}");
+
         var guarded = await Generate(items, withBroken);
         Check("broken default preset costs nothing with the guard",
             guarded.Count("Error", "generation failed") == 0 && Normalise(guarded.Json) == Normalise(baseline.Json),
@@ -308,13 +318,21 @@ internal static class Program
         var holes = new Dictionary<MongoId, Preset>(vanilla)
         {
             [new MongoId("d00000000000000000000003")] = new Preset { Id = new MongoId("d00000000000000000000003"), Name = "Armour with a hole", Parent = new MongoId("d00000000000000000000009"), Items = [null!] },
+            // A null preset: the root lookup throws before any weapon is known, so the net contains it silently.
+            [new MongoId("d00000000000000000000002")] = null!,
             [new MongoId("d00000000000000000000004")] = new Preset { Id = new MongoId("d00000000000000000000004"), Name = "Weapon with a hole", Parent = new MongoId("d00000000000000000000009"), Items = [null!], Encyclopedia = group.Key },
+            [new MongoId("d00000000000000000000005")] = new Preset { Id = new MongoId("d00000000000000000000005"), Name = "Hole before root", Parent = new MongoId("d00000000000000000000006"), Items = [null!, new Item { Id = new MongoId("d00000000000000000000006"), Template = group.Key }] },
+            [new MongoId("d00000000000000000000007")] = new Preset { Id = new MongoId("d00000000000000000000007"), Name = "No root part", Parent = new MongoId("d00000000000000000000008"), Items = [new Item { Id = new MongoId("d00000000000000000000008"), Template = group.Key, ParentId = "d00000000000000000000008", SlotId = "mod_barrel" }] },
         };
         var holed = await Generate(items, holes);
         Check("null elements contained and only a weapon reported",
             holed.Count("Error", "generation failed") == 0 && holed.Count("Warning", "left out") == 1
-            && holed.Count("Warning", "'Weapon with a hole'") == 1 && holed.Count("Warning", "Armour with a hole") == 0
+            && holed.Reported("Weapon with a hole") == 1 && holed.Count("Warning", "Armour with a hole") == 0 && holed.Count("Debug", "Armour with a hole") == 0
             && Normalise(holed.Json) == Normalise(baseline.Json));
+        // The reasons are read from the per-entry Debug lines: the Warning shows only the first three entries.
+        Check("null element of a weapon preset named no-parts", holed.Reported("Weapon with a hole", "no-parts") == 1);
+        Check("null element before the root named no-parts", holed.Reported("Hole before root", "no-parts") == 1);
+        Check("preset without a root part named no-root", holed.Reported("No root part", "no-root") == 1);
 
         // A candidate whose build throws inside Consider (a template that cannot be read): the other weapons stay.
         var magazine = new MongoId(baseline.Pool[0]!["items"]!.AsArray().First(n => n!["slotId"]?.GetValue<string>() == "mod_magazine")!["_tpl"]!.GetValue<string>());
@@ -323,10 +341,28 @@ internal static class Program
         try
         {
             var consider = await Generate(items, vanilla);
+            // A weapon preset with a cartridge child under that magazine: the GUARD has to read the unreadable template
+            // (SlotNames), so it throws for this one preset, which is what the per-preset net is for.
+            var reading = new Preset
+            {
+                Id = new MongoId("d00000000000000000000010"), Name = "Reads the bad magazine", Parent = new MongoId("d00000000000000000000011"), Encyclopedia = group.Key,
+                Items =
+                [
+                    new Item { Id = new MongoId("d00000000000000000000011"), Template = group.Key },
+                    new Item { Id = new MongoId("d00000000000000000000012"), Template = magazine, ParentId = "d00000000000000000000011", SlotId = "mod_magazine" },
+                    new Item { Id = new MongoId("d00000000000000000000013"), Template = magazine, ParentId = "d00000000000000000000012", SlotId = "cartridges" },
+                ],
+            };
+            var reads = await Generate(items, new Dictionary<MongoId, Preset>(vanilla) { [reading.Id] = reading });
             Check("consider isolation keeps the pool",
-                consider.Count("Error", "generation failed") == 0 && consider.Count("Warning", "consider-threw") == 1
+                consider.Count("Error", "generation failed") == 0 && consider.Count("Debug", "consider-threw") == 1
                 && consider.Pool.Count > 0 && consider.Pool.Count < baseline.Pool.Count,
                 $"{consider.Pool.Count} entries against {baseline.Pool.Count}, errors {consider.Count("Error", "generation failed")}");
+            // The same unreadable template also makes the guard throw for every preset with cartridge children under
+            // that magazine: those presets are reported as preset-threw and the loop goes on.
+            Check("preset loop isolation keeps the pool",
+                reads.Count("Error", "generation failed") == 0 && reads.Reported("Reads the bad magazine", null) == 1 && reads.Count("Debug", "preset-threw:InvalidOperationException") == 1 && reads.Pool.Count > 0,
+                $"{reads.Count("Debug", "preset-threw:")} preset-threw lines, {reads.Pool.Count} entries");
         }
         finally
         {
