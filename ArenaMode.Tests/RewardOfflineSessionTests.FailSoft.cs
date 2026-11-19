@@ -225,7 +225,8 @@ public sealed partial class RewardOfflineSessionTests
         using var f = new Fixture();
         f.Start(); StopPrivate(f);
         int attempts = 0;
-        var paused = await PauseOf(f, s => { if (s == "consent") { attempts++; throw new IOException("synthetic"); } });
+        // A fourth attempt ends the loop with another error, so a retry that never stops fails here instead of hanging.
+        var paused = await PauseOf(f, s => { if (s == "consent") { if (++attempts > 3) throw new InvalidOperationException("retried"); throw new IOException("synthetic"); } });
         Assert.Equal(3, attempts);
         Assert.Equal("offline-recovery-IOException", paused!.Code);
     }
