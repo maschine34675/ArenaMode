@@ -35,6 +35,9 @@ namespace ArenaMode.Server.Patches;
 /// ramp minutes, on the server's wall clock since the raid went live); every other mode
 /// holds the step's gear level from the first request, so a Team Deathmatch or Domination
 /// request is an ordinary request with the fixed band; no client clock rides on it.
+/// The one exception is solo Tactical: its first two rounds are lighter than the step's
+/// level (ArenaDifficultyPolicy.TacticalGearLevel), by the round the client reported
+/// to the exact live raid, round 1 until it did; protected PitFireTeam Tactical stays native.
 /// APBS 2.4.1 instead reads its global raid level; the optional range adapter
 /// carries this request's explicit Arena bounds through SPT's per-bot clone.
 /// </summary>
@@ -113,8 +116,17 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
             // Gun Game ramps from the start level to the step's gear level over the
             // map's ramp minutes on the server wall clock; every other mode holds
             // the step's gear level from the first request, whatever the time.
+            // Solo Tactical is the one mode whose band follows the ROUND instead: the
+            // client reports it (/arenamode/tactical-round) and the first two rounds are
+            // lighter (ArenaDifficultyPolicy.TacticalGearLevel). Protected PitFireTeam
+            // raids returned above, so they never reach this branch. Round 1 until the
+            // first report, because the raid-start bot preload that feeds round 1 comes
+            // before any report can.
             var progress = ArenaDifficultyPolicy.Progress(mode, elapsed.TotalSeconds, map.BotTierRampMinutes);
-            var here = ArenaDifficultyPolicy.GearLevelAt(step, map.BotTierStartLevel, map.BotTierEndLevel, progress);
+            var tacticalRound = ArenaDifficultyPolicy.IsTacticalMode(mode) ? sessions.GetTacticalRound(identity) : 0;
+            var here = tacticalRound > 0
+                ? ArenaDifficultyPolicy.TacticalGearLevel(step, map.BotTierStartLevel, map.BotTierEndLevel, tacticalRound)
+                : ArenaDifficultyPolicy.GearLevelAt(step, map.BotTierStartLevel, map.BotTierEndLevel, progress);
 
             // Native SPT/older APBS use both the anchor and the clamp. The
             // optional APBS 2.4.1 adapter restores these explicit Arena bounds
@@ -126,7 +138,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
             if (identity != null)
                 ArenaBotTierOwnership.MarkWave(botGenerationDetails, sessions, identity);
 
-            Report(location!, mode, step, elapsed, here, progress);
+            Report(location!, mode, step, elapsed, here, progress, tacticalRound);
         }
         catch (Exception ex)
         {
@@ -146,7 +158,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
     /// feature after a playtest was what levels it had actually handed out, and
     /// the log had nothing to say.
     /// </summary>
-    private static void Report(string location, string? mode, ArenaDifficultyStep step, TimeSpan elapsed, int level, double progress)
+    private static void Report(string location, string? mode, ArenaDifficultyStep step, TimeSpan elapsed, int level, double progress, int tacticalRound)
     {
         if (level == _lastReported)
             return;
@@ -155,7 +167,8 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
         ArenaContext.Logger?.Debug(
             $"[ArenaMode] Bot gear band on {location}: {elapsed.TotalMinutes:0} min in, "
             + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}; "
-            + $"mode={mode}, step={ArenaDifficultyPolicy.ToWire(step)}, progress={progress:P0}.");
+            + $"mode={mode}, step={ArenaDifficultyPolicy.ToWire(step)}, progress={progress:P0}"
+            + (tacticalRound > 0 ? $", round={tacticalRound}." : "."));
     }
 
     /// <summary>A new raid starts the ramp over, so it should report from the bottom again.</summary>

@@ -27,6 +27,13 @@ public static class Protocol
     public const string OrdinaryRecoveryRoute = "/arenamode/ordinary-recover";
     public const string StatusRoute = "/arenamode/status";
 
+    /// <summary>
+    /// Solo Tactical: the client reports the round it is in, so the server's gear band follows the
+    /// opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md). Bound to the exact live
+    /// session (the SPT session id of the request) and to the arm token.
+    /// </summary>
+    public const string TacticalRoundRoute = "/arenamode/tactical-round";
+
     /// <summary>The client uploads its own BepInEx settings here so the config page can show them.</summary>
     public const string ClientSettingsPushRoute = "/arenamode/client-settings/push";
 

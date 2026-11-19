@@ -49,13 +49,26 @@ public sealed partial class BotTierScalePatchTests
     [InlineData("teamdeathmatch", "reduced", 39)]
     [InlineData("domination", "maximum", 65)]
     [InlineData("domination", "reduced", 39)]
-    [InlineData("tactical", "maximum", 65)]
-    [InlineData("tactical", "reduced", 39)]
     [InlineData("zombie", "maximum", 65)]
     [InlineData("zombie", "reduced", 39)]
     public void EveryModeButGunGameHoldsTheStepsGearLevelFromTheFirstRequestOnward(string mode, string? step, int level)
     {
         var (sessions, id) = StartBand(mode, step);
+        foreach (var elapsed in new[] { TimeSpan.Zero, TimeSpan.FromSeconds(3), TimeSpan.FromMinutes(7), TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(40) })
+            Assert.Equal(level, LevelAt(sessions, id, elapsed));
+    }
+
+    /// <summary>
+    /// Solo Tactical is the one fixed mode whose band follows the round (opening rounds): with no
+    /// report yet it is round 1, so these two rows are the former "Maximum 65 / Reduced 39" rows
+    /// moved to the round 1 centres (25, and 15 = round(0.6 x 25)). Time never moves the band.
+    /// </summary>
+    [Theory]
+    [InlineData("maximum", 25)]
+    [InlineData("reduced", 15)]
+    public void TacticalWithoutAReportHoldsTheRoundOneBandAtAnyTime(string step, int level)
+    {
+        var (sessions, id) = StartBand("tactical", step);
         foreach (var elapsed in new[] { TimeSpan.Zero, TimeSpan.FromSeconds(3), TimeSpan.FromMinutes(7), TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(40) })
             Assert.Equal(level, LevelAt(sessions, id, elapsed));
     }
