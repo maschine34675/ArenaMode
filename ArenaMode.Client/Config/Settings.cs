@@ -1574,8 +1574,8 @@ public static class Settings
             250000,
             "Roubles at the first buy phase. Kits are priced at their handbook " +
             "value minus the secure container, so this is a currency you already " +
-            "have a feel for. The catalogue runs from about 180k to 590k, so this " +
-            "buys the bottom third — round one is a choice, not a handout.");
+            "have a feel for. The catalogue runs from about 180k to 670k, so this " +
+            "buys one of the five cheapest kits — round one is a choice, not a handout.");
 
         TacticalKillReward = config.Bind(
             "Tactical",
