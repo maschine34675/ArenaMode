@@ -8,7 +8,7 @@ namespace ArenaMode.Tests;
 
 /// <summary>
 /// The server gear band of docs/reviews/DIFFICULTY-MODEL-20261118.md: a fixed level per step in
-/// every mode but Gun Game, the Gun Game ramp on the server wall clock, the protected bypass and
+/// every mode but Gun Game and solo Tactical (which follows the reported round), the Gun Game ramp on the server wall clock, the protected bypass and
 /// the opt-out. The map is configured 1..65 over 15 minutes, so Maximum is 65 and Reduced 39.
 /// </summary>
 public sealed partial class BotTierScalePatchTests
