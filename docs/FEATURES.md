@@ -802,7 +802,11 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   their AI level, speed and position reports.
 - The pooled PMC profile backup is warmed for exactly the levels the step can
   request (impossible at Maximum, hard at Reduced; in Gun Game only its opening
-  level, hard). Team DM and Domination no longer carry a match clock on their bot
+  level, hard). A warmed or refilled profile keeps the gear of its generation time, so in
+  Gun Game, before a PMC is requested, pooled profiles of that role and difficulty
+  more than 10 levels behind the current ramp level are dropped and the server
+  generates a fresh batch (at most once per 30 seconds per role and difficulty; Scavs
+  and bots already spawned are not covered). Team DM and Domination no longer carry a match clock on their bot
   requests; their raid-start profile preload stays skipped until loading time has
   been measured natively.
 - Zombies follow the step through their composition

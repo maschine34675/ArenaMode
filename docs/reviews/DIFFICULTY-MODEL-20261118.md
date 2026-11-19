@@ -249,14 +249,16 @@ decisions in "Direction" are untouched.
   `BotProfileClient.CreateProfile(BotCreationData, CancellationToken, bool)`. Before a PMC
   demand (pmcUSEC, pmcBEAR) in the exact active Arena raid, with `scaleBotTier` on and the
   mode Gun Game, it removes the unused pool entries of exactly the demanded (role, difficulty)
-  whose level is below `current - 10` (`ArenaDifficultyPolicy.IsGunGameStaleGearLevels`,
+  whose level is below `current - 10` (`ArenaDifficultyPolicy.GunGameStaleGearLevels`,
   `IsGunGameGearStale`); `current` is `ArenaDifficulty.CurrentGunGameGearLevel`, the policy's
   ramp at the frozen step over the map's `botTierStartLevel`, `botTierEndLevel` and
   `botTierRampMinutes`. The native miss path then asks the server for a fresh batch at the
   current band. The 10 levels: the server band is centre +/-5, so a fresh profile is never
   below centre - 5, and another 5 levels are about 70 seconds of the default ramp (65 levels in
-  15 minutes); the server's clock starts earlier than the client's match clock, so a fresh
-  batch is never stale on arrival. Per (role, difficulty) at most one purge every 30 seconds
+  15 minutes). Expected, not yet measured natively (HANDOFF lists the server gear clock
+  against the client AI clock as open): the server's clock starts earlier than the client's
+  match clock, so a fresh batch is not stale on arrival; the 30-second limit below bounds the
+  cost if it is. Per (role, difficulty) at most one purge every 30 seconds
   of unscaled time (a server that answers below the client's expectation, for example a
   configuration edited during the raid, costs one batch per 30 seconds, not one per spawn);
   the state is per world. One Debug line per purge; an exception keeps the native behaviour
@@ -264,7 +266,7 @@ decisions in "Direction" are untouched.
   their batch is 45), profiles that are already assigned to a bot, other difficulties, the
   backup loader and the request itself; and a pooled profile can still sit up to 10 levels
   below the centre, so at the end of the ramp the floor is centre - 10. Checks:
-  `GunGameFreshGearChecks` (the real patch against host stubs, 49 mutants) and
+  `GunGameFreshGearChecks` (the real patch against host stubs, 53 mutants) and
   `ArenaDifficultyPolicyTests`. Nothing of this has run in the game; a native Gun Game raid
   must show the purge lines and PMC levels near the centre.
 - **Gun Game progress on the client** is `ArenaMatchService.Current.Elapsed` over the ramp

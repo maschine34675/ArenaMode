@@ -193,8 +193,8 @@ public static class ArenaDifficultyPolicy
     /// Gun Game: how many levels below the current gear level a pooled bot profile may sit before it is
     /// discarded. The server's band is the centre +/-5, so a freshly generated profile is never below
     /// centre - 5; another 5 levels of slack is about 70 seconds of the default ramp (65 levels in 15
-    /// minutes). The server's clock starts before the client's match clock, so a fresh batch is never
-    /// stale on arrival.
+    /// minutes). Expected, not yet measured natively: the server's clock starts before the client's match
+    /// clock, so a fresh batch is not stale on arrival; the purge's 30-second limit bounds the cost if it is.
     /// </summary>
     public const int GunGameStaleGearLevels = 10;
 

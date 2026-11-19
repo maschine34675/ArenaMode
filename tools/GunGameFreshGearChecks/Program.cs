@@ -125,15 +125,15 @@ internal static class Program
         Raid(); client._simpleProfiles.Add(P(WildSpawnType.pmcUSEC, BotDifficulty.hard, 4)); Demand();
         UnityEngine.Time.unscaledTime = 1005f; Demand(difficulty: BotDifficulty.hard);
         Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.hard, 4) && !Has(WildSpawnType.pmcUSEC, BotDifficulty.hard, 3), "the interval is kept per difficulty");
-        // An empty purge starts no interval.
-        Raid(); client._simpleProfiles.RemoveAll(p => p.Info.Level < 34); Demand();
-        Fill(); UnityEngine.Time.unscaledTime = 1001f; Demand();
-        Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "a demand that found nothing to drop starts no interval");
         // A new raid (another world) and an explicit Reset both start without an interval.
         Raid(); Demand(); Raid(reset: false); UnityEngine.Time.unscaledTime = 1001f; Demand();
         Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "a new world starts with no interval");
         Raid(); Demand(); ArenaGunGameFreshGearPatch.Reset(); Fill(); UnityEngine.Time.unscaledTime = 1001f; Demand();
         Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "Reset starts the next raid with no interval");
+        // An empty purge starts no interval.
+        Raid(); client._simpleProfiles.RemoveAll(p => p.Info.Level < 34); Demand();
+        Fill(); UnityEngine.Time.unscaledTime = 1001f; Demand();
+        Check(!Has(WildSpawnType.pmcUSEC, BotDifficulty.impossible, 5), "a demand that found nothing to drop starts no interval");
     }
 
     private static void Failures()
