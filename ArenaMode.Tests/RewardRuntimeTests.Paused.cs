@@ -29,6 +29,9 @@ public sealed partial class RewardRuntimeTests
         var offAsync = await f.Coordinator.SetConsentAsync(Fixture.ProfileId, false, CancellationToken.None);
         Assert.Equal("withheld", off.State);
         Assert.Equal("withheld", offAsync.State);
+        // A stale expected revision is no reason to answer "changed" while paused either: the card says rewards are paused.
+        var stale = await f.Coordinator.SetConsentAsync(Fixture.ProfileId, false, CancellationToken.None, expectedRevision: 999);
+        Assert.Equal("withheld", stale.State);
         // No control capability is issued, no run is captured.
         Assert.Equal("reward-control-unavailable", f.Coordinator.PrepareControl(Fixture.ProfileId, Guid.NewGuid().ToString("N")).Reason);
         f.Coordinator.ObserveSnapshot(Fixture.ProfileId, f.Profile);
