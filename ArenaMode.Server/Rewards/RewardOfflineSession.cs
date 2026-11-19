@@ -34,7 +34,7 @@ internal sealed record RewardOfflineCompletion(int Schema, string SessionId, str
 // next start retries from the untouched records (ArenaRewardStartup.RecoverOrPauseAsync). LiveWriter marks the one
 // kind that must still stop SPT: another process may be writing right now (a live or unverifiable private process, an
 // active pointer that changed under both locks, a private server appearing). A new check that can mean "someone else is
-// writing" has to set it (or throw RewardLiveOwnerException); RewardOfflineRecoveryClassificationTests lists every code.
+// writing" has to set it (or throw RewardLiveOwnerException); RewardOfflineSessionTests.EveryOfflineReasonCodeOfTheRecoveryIsClassified lists every code.
 internal sealed class RewardOfflineException(string message, Exception? inner = null) : Exception(message, inner)
 {
     internal bool LiveWriter { get; init; }

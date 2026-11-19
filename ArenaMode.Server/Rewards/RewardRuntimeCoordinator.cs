@@ -3,14 +3,14 @@ using ArenaMode.Shared;
 
 namespace ArenaMode.Server.Rewards;
 
+/// <summary>Why and how this start paused rewards; see <see cref="RewardRuntimeCoordinator.ObserveRewardsPaused"/>.</summary>
+internal sealed record RewardPauseState(string Reason, bool RecoveryPending);
+
 /// <summary>
 /// Capture and durable metadata only. This service never writes a live or
 /// serialized player profile; enrollment/payment belong to the startup window.
 /// Caller hooks catch reward failures without weakening full-profile recovery.
 /// </summary>
-/// <summary>Why and how this start paused rewards; see <see cref="RewardRuntimeCoordinator.ObserveRewardsPaused"/>.</summary>
-internal sealed record RewardPauseState(string Reason, bool RecoveryPending);
-
 internal sealed class RewardRuntimeCoordinator
 {
     private static readonly Lazy<RewardRuntimeCoordinator> Instance = new(() => new(Directory.GetCurrentDirectory()));
