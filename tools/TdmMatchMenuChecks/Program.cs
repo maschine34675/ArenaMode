@@ -1183,7 +1183,7 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         bool wide = expectedText.Contains('(');
         Need(AliveText().fontSize == (wide ? 12f : 14f) && AliveText().alignment == (wide ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.Center)
             && AliveText().rectTransform.sizeDelta.x == (wide ? 210f : 58f) && AliveText().rectTransform.anchoredPosition.x == (wide ? 110f : 262f),
-            "the long effective-value text uses the wide cell and the plain value restores the original cell");
+            wide ? "the long effective-value text uses the wide cell" : "the plain value restores the original cell");
         Need(Label("Zombie value WaveStartSize").text == Settings.ZombieWaveStartSize.Value.ToString()
             && Label("Zombie value WaveGrowth").text == Settings.ZombieWaveGrowth.Value.ToString(),
             "the other Zombie rows always show their plain setting");
