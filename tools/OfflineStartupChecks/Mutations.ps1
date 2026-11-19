@@ -12,7 +12,7 @@ $mutations = @(
        New = '// mutation: old delegation is no longer terminal';
        Test = 'LateDiscardedReceiptCannotPayOrBlockANewHealthySession' },
     @{ Name = 'lost-pointer-drops-unapplied-discard'; File = 'RewardOfflineRecovery.cs';
-       Old = 'if (!DiscardCompleted(root, lease, discard)) pending.Add(lease);';
+       Old = '                    pending.Add(lease);';
        New = '// mutation: an unfinished discard is treated as terminal';
        Test = 'InterruptedDiscardAndLostPointerFinishOnceWithoutRestoringOldOn' },
     # The 0.4.1 bug (maschine34675/ArenaMode#1): every other pre-load callback counts as "earlier", whatever its position.
