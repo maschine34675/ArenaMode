@@ -255,7 +255,8 @@ public sealed class LadderGeneratorTests
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            if (targetMethod?.Name == "Warning" && ThrowOnWarning)
+            // Only the left-out report: other Warnings of the load (the variant index) are not under test.
+            if (targetMethod?.Name == "Warning" && ThrowOnWarning && args?[0] is string warning && warning.Contains("Weapon pool: ", StringComparison.Ordinal))
                 throw new InvalidOperationException("the logger refused the warning");
 
             if (args is { Length: > 0 } && args[0] is string text)
