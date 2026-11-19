@@ -1,29 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FrameRingReconstructor, analyzeSegment, analyzeSnapshots, nearestRank } from "./ring-analysis.mjs";
+import {
+  FRAME_RING_CAPACITY, FrameRingReader, analyzeSegment, analyzeRecords, nearestRank, planPageReads, ringWriteSlot, windowsByFrameTime, describeFrames,
+} from "./ring-analysis.mjs";
 
-const CAPACITY = 300;
-const mod = (value) => ((value % CAPACITY) + CAPACITY) % CAPACITY;
+const CAP = FRAME_RING_CAPACITY;
+const mod = (value) => ((value % CAP) + CAP) % CAP;
 
-// Independent fake writer: kth Update writes value(k) at slot (k-1) modulo300.
-// Each page has its OWN observation time, reproducing a torn two-page collection.
-function ringAt(writes, value) {
-  return Array.from({ length: CAPACITY }, (_, slot) => {
-    const newestWrite = writes - mod(writes - 1 - slot);
-    return value(newestWrite);
-  });
-}
-
-function snapshot(writes, { d0 = 1, d1 = 2, d2 = 3, d3 = 4, after = 5, value = (k) => k + 1000, wallMs = writes * 10 } = {}) {
-  return {
-    f0: writes,
-    n0: mod(writes + d0),
-    page0: ringAt(writes + d1, value).slice(0, 200),
-    page1: ringAt(writes + d2, value).slice(200),
-    n1: mod(writes + d3),
-    f1: writes + after,
-    wallMs,
-  };
+// A hand-built poll record. w0 is the write cursor at the first read, k the writes that happen while the slots are read.
+// The count is fixed at 1000 kept frames: head = w - count, which is how the real fields relate (see ring-analysis.mjs).
+function record({ from, w0, n, f0, vals, k = 0, wallMs0 = f0 * 10, count = 1000, phase = "combat" }) {
+  return { phase, wallMs0, wallMs: wallMs0 + 5, f0, h0: mod(w0 - count), c0: count, from, n,
+    vals: vals ?? Array(n).fill(10), f1: f0 + k, h1: mod(w0 + k - count), c1: count };
 }
 
 function fixtureSegment(values, expectedFrames = values.length) {
@@ -45,117 +33,134 @@ test("nearest-rank uses a per-frame distribution, includes endpoints, and leaves
   assert.throws(() => nearestRank([8], 95));
 });
 
-test("initial history is excluded; touched slots recover later with correct epochs and no duplication", () => {
-  const collector = new FrameRingReconstructor();
-  const first = collector.push(snapshot(398)); // n0=99, initial global write399
-  assert.equal(first.added, 0);
-  assert.equal(first.afterSequence, 3);
-  const second = collector.push(snapshot(519));
-  const end = second.afterSequence;
-  assert.equal(end, 124);
-  collector.push(snapshot(638)); // wraps the ring and recovers the prior tail
-  const segment = collector.result().segments[0];
-  const analysis = analyzeSegment(segment, { endSequence: end });
-  assert.equal(analysis.knownFrames, end);
-  assert.equal(analysis.missingFrames, 0);
-  assert.equal(segment.duplicateObservations > 0, true);
-  for (const frame of segment.frames) assert.equal(frame.ms, 1400 + frame.sequence);
-  assert.equal(new Set(segment.frames.map((frame) => frame.sequence)).size, segment.frames.length);
+test("the write slot is (head + count) mod 4096, and an age eviction (head up, count down) does not move it", () => {
+  assert.equal(ringWriteSlot(100, 3000), 3100);
+  assert.equal(ringWriteSlot(4000, 200), 104);
+  assert.equal(ringWriteSlot(101, 2999), ringWriteSlot(100, 3000)); // one frame evicted by age, none written
+  assert.equal(ringWriteSlot(0, 4096), 0);
 });
 
-test("two-page races across both ring and page boundaries never misattribute a sample", () => {
-  for (const initial of [590, 695, 790, 895]) {
-    const collector = new FrameRingReconstructor();
-    const base = initial + 1;
-    for (let sample = 0; sample < 20; sample++) {
-      const writes = initial + 71 * sample;
-      collector.push(snapshot(writes, { d1: 10, d2: 18, d3: 22, after: 24 }));
-    }
-    const result = collector.result();
-    assert.equal(result.segments.length, 1);
-    assert.equal(result.discontinuities.length, 0);
-    for (const frame of result.segments[0].frames) assert.equal(frame.ms, base + frame.sequence + 1001);
-    assert.equal(result.segments[0].integrityErrors.length, 0);
+test("page reads cover the slots in write order, at most 200 each, never across the array end", () => {
+  assert.deepEqual(planPageReads(10, 0), []);
+  assert.deepEqual(planPageReads(10, 70), [{ offset: 10, limit: 70 }]);
+  assert.deepEqual(planPageReads(0, 450), [{ offset: 0, limit: 200 }, { offset: 200, limit: 200 }, { offset: 400, limit: 50 }]);
+  assert.deepEqual(planPageReads(4090, 20), [{ offset: 4090, limit: 6 }, { offset: 0, limit: 14 }]);
+  assert.deepEqual(planPageReads(4000, 300), [{ offset: 4000, limit: 96 }, { offset: 0, limit: 200 }, { offset: 200, limit: 4 }]);
+  for (const [from, n] of [[0, 4095], [123, 4000], [4095, 1], [2000, 2500]]) {
+    const reads = planPageReads(from, n);
+    assert.equal(reads.reduce((s, r) => s + r.limit, 0), n);
+    assert.ok(reads.every((r) => r.limit >= 1 && r.limit <= 200 && r.offset + r.limit <= CAP));
   }
 });
 
-test("proven empty brackets still expose past samples without inventing current frames", () => {
-  const collector = new FrameRingReconstructor();
-  const sameFrame = { d0: 0, d1: 0, d2: 0, d3: 0, after: 0, value: () => 10 };
-  collector.push(snapshot(300, sameFrame));
-  collector.push(snapshot(450, sameFrame));
-  const segment = collector.result().segments[0];
-  assert.equal(segment.endSequence, 150);
-  const analysis = analyzeSegment(segment);
-  assert.equal(analysis.coverage, 1);
-  assert.equal(analysis.passesP95, true);
+test("the first record only sets the baseline; later records add their slots in write order with running sequences", () => {
+  const reader = new FrameRingReader();
+  const base = reader.push(record({ from: null, w0: 500, n: 0, f0: 2000 }));
+  assert.equal(base.accepted, true);
+  assert.equal(base.added, 0);
+  const second = reader.push(record({ from: 500, w0: 503, n: 3, f0: 2003, vals: [11, 12, 13] }));
+  assert.deepEqual([second.beforeSequence, second.afterSequence, second.added, second.frameCountDelta], [0, 3, 3, 0]);
+  const third = reader.push(record({ from: 503, w0: 505, n: 2, f0: 2005, vals: [14, 15] }));
+  assert.deepEqual([third.beforeSequence, third.afterSequence], [3, 5]);
+  const segment = reader.result().segments[0];
+  assert.deepEqual(segment.frames.map((f) => f.ms), [11, 12, 13, 14, 15]);
+  assert.deepEqual(segment.frames.map((f) => f.sequence), [0, 1, 2, 3, 4]);
+  assert.equal(analyzeSegment(segment).missingFrames, 0);
 });
 
-test("unproven wraps start separate segments instead of guessing missing epochs", () => {
-  const result = analyzeSnapshots([snapshot(300), snapshot(450), snapshot(900), snapshot(1040)]);
+test("a record that crosses the array end keeps the cursor arithmetic modulo 4096", () => {
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 4094, n: 0, f0: 9000 }));
+  reader.push(record({ from: 4094, w0: 3, n: 5, f0: 9005, vals: [1, 2, 3, 4, 5] }));
+  const segment = reader.result().segments[0];
+  assert.equal(segment.endSequence, 5);
+  assert.equal(reader.result().discontinuities.length, 0);
+});
+
+test("slots that may have been overwritten while they were read reject the poll and start a segment", () => {
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  // 4000 slots to read plus 200 writes during the read: slot 'from' is overwritten.
+  const bad = reader.push(record({ from: 100, w0: mod(100 + 4000), n: 4000, f0: 5000 + 4000, k: 200 }));
+  assert.equal(bad.accepted, true);
+  const result = reader.result();
   assert.equal(result.segments.length, 2);
-  assert.match(result.discontinuities[0].reason, /wrap count/);
-  assert.equal(result.segments[1].startSequence, 0);
-  assert.equal(result.passesP95, false);
+  assert.match(result.discontinuities[0].reason, /overwritten/);
+  // exactly at the limit (n + k = 4096) is still proven
+  const edge = new FrameRingReader();
+  edge.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  edge.push(record({ from: 100, w0: mod(100 + 4000), n: 4000, f0: 5000 + 4000, k: 96 }));
+  assert.equal(edge.result().segments.length, 1);
 });
 
-test("outer bounds are required even when the gap between f1 and next f0 is below300", () => {
-  const collector = new FrameRingReconstructor();
-  collector.push(snapshot(300, { d1: 80, d2: 120, d3: 140, after: 150 }));
-  collector.push(snapshot(580, { d1: 10, d2: 20, d3: 30, after: 40 }));
-  assert.equal(collector.result().segments.length, 2); // 620-300 >=300
-});
-
-test("bad bracket shapes, within-bracket wraps and impossible advances fail closed", () => {
-  for (const change of [
-    { page0: Array(199).fill(10) },
-    { n0: -1 }, { n1: 300 }, { n0: 1.5 }, { f0: -1 }, { f1: NaN },
-    { f1: 600 }, { f1: 299 }, { n1: 100 }, { wallMs: NaN },
+test("a missing poll, an engine restart, a skipped read and an unproven wrap cannot join epochs", () => {
+  const base = record({ from: null, w0: 100, n: 0, f0: 5000 });
+  for (const [next, pattern] of [
+    [record({ from: 90, w0: 110, n: 20, f0: 5020 }), /missing/],
+    [record({ from: 100, w0: 110, n: 10, f0: 4990 }), /restarted/],
+    [{ ...record({ from: 100, w0: 110, n: 10, f0: 5010 }), skipped: true, vals: [] }, /skipped/],
+    [record({ from: 100, w0: 110, n: 10, f0: 5000 + CAP }), /wrap/],
+    [record({ from: 100, w0: 110, n: 11, f0: 5010 }), /slot count/],
+    [record({ from: 100, w0: 110, n: 10, f0: 5010, vals: [1, 2] }), /slot count/],
+    [{ ...record({ from: 100, w0: 110, n: 10, f0: 5010 }), wallMs0: 1 }, /wall clock/],
   ]) {
-    const result = analyzeSnapshots([{ ...snapshot(300), ...change }]);
-    assert.equal(result.invalidSnapshots.length, 1);
+    const reader = new FrameRingReader();
+    reader.push(base);
+    reader.push(next);
+    const result = reader.result();
+    assert.equal(result.segments.length, 2, pattern.source);
+    assert.match(result.discontinuities[0].reason, pattern);
+  }
+});
+
+test("bad record shapes fail closed and are listed", () => {
+  for (const change of [
+    { h0: -1 }, { h1: CAP }, { c0: CAP + 1 }, { n: 1.5 }, { f0: -1 }, { f1: NaN }, { wallMs: NaN }, { vals: "no" },
+    { f1: 4999 }, { f1: 5000 + CAP }, { from: CAP }, { from: "x" },
+  ]) {
+    const result = analyzeRecords([{ ...record({ from: null, w0: 100, n: 0, f0: 5000 }), ...change }]);
+    assert.equal(result.invalidRecords.length, 1, JSON.stringify(change));
     assert.equal(result.passesP95, false);
   }
+  assert.equal(analyzeRecords([null]).invalidRecords.length, 1);
 });
 
-test("engine restart and impossible between-snapshot advances cannot join epochs", () => {
-  for (const next of [snapshot(299), { ...snapshot(450), n0: 295, n1: 298 }]) {
-    const collector = new FrameRingReconstructor();
-    collector.push(snapshot(300));
-    collector.push(next);
-    assert.equal(collector.result().segments.length, 2);
-    assert.equal(collector.result().discontinuities.length, 1);
-  }
-});
-
-test("differing duplicate samples are quarantined and block otherwise passing data", () => {
-  const collector = new FrameRingReconstructor();
-  const opts = { value: () => 10 };
-  collector.push(snapshot(300, opts));
-  collector.push(snapshot(400, opts));
-  const corrupted = snapshot(410, opts);
-  corrupted.page0[10] = 11; // stable global write311, segment sequence9
-  collector.push(corrupted);
-  collector.push(snapshot(420, opts));
-  const segment = collector.result().segments[0];
+test("the cursor must advance as far as the engine frame counter: a difference is an integrity error that blocks a pass", () => {
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  // within tolerance (two frames either way): accepted without an error
+  assert.equal(reader.push(record({ from: 100, w0: 150, n: 50, f0: 5052 })).frameCountDelta, -2);
+  assert.equal(reader.push(record({ from: 150, w0: 200, n: 50, f0: 5100 })).frameCountDelta, 2);
+  assert.equal(reader.result().segments[0].integrityErrors.length, 0);
+  // the engine ran 30 frames more than the ring recorded: the ring is not "one slot per frame" for this poll
+  const skewed = reader.push(record({ from: 200, w0: 250, n: 50, f0: 5180 }));
+  assert.equal(skewed.frameCountDelta, -30);
+  const segment = reader.result().segments[0];
   assert.equal(segment.integrityErrors.length, 1);
-  assert.equal(segment.frames.some((frame) => frame.sequence === 9), false);
+  assert.equal(segment.integrityErrors[0].kind, "frame-count");
+  assert.equal(segment.frameCountMismatches, 1);
   assert.equal(analyzeSegment(segment).passesP95, false);
+  // an interval before the bad poll is still analyzable
+  assert.equal(analyzeSegment(segment, { endSequence: 100 }).passesP95, true);
 });
 
-test("invalid values remain missing, are not coerced to fast frames, and can recover", () => {
-  const collector = new FrameRingReconstructor();
-  const opts = { value: () => 10 };
-  collector.push(snapshot(300, opts));
-  const corrupted = snapshot(400, opts);
-  corrupted.page0[20] = NaN;
-  corrupted.page0[21] = Infinity;
-  corrupted.page0[22] = -1;
-  corrupted.page0[23] = "10";
-  const mark = collector.push(corrupted);
+test("a cursor that advances while the engine counter stands still is also an error (the stand-in's 'ring hole' mirrored)", () => {
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  const mark = reader.push(record({ from: 100, w0: 160, n: 60, f0: 5000 }));
+  assert.equal(mark.frameCountDelta, 60);
+  assert.equal(reader.result().segments[0].integrityErrors.length, 1);
+});
+
+test("invalid values remain missing, are not coerced to fast frames", () => {
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  const mark = reader.push(record({ from: 100, w0: 105, n: 5, f0: 5005, vals: [10, NaN, -1, "10", Infinity] }));
   assert.equal(mark.invalidValues, 4);
-  collector.push(snapshot(500, opts));
-  assert.equal(analyzeSegment(collector.result().segments[0], { endSequence: mark.afterSequence }).missingFrames, 0);
+  const analysis = analyzeSegment(reader.result().segments[0]);
+  assert.equal(analysis.knownFrames, 1);
+  assert.equal(analysis.missingFrames, 4);
+  assert.equal(analysis.passesP95, false);
 });
 
 test("5% slow or missing frames may pass; one more fails even when observed P95 is excellent", () => {
@@ -203,14 +208,23 @@ test("explicit interval bounds exclude warmup/recovery and reject invalid or dup
   assert.throws(() => analyzeSegment({ ...segment, frames: [...segment.frames, segment.frames[1]] }));
 });
 
+test("windows are consecutive 30 s of accumulated frame time over one distribution, the short tail is dropped", () => {
+  const values = [...Array(3000).fill(10), ...Array(1500).fill(20), ...Array(500).fill(10)]; // 30 s, 30 s, 5 s
+  const windows = windowsByFrameTime(values, 30000);
+  assert.equal(windows.length, 2);
+  assert.deepEqual([windows[0].frames, windows[0].p95Ms, windows[1].frames, windows[1].p95Ms], [3000, 10, 1500, 20]);
+  assert.equal(describeFrames([]), null);
+  assert.equal(describeFrames([10, 10]).fps, 100);
+});
+
 test("exported results are detached and JSON-safe", () => {
-  const collector = new FrameRingReconstructor();
-  collector.push(snapshot(300));
-  collector.push(snapshot(420));
-  const first = collector.result();
+  const reader = new FrameRingReader();
+  reader.push(record({ from: null, w0: 100, n: 0, f0: 5000 }));
+  reader.push(record({ from: 100, w0: 104, n: 4, f0: 5004 }));
+  const first = reader.result();
   first.segments[0].frames[0].ms = -1;
   first.segments[0].integrityErrors.push({ sequence: 0 });
-  const second = collector.result();
+  const second = reader.result();
   assert.notEqual(second.segments[0].frames[0].ms, -1);
   assert.equal(second.segments[0].integrityErrors.length, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(second)), second);
