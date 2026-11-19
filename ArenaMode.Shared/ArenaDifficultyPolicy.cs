@@ -384,4 +384,103 @@ public static class ArenaDifficultyPolicy
     /// </summary>
     public static ArenaBotLevel BotLevel(ArenaDifficultyStep step, bool pmc, double progress)
         => pmc ? PmcLevelAt(step, progress) : ScavLevelAt(step, progress);
+
+    // ------------------------------------------------------------------------------------------
+    // Tactical opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md). The enemy
+    // squad of the first two rounds is kitted lighter than the step's full gear level, so a
+    // player on a starter budget does not meet the top of the tier table in round 1. One
+    // function decides every round; the server band, the client pool purge and the text the
+    // player reads are all defined through it and so cannot disagree.
+    // ------------------------------------------------------------------------------------------
+
+    /// <summary>Rounds that may be lighter than the step's full gear level; from the next round on the gear is full.</summary>
+    public const int TacticalOpeningRounds = 2;
+
+    /// <summary>Maximum step: the gear level (band centre) of Tactical round 1 before the clamps.</summary>
+    public const int TacticalOpeningCentreRound1 = 25;
+
+    /// <summary>Maximum step: the gear level (band centre) of Tactical round 2 before the clamps.</summary>
+    public const int TacticalOpeningCentreRound2 = 45;
+
+    /// <summary>
+    /// An opening stage counts only when its centre is at least this many levels below the full
+    /// level: one gear tier (the bot system's tiers are ten levels wide). A smaller gap would be
+    /// a lighter round in the table and an identical kit on the field, so the round is full instead
+    /// and the player is never told about a difference that is not there.
+    /// </summary>
+    public const int TacticalOpeningMinGap = 10;
+
+    /// <summary>Same spread the server writes around the band centre (<c>ArenaBotTierScalePatch.Spread</c>; a test pins the equality).</summary>
+    public const int GearBandSpread = 5;
+
+    /// <summary>The mode id compare, in one place for the server band and the client purge.</summary>
+    public static bool IsTacticalMode(string? mode)
+        => string.Equals(mode, TacticalModeId, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The raw opening centre of a Tactical round (1 or 2; any other round has no opening centre
+    /// and answers <see cref="int.MaxValue"/>, "full"), before the map clamps and the minimum gap.
+    /// Maximum has the two numbers above. Reduced is DERIVED from them with the same share the
+    /// full level uses (<see cref="ReducedGearShare"/>, rounded away from zero: 15 and 27), so the
+    /// two tables cannot drift apart when the share is tuned.
+    /// </summary>
+    public static int TacticalOpeningCentre(ArenaDifficultyStep step, int round)
+    {
+        int maximum = round switch
+        {
+            1 => TacticalOpeningCentreRound1,
+            2 => TacticalOpeningCentreRound2,
+            _ => int.MaxValue,
+        };
+        if (maximum == int.MaxValue || step == ArenaDifficultyStep.Maximum)
+            return maximum;
+        return (int)Math.Round(maximum * ReducedGearShare, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// The gear level (band centre) of a Tactical round, the one function that decides it.
+    /// From round 3 on, and whenever an opening centre is not at least
+    /// <see cref="TacticalOpeningMinGap"/> below it, this is the step's full level
+    /// (<see cref="GearLevel"/>). Otherwise it is the opening centre of the round, clamped into
+    /// [the map's start level, the full level] so the start level stays a floor (the clamped
+    /// start level is read through <see cref="GearLevelAt"/> at progress 0, no clamp line is
+    /// copied). A round of 0 or less counts as round 1. Never above the full level, and
+    /// non-decreasing in the round: a clamp is monotonic in the centre, the centres rise with the
+    /// round, and a gap rule that turns round 1 into "full" turns round 2 into "full" as well.
+    /// </summary>
+    public static int TacticalGearLevel(ArenaDifficultyStep step, int startLevel, int endLevel, int round)
+    {
+        int full = GearLevel(step, startLevel, endLevel);
+        if (round > TacticalOpeningRounds)
+            return full;
+        int low = GearLevelAt(step, startLevel, endLevel, 0d);
+        int centre = Math.Clamp(TacticalOpeningCentre(step, Math.Max(1, round)), low, full);
+        return full - centre < TacticalOpeningMinGap ? full : centre;
+    }
+
+    /// <summary>True when round 1 is lighter than the full level for these map numbers. Defined through <see cref="TacticalGearLevel"/>.</summary>
+    public static bool TacticalOpeningDiffers(ArenaDifficultyStep step, int startLevel, int endLevel)
+        => TacticalOpeningRoundsThatDiffer(step, startLevel, endLevel) > 0;
+
+    /// <summary>
+    /// How many of the rounds 1 to <see cref="TacticalOpeningRounds"/> are lighter than the full
+    /// level (0, 1 or 2). A round differs exactly when <see cref="TacticalGearLevel"/> is not the
+    /// full level, so the count is a prefix of the opening rounds.
+    /// </summary>
+    public static int TacticalOpeningRoundsThatDiffer(ArenaDifficultyStep step, int startLevel, int endLevel)
+    {
+        int full = GearLevel(step, startLevel, endLevel);
+        int count = 0;
+        for (int round = 1; round <= TacticalOpeningRounds; round++)
+            if (TacticalGearLevel(step, startLevel, endLevel, round) != full)
+                count++;
+        return count;
+    }
+
+    /// <summary>
+    /// True when a pooled profile is outside the band the server writes for this centre:
+    /// below max(1, centre - <see cref="GearBandSpread"/>) or above centre + the spread.
+    /// </summary>
+    public static bool IsTacticalGearOutOfBand(int profileLevel, int centre)
+        => profileLevel < Math.Max(1, centre - GearBandSpread) || profileLevel > centre + GearBandSpread;
 }
