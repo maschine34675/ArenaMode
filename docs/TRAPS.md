@@ -681,9 +681,34 @@ Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `
   13 build ArenaMode.sln and 9 build ArenaMode.Client through `DoubleJumpChecks/Build-Staged.ps1`, all into the
   production projects' own obj/ and bin/; several write fixed `artifacts/` paths. The workers are separate
   worktrees for that reason, and they must be SIBLINGS of the checkout: 31 harness paths leave the repository
-  relatively (`..\..\..\..\BepInEx`, `..\_decompiled`, `..\Redeploy`). Only `../Redeploy` stays shared; steps that
-  build the client or the solution (Redeploy.Core through the project reference) take the mutex
-  `Global\ArenaVerification-RedeployCore`.
+  relatively (`..\..\..\..\BepInEx`, `..\_decompiled`, `..\Redeploy`). Only `../Redeploy` stays shared, and only
+  its sources: a build of the client or the solution builds Redeploy.Core through the project reference, and in a
+  worker its obj/ and bin/ go to `artifacts\redeploy-build` of that worker (`tools/ArenaWorkerRedeploy.props`).
+  Until 2026-11-19 such steps took the mutex `Global\ArenaVerification-RedeployCore` instead; 49 of 162 steps
+  matched (most only by naming the client or the solution), and their chain was the whole 52-minute wall time of
+  a full pass.
+- **Redirecting another checkout's build output needs the earliest MSBuild hook.** `CustomBeforeDirectoryBuildProps`
+  (an environment variable is a property) is imported by `Microsoft.Common.props` before `BaseIntermediateOutputPath`
+  gets its default; `CustomBeforeMicrosoftCommonProps` comes after it and is too late. A
+  `-p:BaseIntermediateOutputPath` on the command line is a global property and still wins. The project's own obj/
+  and bin/ stop being the excluded output folders, so an earlier in-place build's generated sources would be
+  compiled a second time (CS0579): the props adds `obj\**;bin\**` to `DefaultItemExcludes`.
+- **A worker step's environment is per process.** The steps of all workers run in thread jobs of one runner
+  process; a variable set with `$env:` there reaches every worker. The runner starts each step (and the sync's
+  `dotnet restore`) through `ProcessStartInfo` with the worker's variables, and merges standard output and error
+  into the log in arrival order. Nested processes inherit them, so a nested runner's builds stay in the worker.
+- **A file whose disk bytes differ from what git checks out is copied on every sync.** With `core.autocrlf=true` a
+  worker checks out CRLF; a file written with LF in the checkout under test then differs, and the sync copies it
+  with a fresh write time on every run. An MSBuild import copied that way rebuilds every project that imports it
+  (the props above, written with LF at first, rebuilt Redeploy.Core in every worker on every run). Write files with
+  the checkout's own line endings.
+- **The checks after a worker step run in its thread job** (since 2026-11-19): whether the step's inputs moved (its
+  scope files, the external and environment fingerprints, the key) and whether its worker still matches the checkout
+  under test (the drift check before the worker's next step). In the runner's one thread they cost about 2.3 s a
+  step, 6 minutes of a full pass, while every other finished step and every free worker waited. A job copies the
+  runner's small-file hashes instead of reading their store (several MB) again. `Invoke-ArenaGitLines` switches the
+  process-wide console encoding for its call, so the runner decodes step output with the encoding it read at its
+  start.
 - **A copied file keeps its old write time.** `File.Copy` preserves it, and a source file edited yesterday is older
   than a worker's obj/ output from this morning, so MSBuild would call the stale build current. The sync sets the
   write time of every file it copies to now.

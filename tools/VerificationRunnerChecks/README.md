@@ -62,8 +62,21 @@ the checkout under test untouched, cache their PASSes, and a runner started insi
 sequential. `parallel-guard` deploys from one worker while another step runs (and restores the file before
 it ends): both fail and both are named.
 
+`parallel-redeploy` (2026-11-19) builds a toy project of the sibling Redeploy checkout from two workers at the
+same time, with `--no-restore`, after the same project was built in place (so its own obj/ holds generated
+sources): each worker builds it into its own `artifacts\redeploy-build`, the shared obj/ and bin/ stay
+untouched, the two builds overlap, and a second run finds the worker's build current (the sync keeps that
+folder). `parallel-touch` lets a step change a file in its worker and makes the next step take that worker:
+the changed step is not cached, the worker is synced again before the next step, and that step sees the
+checkout under test. Both checks after a worker step run in the step's thread job. The sandbox checkout has
+`core.autocrlf=false`: with the machine's `true`, a worker would check out CRLF where the sandbox holds LF, and
+the sync would copy such a file with a fresh write time on every run (which rebuilds everything importing it).
+
 The faults (`$faults` in `Verify.ps1`) remove one of those inputs from the copied model, drop the compile
 items, the named paths or the untracked files from the selection, let the copied runner cache a FAIL, skip
-the after-run check or ignore `-NoCache`, break the worker sync (copy, deletion with and without the
-comparison, write time), let workers start workers, blame a deploy on one step only, or let the helper
-accept survivors; each must fail its named assertion.
+the after-run check (in the runner's thread or in a worker step's job) or ignore `-NoCache`, break the worker
+sync (copy, deletion with and without the comparison, write time), skip the drift check of a worker, let
+workers start workers, blame a deploy on one step only, drop the Redeploy props from a worker step's
+environment, drop its exclusion of the in-place obj/ and bin/, restore without the worker's environment, wipe
+the worker's Redeploy build on every sync, or let the helper accept survivors; each must fail its named
+assertion.
