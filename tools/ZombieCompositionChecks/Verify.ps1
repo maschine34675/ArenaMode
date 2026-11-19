@@ -42,7 +42,11 @@ $faults+=@(
     @{Name='shooters-wave-at-zero'; Path=$policyPath; Property='PolicySource'; Find='waveNumber <= 1 || share == 0 || share == 100)'; Replace='waveNumber <= 1 || share == 100)'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
     @{Name='runners-at-hundred'; Path=$policyPath; Property='PolicySource'; Find='waveNumber <= 1 || share == 0 || share == 100)'; Replace='waveNumber <= 1 || share == 0)'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
     @{Name='theme-keeps-runners-at-hundred'; Path=$policyPath; Property='PolicySource'; Find='theme == ZombieWaveTheme.Runners && share == 100'; Replace='false'; Failure='a shooter share of 100 never gets a runners wave'},
-    @{Name='theme-keeps-shooters-at-zero'; Path=$policyPath; Property='PolicySource'; Find='theme == ZombieWaveTheme.Shooters && share == 0'; Replace='false'; Failure='a shooter share of 0 never gets a shooters wave'}
+    @{Name='theme-keeps-shooters-at-zero'; Path=$policyPath; Property='PolicySource'; Find='theme == ZombieWaveTheme.Shooters && share == 0'; Replace='false'; Failure='a shooter share of 0 never gets a shooters wave'},
+    # Faults that are right at waves 5 and 10 and wrong later: only the waves 1 to 60 cross-check sees them. (The Runners return in
+    # ZombieSlowPercent has no such fault: the faded slow share is already 0 from wave 11, so it cannot differ at a later wave.)
+    @{Name='runners-shooter-override-ends-early'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Runners: return 0;'; Replace='case ZombieWaveTheme.Runners: if (waveNumber < 12) return 0; break;'; Failure='a runners wave draws neither shooters nor slow infected'},
+    @{Name='shooters-override-ends-early'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Shooters: return 100;'; Replace='case ZombieWaveTheme.Shooters: if (waveNumber < 12) return 100; break;'; Failure='a shooters wave draws only shooters'}
 )
 foreach($fault in $faults) { if(-not $fault.Path){ $fault.Path=Join-Path $repo ('ArenaMode.Client/'+$fault.File) } }
 Test-ArenaSourceFaults $project 'ZOMBIE_COMPOSITION_CHECKS_PASSED' @() $faults -RequireSingleSite
