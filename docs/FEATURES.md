@@ -184,6 +184,17 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   point only where there is one. With the point on, profile rewards pay kills only (no server
   round-win reward; the in-raid roubles bonuses are unchanged), like Domination. The appear
   and hold times are read at each round start.
+- **Opening rounds (2026-11-19, solo only, [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):**
+  the enemy squad's gear is lighter in rounds 1 and 2 and full from round 3 (Maximum, default map: bot
+  equipment level about 25, 45, then 66; Reduced 15, 27, then 40; a map whose opening is less than one
+  gear tier below its top level plays that round at the top level). The client reports the round over
+  `/arenamode/tactical-round` (at the match start and after each round), the server writes the band of
+  the last accepted round and a round's squad request waits at most 3 s for the acknowledgement, only
+  where the stage changes; `ArenaTacticalFreshGearPatch` replaces pooled PMC profiles outside the
+  acknowledged band (two purges per level). The buy screen shows its own line (`Enemy squad this round:
+  light gear` / `medium gear`, once `Enemy squad from now on: full gear`) when the feature applies, the
+  squad is PMC and the round's report is acknowledged. Protected PitFireTeam Tactical keeps native
+  gear. Scav squads get the server band but no purge and no line. Not yet played natively.
 - Doors a round left open are shut at the next round start (`CloseDoorsAtRoundStart`,
   default on); doors the map itself starts open, locked, broken and blocked doors and doors
   with map-script triggers are left alone.
@@ -777,13 +788,14 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   shows the frozen value read-only. Nothing reads elapsed time, the kill streak
   or the Team DM clock for difficulty in Deathmatch, Team DM, Domination or
   Tactical (solo and PitFireTeam): the values below hold from the first spawn
-  request.
+  request, except the bot gear level of solo Tactical rounds 1 and 2 (see the
+  Tactical section and [the contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)).
 
   | Lever | Maximum | Reduced |
   | --- | --- | --- |
   | PMC AI level | impossible | hard |
   | Scav AI level (also the Labyrinth boss slot) | hard | normal |
-  | Bot gear level (server band, +/-5 around it; not written in protected PitFireTeam raids) | the map's end level (default 66) | 60 % of it, never below the map's start level |
+  | Bot gear level (server band, +/-5 around it; not written in protected PitFireTeam raids) | the map's end level (default 66); solo Tactical rounds 1 and 2: 25 and 45 | 60 % of it, never below the map's start level; solo Tactical rounds 1 and 2: 15 and 27 |
   | PMCs added on top of the PMC floor (Deathmatch, Gun Game) | 4 | 2 |
   | Refill wait between ambient bursts (legacy burst path only; participant-count Deathmatch and Gun Game refill through the solo population and do not read it) | 0.5 x the map's value | 0.75 x |
   | Bot speed | the Fast Bots multipliers as set, capped at 1.5 (default 1.5) | half of the surplus over 1.0 (1.5 becomes 1.25) |
@@ -815,7 +827,9 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   Gun Game, before a PMC is requested, pooled profiles of that role and difficulty
   more than 5 levels behind the current ramp level are dropped and the server
   generates a fresh batch (at most once per 30 seconds per role and difficulty; Scavs
-  and bots already spawned are not covered). Team DM and Domination no longer carry a match clock on their bot
+  and bots already spawned are not covered). Solo Tactical does the same for its opening
+  rounds, with a budget of two purges per level and in both directions
+  (`ArenaTacticalFreshGearPatch`, a separate patch). Team DM and Domination no longer carry a match clock on their bot
   requests; their raid-start profile preload stays skipped until loading time has
   been measured natively.
 - Zombies follow the step through their composition

@@ -506,6 +506,24 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
+commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
+decision of 2026-11-19 reverses "Tactical gets no build-up" of the difficulty model: the enemy squad of solo Tactical
+rounds 1 and 2 is kitted lighter (Maximum, default map: gear level about 25 and 45, then 66; Reduced 15 and 27, then
+40), by what the player can afford, not by a measured gear equivalence. In: `ArenaDifficultyPolicy.TacticalGearLevel`
+(one function for server, client and text); the route `/arenamode/tactical-round` and the session fields (round
+and seq, reset where a raid starts); `TacticalOpeningBandGate` (reports, the capped hold of at most 3 s only where the
+stage changes, resend, both failure shapes); `ArenaTacticalFreshGearPatch` (sibling of the Gun Game purge, two purges per
+centre); the buy-screen line (`TacticalOpeningText`); new harnesses `TacticalOpeningChecks` and
+`TacticalFreshGearChecks`, xunit `TacticalOpeningPolicyTests`, `TacticalRoundReportTests`, `TacticalRoundStatusTests`,
+`TacticalOpeningTextTests`. **Not run natively**: the acceptance plan is in the contract (levels per round and step,
+both failure shapes, a protected PitFireTeam raid, other modes, the buy line, the cost of the first fresh batch).
+Client and server DLL must be installed together. Open: that native run; scav squads get the server band but no purge
+and no line (their batch of 45 can serve many rounds); the eager purge at the ack (only if the first fresh batch is
+slow); the BEAQO add-on's Tactical cap (level 20) would override these stages if its reflection call were repaired (it
+passes 5 arguments to a 7-parameter method today). The Tactical start money text said 180k to 590k and "the bottom
+third"; the shipped kits cost 180k to 669k and 250k buys the five cheapest (text corrected).
+
 **Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
 pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
 [native report](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):** done and accepted natively on GPU-2 (dev

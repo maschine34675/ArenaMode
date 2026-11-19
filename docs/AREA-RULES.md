@@ -552,6 +552,25 @@ since 2026-11-13, through the existing layout rows with the formation's Destinat
 In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no
 hold was run (the test timing ends each round when the point appears).
 
+Solo Tactical's opening rounds (2026-11-19, docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md; read it before
+touching any of this): the enemy squad of rounds 1 and 2 has lighter gear, from round 3 the step's full level. ONE
+function decides it (`ArenaDifficultyPolicy.TacticalGearLevel`); the server band, the client pool purge and the
+buy-screen line are all defined through it, so never copy a number or a round compare. The client reports the
+round (`TacticalOpeningBandGate`, route `/arenamode/tactical-round`) at the match start and right after
+`RoundNumber++` in `EndRound`; the server writes the band of the last accepted round and is role-blind. The squad
+request of a round waits for the acknowledgement only when that round's gear level differs from the acknowledged
+round's, never past 3 s, and **`TickLive` must return while the request is held BEFORE
+`SoloTacticalSpawnPolicy.Evaluate`**, which would answer `Retry` and send the request ahead of the ack. The client
+expects the last ACKNOWLEDGED round (never `RoundNumber`): a lost report leaves both sides at the previous stage, a
+lost ack leaves the server one stage ahead; the invariant is that the band never exceeds the step's full level. Any
+refusal or `applies:false` ends the feature for the raid (no warning for an opted-out map), except the transient
+"raid is ending" (`Protocol.TacticalRoundRaidEndingRefusal`); the server resets round and seq only where a raid
+starts, never where an aborted native end resumes it. Protected PitFireTeam Tactical stays native. The pool purge
+`ArenaTacticalFreshGearPatch` is a SIBLING of the Gun Game one (never merge them: that file and its 53 mutants stay
+as they are); its budget is two purges per (role, difficulty, centre), cleared per world and by `Reset()`. The buy
+line is its own label (never part of the plan line), at most 45 characters, shown only for an applying feature, a
+PMC squad and an acknowledged current round.
+
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
@@ -935,6 +954,11 @@ for every bot of an armed or exact active Arena raid. SAIN asks it only while it
 `SAIN_EXTRACT_TOGGLE` is on (off in the shipped and installed preset); never write the preset,
 and keep the postfix last. BSG's own PMC Exfiltration layer is not guarded (see
 docs/reviews/EXTRACTION-HARDENING-20261113.md for why and what a native test needs).
+
+Pooled PMC profiles keep the gear of their generation time (Gun Game since 2026-11-19, solo Tactical since the
+opening rounds, same day): whatever moves the server's gear band during a raid needs a client purge of the pool, a
+sibling patch of `ArenaGunGameFreshGearPatch` / `ArenaTacticalFreshGearPatch` keyed on its own mode; never a
+server-side change and never an edit of the other mode's patch.
 
 ### From the handoff (snapshot of 2026-10-29)
 

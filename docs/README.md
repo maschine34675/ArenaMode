@@ -253,6 +253,7 @@ Sorted by file name.
 - [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
 - [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)
 - [Tactical capture point, opening lanes and door reset (solo and PitFireTeam)](reviews/TACTICAL-OBJECTIVE-20261108.md)
+- [Tactical opening rounds: lighter enemy gear in rounds 1 and 2, the round report and the squad hold, the pooled-profile purge, the buy-screen line, both failure shapes](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)
 - [Solo Tactical purchase, readiness, countdown and Escape menus](reviews/TACTICAL-START-POLISH-REVIEW.md)
 - [Independent TDM search awareness: guarded SAIN hearing cue](reviews/TDM-AWARENESS-REVIEW.md)
 - [Team DM bot spawn shields: damage authority and first-attack release](reviews/TDM-BOT-SPAWN-SHIELD-20261017.md)

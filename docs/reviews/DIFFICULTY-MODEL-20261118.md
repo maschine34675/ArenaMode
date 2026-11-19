@@ -14,6 +14,16 @@ answered with the starting money if needed), protected PitFireTeam raids keep op
 relative to the real profile, and Zombies keep 32 infected from wave one and escalate
 through their composition.
 
+**Correction, the owner's decision of 2026-11-19: Tactical now HAS a warm-up.** The native
+Tactical raids of that day showed the first opponents at the full band, which a player on the
+starting money cannot be expected to beat, so the enemy squad of solo Tactical rounds 1 and 2
+is kitted lighter than the step's gear level and the full level starts with round 3. The
+decision "Tactical gets no build-up" above, and every sentence below that says Tactical holds
+the step's gear level from the first spawn request, are superseded for the gear level of those
+two rounds (and only for it: the AI level, the PMC bonus, speed and every other mode are as
+written). Contract and what was built:
+[TACTICAL-OPENING-ROUNDS-20261119.md](TACTICAL-OPENING-ROUNDS-20261119.md).
+
 ## The setting
 
 `[Difficulty] Step`, an enum with two values, `Maximum` (default) and `Reduced`. It is a
@@ -37,15 +47,17 @@ server and tests. It answers, for a step and a progress value between 0 and 1:
 | --- | --- | --- |
 | PMC level | impossible | hard |
 | Scav level (also the Labyrinth boss slot) | hard | normal |
-| Gear level | the map's `botTierEndLevel` (default 66) | 60 % of it, never below `botTierStartLevel` (default 40) |
+| Gear level | the map's `botTierEndLevel` (default 66); solo Tactical rounds 1 and 2 are lighter (25 and 45 on the default map, see the correction under "Direction") | 60 % of it, never below `botTierStartLevel` (default 40); solo Tactical rounds 1 and 2: 15 and 27 |
 | PMC bonus over `PmcFloor` in Deathmatch and Gun Game | 4 | 2 |
 | Legacy refill cooldown factor | 0.5 | 0.75 |
 | Bot speed | the user's multipliers as set (default 1.5) | half of the surplus over 1.0 (default 1.25) |
 | Position reports (`HuntPlayer` sweep interval) | as configured | interval x 1.5 |
 
 Progress is 1 in Deathmatch, Team Deathmatch, Domination and Tactical (solo and with
-PitFireTeam): every value above holds from the first spawn request. Nothing in these modes
-reads a clock or the kill streak any more.
+PitFireTeam): every value above holds from the first spawn request, **except the gear level
+of solo Tactical rounds 1 and 2** (the owner's decision of 2026-11-19, see "Direction"): that
+level follows the round the client reports, not a clock. Nothing in these modes reads a clock or
+the kill streak any more.
 
 The levels are table entries, not literals at the call sites. Whether `impossible` is the
 harder PMC row under SAIN is measured natively (see "Native measurements"); the table is the
@@ -114,7 +126,8 @@ quotas, recovery, planning budget, no health or damage scaling.
   as a fresh one. The prewarm then covers exactly the PMC levels the step can request. The
   raid-start preload stays skipped for Team Deathmatch and Domination until loading time has
   been measured; only its justification is rewritten.
-- Server: `botTierStartLevel` and `botTierRampMinutes` act only in Gun Game. `botTierEndLevel`
+- Server: `botTierStartLevel` and `botTierRampMinutes` act only in Gun Game (since 2026-11-19
+  `botTierStartLevel` is also the floor of the Tactical opening rounds). `botTierEndLevel`
   is the `Maximum` gear level of the map. `scaleBotTier = false` stays the opt-out to native
   levels.
 
@@ -122,9 +135,13 @@ quotas, recovery, planning budget, no health or damage scaling.
 
 1. In Deathmatch, Team Deathmatch, Domination and Tactical the requested AI level, the PMC
    share and the gear band are the same at second 0 and at any later time, with any kill
-   streak, and equal the table for the frozen step.
+   streak, and equal the table for the frozen step. **Exception (2026-11-19):** the gear band
+   of solo Tactical rounds 1 and 2 follows the round
+   ([TACTICAL-OPENING-ROUNDS-20261119.md](TACTICAL-OPENING-ROUNDS-20261119.md)); from round 3 it
+   equals the table, and it never exceeds it.
 2. The band of the first bot request of a raid already is the fixed band; if early requests
-   arrive before the session counts as live, the band must still apply to them.
+   arrive before the session counts as live, the band must still apply to them. In solo
+   Tactical the first request is the round 1 band (the default until the client reports).
 3. The client's AI level and the server's band of one raid come from the same step; a
    setting changed during the raid changes neither.
 4. Gun Game: progress 0 gives today's opening, progress 1 gives the step's values, and
@@ -147,7 +164,8 @@ The four measurements this contract asked for ran on SPT-GPU-2 on 2026-11-18 and
   `impossible`. For scavs, `hard` against `normal` came out the same way. The values were
   read from the running game instead of timing fights with identical gear: one timed sample
   showed that weapon and line of sight dominate such a number.
-- Tactical solo, round one: not played as a round. Seen: the first Tactical opponents come at
+- Tactical solo, round one: not played as a round. **Superseded on 2026-11-19 by the opening
+  rounds (kept as history; they are the reason for them).** Seen: the first Tactical opponents come at
   the full band, and in Deathmatch the two kits the 250,000 buy that were tested (drifter,
   the cheapest, and vanguard) killed `Maximum` bots, mostly within 1 to 7 rounds and twice
   only after 17. The starting money is unchanged; whether a round against five such
@@ -321,6 +339,18 @@ marked **Correction** or **Not implemented**; the decisions in "Direction" are u
   the HuntPlayer sweep interval of the table is not applied in Zombies
   (`ArenaDifficultyPolicy.ReportStep`): the Zombie section names no report change, and the
   horde has its own hunt nudge.
+- **Tactical opening rounds (2026-11-19).** The owner decided that the enemy squad of solo
+  Tactical rounds 1 and 2 is lighter (see "Direction", correction). Built in three stages
+  ([contract](TACTICAL-OPENING-ROUNDS-20261119.md)): `ArenaDifficultyPolicy.TacticalGearLevel`
+  (Maximum centres 25 and 45, Reduced derived from the 0.6 share: 15 and 27, the full level from
+  round 3, an opening counts only when it is a full tier of 10 levels below the full level); the
+  route `/arenamode/tactical-round` through which the client reports the round and the server band
+  follows it (round 1 until the first report, protected PitFireTeam raids untouched); the client
+  gate that holds the squad request for the acknowledgement only in a round whose level differs
+  from the acknowledged one; `ArenaTacticalFreshGearPatch`, the sibling of the Gun Game purge for
+  Tactical (pool profiles outside the acknowledged band, two purges per centre); and one buy-screen
+  line. The stale pool described below exists in Tactical too: the pool made at the raid start is
+  the round 1 band and would feed rounds 2 to 4.
 - **Harnesses.** `GunGameFreshGearChecks` runs the pool purge; `DurationDifficultyChecks` pins the client reader, the prewarm list and the
   frozen step with mutants; `BotMovementChecks` pins the halved speed surplus. The xunit
   tests `ArenaDifficultyPolicyTests`, `BotTierScalePatchTests` (partial files

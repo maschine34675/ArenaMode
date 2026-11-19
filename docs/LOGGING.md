@@ -216,6 +216,17 @@ not start; ...` when the match-start wiring threw. Nothing is written at Info. T
 client logs at Error on its own for each failed attempt (up to 16 lines for the first report
 against a server that lacks the route); that comes from SPT, not from this feature.
 
+The pool purge (`ArenaTacticalFreshGearPatch`) logs at Debug: `Arena Tactical: dropped N pooled
+<role>/<difficulty> profile(s), levels a to b, gear level now c; the next one is generated fresh.`
+per purge, and `Arena Tactical: N pooled <role>/<difficulty> profile(s) are outside gear level c but
+2 purges for this level are spent; they are served as they are.` once per pair and level. Warnings,
+each at most once per raid: `Arena Tactical: the server's gear band does not match the round; bot
+profiles of the pool are served as they are.` (the purge budget ran out: the bot system's range
+adapter is off, or a round report is behind), `Arena Tactical fresh gear skipped; native generation
+retained: ...` (an exception while reading the pool) and, at plugin load, `Arena Tactical fresh gear
+unavailable; ...`. The server's `Tactical round N reported (seq S); gear level L ...` and the
+`round=N` suffix of the `Bot gear band` line are Debug too. The buy-screen line is not logged.
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five
