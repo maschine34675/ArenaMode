@@ -695,6 +695,33 @@ function Test-ArenaSnapshotStillValid($Snapshot, [string[]]$Paths) {
     return $null
 }
 
+# After a step ran: the same files (in the checkout it ran in, $Snapshot), environment and installation, or its
+# PASS is not kept. Returns what moved, or $null. The runner calls it in its own thread for a sequential run and
+# in the step's thread job for a worker run; it reads $Model and writes nothing outside this runspace's memos.
+function Test-ArenaStepStillValid($Model, $KeyInfo, [string]$StepId, $Snapshot, [string]$RepoRoot, [string[]]$InstallRoots, [string]$RunnerArguments) {
+    $changed = Test-ArenaSnapshotStillValid $Snapshot (Get-ArenaScopeFiles $Model $KeyInfo.Scope)
+    if ($changed) { return $changed }
+    Reset-ArenaStatManifestMemo
+    $external = Get-ArenaExternalFingerprint $RepoRoot $InstallRoots
+    $environment = Get-ArenaEnvironmentFingerprint $InstallRoots
+    $again = Get-ArenaStepKey $Model $KeyInfo.Scope $StepId $RunnerArguments $environment $external $InstallRoots
+    if ($again.Key -ne $KeyInfo.Key) {
+        $moved = @(foreach ($p in $again.Parts.GetEnumerator()) { if ([string]$KeyInfo.Parts[$p.Key] -ne [string]$p.Value) { $p.Key } })
+        $what = Compare-ArenaExternalDigest $KeyInfo.ExternalDigest $again.ExternalDigest
+        return 'inputs moved during the run: ' + ($moved -join ', ') + $(if ($what) { " ($what)" } else { '' })
+    }
+    return $null
+}
+
+# A thread job starts with empty memos; it takes a copy of the runner's small-file hashes instead of reading the
+# store from disk again (several MB). The runner does not write its memo while jobs run.
+function Get-ArenaSmallHashMemo { Sync-ArenaSmallHashStore; return $script:ArenaSmallHashMemo }
+function Set-ArenaSmallHashMemo([hashtable]$Memo) {
+    $script:ArenaSmallHashMemo = $Memo.Clone()
+    $script:ArenaSmallHashLoaded = $true
+    $script:ArenaSmallHashCount = $script:ArenaSmallHashMemo.Count
+}
+
 function Get-ArenaCacheEntryPath([string]$Key) { return Join-Path (Get-ArenaVerificationCacheRoot) "entries\$($Key.Substring(0, 2))\$Key.json" }
 function Get-ArenaLastPassPath([string]$StepId) { return Join-Path (Get-ArenaVerificationCacheRoot) ('last\' + ($StepId -replace '[^A-Za-z0-9]', '_') + '.json') }
 

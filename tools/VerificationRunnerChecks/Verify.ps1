@@ -49,7 +49,24 @@ $faults = @(
     @{ Name = 'failure-cached'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a failure is never cached'; Cases = @('failure')
         Find = 'if ($passed -and $keyInfo -and $keyInfo.Cacheable) {'; Replace = 'if ($keyInfo -and $keyInfo.Cacheable) {' },
     @{ Name = 'no-after-run-check'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step whose inputs change during the run is not cached'; Cases = @('changed-during-run')
-        Find = '$afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item $Snapshot'; Replace = '$afterRun = $null' },
+        Find = 'else { $afterRun = Test-ArenaStepStillValid $cacheModel $keyInfo $item $Snapshot $repo $installRoots $runnerArguments }'; Replace = 'else { $afterRun = $null }' },
+    # A worker step is checked after its run in its own thread job: its inputs (for the cache) and its worker (for
+    # the next step there).
+    @{ Name = 'worker-after-run-unchecked'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step whose inputs change during a worker run is not cached'; Cases = @('parallel-touch')
+        Find = '$checked.AfterRun = Test-ArenaStepStillValid $work.Model $work.KeyInfo $work.Item $work.Snapshot $work.RepoRoot $work.InstallRoots $work.RunnerArguments'; Replace = '$checked.AfterRun = $null' },
+    @{ Name = 'thread-jobs-throttled'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'six workers run six steps at the same time'; Cases = @('parallel-six')
+        Find = 'Start-ThreadJob -ThrottleLimit $slots.Count -ArgumentList $work'; Replace = 'Start-ThreadJob -ArgumentList $work' },
+    @{ Name = 'worker-drift-unchecked'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a worker that a step changed is synced again before its next step'; Cases = @('parallel-touch')
+        Find = '$drift = Test-ArenaSnapshotStillValid $work.Snapshot @($work.Snapshot.Files.Keys)'; Replace = '$drift = $null' },
+    # The workers build the shared sibling Redeploy checkout each into a folder of their own.
+    @{ Name = 'redeploy-props-not-passed'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'each worker builds the Redeploy project into its own folder'; Cases = @('parallel-redeploy')
+        Find = "        CustomBeforeDirectoryBuildProps = Join-Path `$full 'tools\ArenaWorkerRedeploy.props'`n"; Replace = '' },
+    @{ Name = 'redeploy-exclude-dropped'; File = 'tools/ArenaWorkerRedeploy.props'; Failure = 'each worker builds the Redeploy project into its own folder'; Cases = @('parallel-redeploy')
+        Find = '<DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>'; Replace = '' },
+    @{ Name = 'redeploy-restore-without-environment'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'each worker builds the Redeploy project into its own folder'; Cases = @('parallel-redeploy')
+        Find = "@('restore', `$full, '--nologo', '-v:q') `$Worker `$environment"; Replace = "@('restore', `$full, '--nologo', '-v:q') `$Worker @{}" },
+    @{ Name = 'redeploy-build-wiped'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a worker keeps its Redeploy build between runs'; Cases = @('parallel-redeploy')
+        Find = 'Where-Object { $_.Name -ine $keep } | '; Replace = '' },
     @{ Name = 'compile-items-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a linked production file selects its harness'; Cases = @('select')
         Find = '            foreach ($rel in $items) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "compiled by $project" } }'; Replace = '' },
     @{ Name = 'named-paths-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a mutant target named in a script selects its harness'; Cases = @('select')
@@ -142,6 +159,13 @@ $evidence = @{
     'artifacts-not-mirrored' = 'ARTIFACT_TOY_MISSING_FIXTURE'
     'no-restore-in-workers' = 'NETSDK1004'
     'worker-runs-workers' = 'Refusing to sync'
+    'thread-jobs-throttled' = 'BARRIER_SEEN=5'
+    'worker-after-run-unchecked' = 'TOUCHED_PASS_CACHED'
+    'worker-drift-unchecked' = 'ECHO_SAW_A_CHANGED_WORKER'
+    'redeploy-props-not-passed' = '\Redeploy\ToyCore\bin\Release\net10.0\ToyCore.dll'
+    'redeploy-exclude-dropped' = 'CS0579'
+    'redeploy-restore-without-environment' = 'NETSDK1004'
+    'redeploy-build-wiped' = 'REDEPLOY_REBUILT'
 }
 foreach ($name in $evidence.Keys) {
     $definition = $faults | Where-Object { $_.Name -eq $name }
@@ -173,7 +197,7 @@ function New-Sandbox {
     $repo = Join-Path $dev 'ArenaMode'
     $spt = Join-Path $base 'spt'
     foreach ($rel in 'tools/Run-ArenaVerification.ps1', 'tools/ArenaVerificationInputs.ps1', 'tools/ArenaVerificationWorkers.ps1',
-        'tools/Assert-ArenaTestRun.ps1', 'tools/Read-ArenaInstalledSnapshot.ps1', 'tools/Invoke-ArenaSourceChecks.ps1',
+        'tools/ArenaWorkerRedeploy.props', 'tools/Assert-ArenaTestRun.ps1', 'tools/Read-ArenaInstalledSnapshot.ps1', 'tools/Invoke-ArenaSourceChecks.ps1',
         'tools/AirPitChecks/NoDeploy.targets', '.gitignore') {
         $source = Join-Path $realRepo $rel
         if (Test-Path -LiteralPath $source) { Write-Text (Join-Path $repo $rel) ([IO.File]::ReadAllText($source)) }
@@ -222,7 +246,36 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
 "STAGED=$LASTEXITCODE"
 'ECHO_TOY_PASSED'
 '@
-    Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') $echo
+    Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') ($echo + "`nif (`$env:ARENA_RUNNER_CHECKS_ECHO_MARK) { Set-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_ECHO_MARK 'echo ran' }`n")
+    # Stages that each wait (up to 60 s) until ARENA_RUNNER_CHECKS_BARRIER_COUNT stages have started: they pass only
+    # when that many steps run at the same time.
+    Write-Text (Join-Path $repo 'tools/BarrierToyChecks/Verify.ps1') @'
+param([string]$Stage)
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value "BarrierToyChecks:$Stage"
+Set-Content -LiteralPath (Join-Path $env:ARENA_RUNNER_CHECKS_BARRIER "$Stage.started") $Stage
+$want = [int]$env:ARENA_RUNNER_CHECKS_BARRIER_COUNT
+$deadline = (Get-Date).AddSeconds(60)
+while (@(Get-ChildItem -LiteralPath $env:ARENA_RUNNER_CHECKS_BARRIER -Filter '*.started').Count -lt $want -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
+$seen = @(Get-ChildItem -LiteralPath $env:ARENA_RUNNER_CHECKS_BARRIER -Filter '*.started').Count
+"BARRIER_SEEN=$seen"
+if ($seen -lt $want) { exit 1 }
+'BARRIER_TOY_PASSED'
+'@
+    # Two stages that build a project of the sibling Redeploy checkout at the same time (each waits up to 60 s
+    # for the other to start), with --no-restore like the harnesses that rely on the workers' restore.
+    Write-Text (Join-Path $repo 'tools/RedeployToyChecks/RedeployToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n  <ItemGroup><ProjectReference Include=`"..\..\..\Redeploy\ToyCore\ToyCore.csproj`" /></ItemGroup>`n</Project>`n"
+    Write-Text (Join-Path $repo 'tools/RedeployToyChecks/Program.cs') "System.Console.WriteLine(ToyCore.Core.Value);`n"
+    Write-Text (Join-Path $repo 'tools/RedeployToyChecks/Verify.ps1') @'
+param([string]$Stage)
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value "RedeployToyChecks:$Stage"
+Set-Content -LiteralPath (Join-Path $env:ARENA_RUNNER_CHECKS_REDEPLOY_MARKS "$Stage.started") $Stage
+$other = Join-Path $env:ARENA_RUNNER_CHECKS_REDEPLOY_MARKS "$(if ($Stage -eq 'A') { 'B' } else { 'A' }).started"
+$deadline = (Get-Date).AddSeconds(60); while (-not (Test-Path -LiteralPath $other) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
+"OVERLAP=$(Test-Path -LiteralPath $other)"
+& dotnet build (Join-Path $PSScriptRoot 'RedeployToyChecks.csproj') -c Release --no-restore -nologo -v:minimal
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+'REDEPLOY_TOY_PASSED'
+'@
     # SleepToyChecks can also undo a deploy before it ends (ARENA_RUNNER_CHECKS_RESTORE), as a restoring
     # harness or a person would: the change must still fail it, because it ran while the install was changed.
     # It then waits for that deploy (at most 60 s) and runs 8 s past it, so the overlap does not depend on how
@@ -314,9 +367,16 @@ Test-ArenaSourceFaults $project 'CHANNEL_TOY_PASSED' @() $faults -FailurePrefix 
 Test-ArenaSourceFaults $project 'CHANNEL_TOY_PASSED' @() $raw -FailurePrefix '' -Arguments 'go'
 '@
     Write-Text (Join-Path $repo 'tools/DeployToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'DeployToyChecks'`n`$null = New-Item -ItemType Directory -Force (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode')`nSet-Content -LiteralPath (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll') 'deployed'`n'DEPLOY_TOY_PASSED'`n"
-    Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
+    # The runner's own git calls use the machine's configuration; with core.autocrlf=true a worker would check out
+    # CRLF where the sandbox holds LF (a faulted file, a toy written here), and the sync would copy that file
+    # again on every run with a fresh write time, which rebuilds every project importing it.
+    Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('config', 'core.autocrlf', 'false')
+    Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
     $redeploy = Join-Path $dev 'Redeploy'
     Write-Text (Join-Path $redeploy 'Redeploy.Core/Core.cs') "core 1`n"
+    Write-Text (Join-Path $redeploy '.gitignore') "bin/`nobj/`n"
+    Write-Text (Join-Path $redeploy 'ToyCore/ToyCore.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n</Project>`n"
+    Write-Text (Join-Path $redeploy 'ToyCore/Core.cs') "namespace ToyCore { public static class Core { public static string Value => `"TOY_CORE`"; } }`n"
     Invoke-Git $redeploy @('init', '-q', '-b', 'main'); Invoke-Git $redeploy @('add', '-A'); Invoke-Git $redeploy @('commit', '-q', '-m', 'core')
     Write-Text (Join-Path $dev '_decompiled/EFT/Player.cs') "player 1`n"
     Write-Text (Join-Path $dev '_reference/Mod/Mod.cs') "mod 1`n"
@@ -351,7 +411,9 @@ function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]
     # These checks may themselves run as a step inside a worker of a real run: the switches that run sets
     # for its steps must not reach the runner under test unless a case sets them.
     $Environment = @{} + $Environment
-    foreach ($inherited in 'ARENA_VERIFICATION_WORKER', 'ARENA_MUTANT_PARALLEL') { if (-not $Environment.ContainsKey($inherited)) { $Environment[$inherited] = $null } }
+    foreach ($inherited in 'ARENA_VERIFICATION_WORKER', 'ARENA_MUTANT_PARALLEL', 'CustomBeforeDirectoryBuildProps', 'ARENA_VERIFICATION_REDEPLOY_CHECKOUT', 'ARENA_VERIFICATION_REDEPLOY_BUILD') {
+        if (-not $Environment.ContainsKey($inherited)) { $Environment[$inherited] = $null }
+    }
     $saved = @{}
     $env:ARENA_VERIFICATION_CACHE = $Sandbox.Cache
     $env:ARENA_VERIFICATION_INSTALL_ROOTS = $Sandbox.Spt
@@ -381,6 +443,25 @@ function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]
         if ($line -match '^(PASS|FAIL) (\S+)\s+\d+s\s+(.*)$') { $verdicts[$Matches[2]] = [pscustomobject]@{ Passed = $Matches[1] -eq 'PASS'; Detail = $Matches[3]; Cached = $Matches[3].StartsWith('cached') } }
     }
     return [pscustomobject]@{ Output = ($output -join "`n"); Exit = $code; Verdicts = $verdicts; Ran = $ran }
+}
+
+# A folder's state in one line: file count, total size, newest write time (absent: '<absent>').
+function Get-TreeState([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return '<absent>' }
+    $files = @(Get-ChildItem -LiteralPath $Path -Recurse -File -Force)
+    return '{0} files, {1} bytes, newest {2:o}' -f $files.Count, ($files | Measure-Object Length -Sum).Sum, ($files | Measure-Object LastWriteTimeUtc -Maximum).Maximum
+}
+
+# dotnet with the worker build variables removed: these checks may run as a step inside a real worker, whose
+# variables must not reach a build of the sandbox.
+function Invoke-CleanDotnet([string[]]$Arguments) {
+    $psi = [Diagnostics.ProcessStartInfo]::new('dotnet')
+    foreach ($a in $Arguments) { $psi.ArgumentList.Add($a) }
+    $psi.UseShellExecute = $false; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
+    foreach ($name in 'CustomBeforeDirectoryBuildProps', 'ARENA_VERIFICATION_REDEPLOY_CHECKOUT', 'ARENA_VERIFICATION_REDEPLOY_BUILD') { [void]$psi.Environment.Remove($name) }
+    $process = [Diagnostics.Process]::Start($psi)
+    $errors = $process.StandardError.ReadToEndAsync(); $output = $process.StandardOutput.ReadToEnd(); $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "dotnet $($Arguments -join ' ') failed: $output $($errors.Result)" }
 }
 
 function Edit-File($Sandbox, [string]$Rel, [string]$Append) { Add-Content -LiteralPath (Join-Path $Sandbox.Repo $Rel) -Value $Append }
@@ -576,6 +657,51 @@ $cases = [ordered]@{
     'parallel-restore' = { param($s)
         $r = Invoke-Runner $s 'NoRestoreToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
         Check ($r.Verdicts['NoRestoreToyChecks'].Passed -and $r.Verdicts['NoRestoreToyChecks'].Detail -match 'worker vw') 'a --no-restore step passes in a fresh worker' $r.Output }
+    'parallel-redeploy' = { param($s)
+        # The shared toy Redeploy project was built in place before, as a build outside the runner leaves it: its
+        # obj/ holds generated sources that a redirected build must not compile again.
+        $toyCore = Join-Path $s.Dev 'Redeploy/ToyCore'
+        Invoke-CleanDotnet @('build', (Join-Path $toyCore 'ToyCore.csproj'), '-c', 'Release', '-nologo', '-v:q')
+        $shared = { "obj: $(Get-TreeState (Join-Path $toyCore 'obj')); bin: $(Get-TreeState (Join-Path $toyCore 'bin'))" }
+        $sharedBefore = & $shared
+        $marks = Join-Path $s.Base 'redeploy-marks'; [IO.Directory]::CreateDirectory($marks) | Out-Null
+        $r = Invoke-Runner $s 'RedeployToyChecks:A,RedeployToyChecks:B' -NoCache -Extra @('-Parallel', '2') -Environment @{ ARENA_RUNNER_CHECKS_REDEPLOY_MARKS = $marks }
+        $sharedAfter = & $shared
+        $logs = (@('RedeployToyChecks_A', 'RedeployToyChecks_B') | ForEach-Object { $p = Join-Path $s.Repo "artifacts/run-arena-verification/$_.log"; if (Test-Path -LiteralPath $p) { Get-Content -Raw -LiteralPath $p } }) -join "`n"
+        $built = @(1, 2 | ForEach-Object { Join-Path $s.Dev "ArenaMode-vw$_/artifacts/redeploy-build/ToyCore/bin/Release/net10.0/ToyCore.dll" })
+        $context = "shared before: $sharedBefore`nshared after: $sharedAfter$(if ($sharedAfter -ne $sharedBefore) { "`nSHARED_REDEPLOY_WRITTEN" })`n$($r.Output)`n$logs"
+        Check (@($built | Where-Object { Test-Path -LiteralPath $_ }).Count -eq 2) 'each worker builds the Redeploy project into its own folder' $context
+        Check ($sharedAfter -eq $sharedBefore) 'the shared Redeploy obj and bin stay untouched' $context
+        Check ($r.Verdicts['RedeployToyChecks:A'].Passed -and $r.Verdicts['RedeployToyChecks:B'].Passed -and ([regex]::Matches($logs, 'OVERLAP=True')).Count -eq 2) 'two workers build the Redeploy project side by side' $context
+        # The sync keeps the worker's Redeploy build, so the next run builds it incrementally.
+        $stamps = @($built | ForEach-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc })
+        Get-ChildItem -LiteralPath $marks -File | Remove-Item -Force
+        $again = Invoke-Runner $s 'RedeployToyChecks:A,RedeployToyChecks:B' -NoCache -Extra @('-Parallel', '2') -Environment @{ ARENA_RUNNER_CHECKS_REDEPLOY_MARKS = $marks }
+        $restamps = @($built | ForEach-Object { if (Test-Path -LiteralPath $_) { (Get-Item -LiteralPath $_).LastWriteTimeUtc } })
+        $kept = $restamps.Count -eq 2 -and $restamps[0] -eq $stamps[0] -and $restamps[1] -eq $stamps[1]
+        Check ($again.Exit -eq 0 -and $kept) 'a worker keeps its Redeploy build between runs' "$stamps -> $restamps$(if ($again.Exit -eq 0 -and -not $kept) { "`nREDEPLOY_REBUILT" })`n$($again.Output)" }
+    'parallel-six' = { param($s)
+        $barrier = Join-Path $s.Base 'barrier'; [IO.Directory]::CreateDirectory($barrier) | Out-Null
+        $stages = @(1..6 | ForEach-Object { "BarrierToyChecks:$_" })
+        $r = Invoke-Runner $s ($stages -join ',') -NoCache -Extra @('-Parallel', '6') -Environment @{ ARENA_RUNNER_CHECKS_BARRIER = $barrier; ARENA_RUNNER_CHECKS_BARRIER_COUNT = '6' }
+        $logs = ($stages | ForEach-Object { $p = Join-Path $s.Repo "artifacts/run-arena-verification/$($_ -replace '[^A-Za-z0-9]', '_').log"; if (Test-Path -LiteralPath $p) { Get-Content -Raw -LiteralPath $p } }) -join "`n"
+        Check ($r.Output -match 'ARENA_VERIFICATION_WORKERS 6' -and @($stages | Where-Object { $r.Verdicts[$_].Passed }).Count -eq 6) 'six workers run six steps at the same time' "$($r.Output)`n$logs" }
+    'parallel-touch' = { param($s)
+        # The queue starts the longest last PASS first: ToyChecks (it changes Toy.cs in its worker) and
+        # SleepToyChecks, which then waits until EchoToyChecks has run, so EchoToyChecks must take ToyChecks' worker.
+        foreach ($last in @(@('ToyChecks', 300), @('SleepToyChecks', 200), @('EchoToyChecks', 1))) {
+            Write-Text (Join-Path $s.Cache "last/$($last[0]).json") "{`"Seconds`": $($last[1])}"
+        }
+        $mark = Join-Path $s.Base 'echo-ran'
+        $r = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks,ToyChecks' -NoCache -Extra @('-Parallel', '2') -Environment @{ ARENA_RUNNER_CHECKS_TOUCH = '1'; ARENA_RUNNER_CHECKS_RESTORE = $mark; ARENA_RUNNER_CHECKS_ECHO_MARK = $mark }
+        $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/EchoToyChecks.log')
+        $toyHash = (Get-FileHash -LiteralPath (Join-Path $s.Repo 'ArenaMode.Client/Toy.cs') -Algorithm SHA256).Hash
+        $toy = $r.Verdicts['ToyChecks']
+        $cachedTouch = if ($toy -and $toy.Passed -and $toy.Detail -match 'worker vw' -and $toy.Detail -notmatch 'not cached') { "`nTOUCHED_PASS_CACHED" } else { '' }
+        Check ($toy.Passed -and $toy.Detail -match 'worker vw' -and $toy.Detail -match 'not cached: ArenaMode.Client/Toy.cs changed') 'a step whose inputs change during a worker run is not cached' "$($r.Output)$cachedTouch"
+        $sawChange = if ($r.Verdicts['EchoToyChecks'].Passed -and $log -match 'TOY=' -and $log -notmatch "TOY=$toyHash") { "`nECHO_SAW_A_CHANGED_WORKER" } else { '' }
+        Check ($r.Output -match 'ARENA_VERIFICATION_WORKER vw\d drifted \(ArenaMode.Client/Toy.cs changed\); syncing again' -and $r.Verdicts['EchoToyChecks'].Passed -and $log -match "TOY=$toyHash") 'a worker that a step changed is synced again before its next step' "$($r.Output)`n$log$sawChange"
+        Check ($r.Exit -eq 0 -and $r.Verdicts['SleepToyChecks'].Passed) 'every step passes beside a touching step' $r.Output }
     'parallel-artifacts' = { param($s)
         $r = Invoke-Runner $s 'ArtifactToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
         Check ($r.Verdicts['ArtifactToyChecks'].Passed -and $r.Verdicts['ArtifactToyChecks'].Detail -match 'worker vw') 'a registered artifact fixture reaches the workers' $r.Output }

@@ -1,0 +1,27 @@
+<Project>
+  <!-- Worker builds of the shared sibling Redeploy checkout (tools/Run-ArenaVerification.ps1 -Parallel).
+
+       Every worker builds ArenaMode.Client, and with it Redeploy.Core through the project reference, from the same
+       ../Redeploy sources. Without this file all workers would write Redeploy.Core's obj/ and bin/ in that one
+       checkout at the same time. The runner hands this file to every process of a worker step through the
+       environment variable CustomBeforeDirectoryBuildProps, together with ARENA_VERIFICATION_REDEPLOY_CHECKOUT (the
+       Redeploy checkout) and ARENA_VERIFICATION_REDEPLOY_BUILD (the worker's own folder); a project inside that
+       checkout then builds into <build>\<project>\obj and bin. Projects anywhere else are untouched.
+
+       CustomBeforeDirectoryBuildProps is imported by Microsoft.Common.props BEFORE BaseIntermediateOutputPath
+       gets its default; CustomBeforeMicrosoftCommonProps comes too late for it. A BaseIntermediateOutputPath or
+       BaseOutputPath given on the command line is a global property and still wins. -->
+  <PropertyGroup Condition="'$(ARENA_VERIFICATION_REDEPLOY_BUILD)' != '' and '$(ARENA_VERIFICATION_REDEPLOY_CHECKOUT)' != ''">
+    <_ArenaRedeployCheckout>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(ARENA_VERIFICATION_REDEPLOY_CHECKOUT)'))).ToUpperInvariant())</_ArenaRedeployCheckout>
+    <_ArenaProjectDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)').ToUpperInvariant())</_ArenaProjectDirectory>
+    <_ArenaInRedeploy>$(_ArenaProjectDirectory.StartsWith('$(_ArenaRedeployCheckout)'))</_ArenaInRedeploy>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(_ArenaInRedeploy)' == 'true'">
+    <BaseIntermediateOutputPath>$([MSBuild]::EnsureTrailingSlash('$(ARENA_VERIFICATION_REDEPLOY_BUILD)'))$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$([MSBuild]::EnsureTrailingSlash('$(ARENA_VERIFICATION_REDEPLOY_BUILD)'))$(MSBuildProjectName)\bin\</BaseOutputPath>
+    <!-- The SDK excludes only the CURRENT output folders from the default items. The project's own obj/ and bin/
+         may still hold an earlier build in place, whose generated sources (AssemblyInfo, global usings) would
+         then be compiled a second time (CS0579). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

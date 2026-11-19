@@ -14,13 +14,17 @@ before the run and after every step; a step that changed any of them fails, what
 failing step does not stop the rest; the summary names every verdict and the exit code is the number of
 failures (1 when nothing ran at all). Logs: artifacts/run-arena-verification/<step>.log (xunit.log).
 
-Parallel steps (-Parallel, default 4): parallel dotnet builds in one checkout collide, so the steps run in
+Parallel steps (-Parallel, default 6): parallel dotnet builds in one checkout collide, so the steps run in
 worker checkouts, persistent sibling worktrees ArenaMode-vw<k> that the runner makes byte-identical to the
 checkout under test (HEAD plus every uncommitted, untracked and deleted file) before it starts, and checks
-file by file (tools/ArenaVerificationWorkers.ps1). The longest steps start first; steps that build
-ArenaMode.Client or the solution (which writes the sibling Redeploy checkout) take a machine-wide mutex. A
-change of the live install fails every step that ran while it happened and names them. -Parallel 1 runs
-the steps one after another in this checkout, as before. Inside a worker, a nested runner runs sequentially.
+file by file (tools/ArenaVerificationWorkers.ps1). The longest steps start first. Every process of a worker
+step gets tools/ArenaWorkerRedeploy.props through its own environment, so a build of ArenaMode.Client or the
+solution writes Redeploy.Core's obj/ and bin/ into the worker's artifacts\redeploy-build instead of the shared
+sibling Redeploy checkout. The check after a step (its files, the installation, the environment) and the
+drift check of its worker run in the step's own thread job, not in the runner's one thread. A change of the
+live install fails every step that ran while it happened and names them. -Parallel 1 runs the steps one
+after another in this checkout, as before (Redeploy.Core then builds in place). Inside a worker, a nested
+runner runs sequentially.
 
 Result cache: a step whose inputs are unchanged since its last PASS is not run again; its verdict line
 reads "PASS <step> 0s cached: inputs unchanged since <time> (ran <n>s) ..." and its log is the log of that
@@ -70,9 +74,11 @@ Adds every registered step.
 Prints the selection and the named steps, runs nothing, exits 0.
 
 .PARAMETER Parallel
-How many steps run at the same time, each in its own worker checkout (default 4; 1 = sequentially in this
-checkout). Measured on 12 cores/26 GB: 4 to 6 workers ran 3.3 to 3.4 times faster than one, with about 8 GB
-left free; above 6, memory and the longest step bound the gain.
+How many steps run at the same time, each in its own worker checkout (default 6; 1 = sequentially in this
+checkout). Measured on 12 cores/26 GB, full pass of 163 steps, 2026-11-19: 4 workers 35.8 min, 6 workers
+30.1 min with at least 9.1 GB left free and the CPU at 55 % on average; the step times grow by about 15 %
+from 4 to 6, and VerificationRunnerChecks (13 min) bounds the pass from below. Before 2026-11-19 at most
+five steps ran at a time whatever this said (Start-ThreadJob's default throttle).
 
 .EXAMPLE
 pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness PoolPrewarmChecks,ArenaAreaChecks:Server
@@ -88,7 +94,7 @@ param(
     [string]$ChangedSince,
     [switch]$All,
     [switch]$ListOnly,
-    [ValidateRange(1, 8)][int]$Parallel = 4
+    [ValidateRange(1, 8)][int]$Parallel = 6
 )
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -96,6 +102,8 @@ $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'Read-ArenaInstalledSnapshot.ps1')
 . (Join-Path $PSScriptRoot 'ArenaVerificationInputs.ps1')
 . (Join-Path $PSScriptRoot 'ArenaVerificationWorkers.ps1')
+# The thread jobs of worker steps run the same helper code as this runner, not whatever the files hold later.
+$jobHelpers = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ArenaVerificationInputs.ps1')) + "`n" + [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ArenaVerificationWorkers.ps1'))
 $results = Join-Path $repo 'artifacts\run-arena-verification'
 New-Item -ItemType Directory -Path $results -Force | Out-Null
 $noDeploy = Join-Path $results 'must-not-exist-no-deploy'
@@ -153,7 +161,7 @@ function Test-LiveUnchanged([hashtable]$Snapshot, [hashtable]$Hashes) {
 # One step: what runs, its log, its key. The command is built for a checkout root, so the same step runs in
 # this checkout or in a worker.
 function New-Step([string]$Item) {
-    $step = [pscustomobject]@{ Item = $Item; Name = $Item; Stage = $null; Kind = 'missing'; Rel = $null; Log = $null; KeyInfo = $null; KeyNote = ''; RedeployBuild = $false; Expected = 120 }
+    $step = [pscustomobject]@{ Item = $Item; Name = $Item; Stage = $null; Kind = 'missing'; Rel = $null; Log = $null; KeyInfo = $null; KeyNote = ''; Expected = 120 }
     if ($Item -eq 'xunit') {
         $step.Name = $xunitName; $step.Kind = 'xunit'; $step.Log = Join-Path $results 'xunit.log'; $step.Expected = 110
     }
@@ -174,13 +182,11 @@ function New-Step([string]$Item) {
             $info = Get-ArenaStepKey $cacheModel $scope $Item $runnerArguments $script:environmentHash $script:externalFingerprint $installRoots
             $info | Add-Member -NotePropertyName Scope -NotePropertyValue $scope
             $step.KeyInfo = $info
-            $step.RedeployBuild = Test-ArenaStepBuildsRedeploy $cacheModel $scope
             $last = Get-ArenaLastPassPath $Item
             if (Test-Path -LiteralPath $last) { try { $step.Expected = [double](Get-Content -Raw -LiteralPath $last | ConvertFrom-Json).Seconds } catch { } }
         }
-        catch { $step.KeyNote = "; not cached: key failed: $($_.Exception.Message)"; $step.RedeployBuild = $true }   # unknown: assume the worst
+        catch { $step.KeyNote = "; not cached: key failed: $($_.Exception.Message)" }
     }
-    elseif ($step.Kind -eq 'script' -or $step.Kind -eq 'project') { $step.RedeployBuild = $true }   # no model: assume the worst
     return $step
 }
 
@@ -236,22 +242,6 @@ function Get-StepVerdict($Step, [int]$Code) {
 $cacheModel = $null
 $cacheNote = $null
 $runnerArguments = "sptRoot=$SptRoot|forward=$forwardSptRoot"
-# After a step ran: the same files (in the checkout it ran in), environment and installation, or the PASS is
-# not kept.
-function Test-ArenaStepStillValid($KeyInfo, $Scope, [string]$Item, $Snapshot) {
-    $changed = Test-ArenaSnapshotStillValid $Snapshot (Get-ArenaScopeFiles $cacheModel $Scope)
-    if ($changed) { return $changed }
-    Reset-ArenaStatManifestMemo
-    $script:externalFingerprint = Get-ArenaExternalFingerprint $repo $installRoots
-    $script:environmentHash = Get-ArenaEnvironmentFingerprint $installRoots
-    $again = Get-ArenaStepKey $cacheModel $Scope $Item $runnerArguments $script:environmentHash $script:externalFingerprint $installRoots
-    if ($again.Key -ne $KeyInfo.Key) {
-        $moved = @(foreach ($p in $again.Parts.GetEnumerator()) { if ([string]$KeyInfo.Parts[$p.Key] -ne [string]$p.Value) { $p.Key } })
-        $what = Compare-ArenaExternalDigest $KeyInfo.ExternalDigest $again.ExternalDigest
-        return 'inputs moved during the run: ' + ($moved -join ', ') + $(if ($what) { " ($what)" } else { '' })
-    }
-    return $null
-}
 function Write-CachedLog([string]$Log, $Entry) {
     $header = "cached: inputs unchanged since $(([datetime]$Entry.Finished).ToString('yyyy-MM-dd HH:mm:ss')) (key $($Entry.Key.Substring(0, 12)), checkout $($Entry.Checkout), HEAD $($Entry.Head)); original log follows"
     $original = if ($Entry.Log -and (Test-Path -LiteralPath $Entry.Log)) { Get-Content -LiteralPath $Entry.Log } else { @('<original log no longer in the cache>') }
@@ -269,10 +259,17 @@ function Get-CachedVerdict($KeyInfo, [string]$Log) {
     }
     return $null
 }
-function Complete-Step([string]$Item, $KeyInfo, [bool]$Passed, [double]$Seconds, [string]$Detail, [string]$Log, $Snapshot, [string]$Checkout) {
+# $Checked: what the step's thread job found after a worker run (@{ Ran; AfterRun; Error }); a sequential run
+# checks here, after the step.
+function Complete-Step([string]$Item, $KeyInfo, [bool]$Passed, [double]$Seconds, [string]$Detail, [string]$Log, $Snapshot, [string]$Checkout, $Checked = $null) {
     if ($passed -and $keyInfo -and $keyInfo.Cacheable) {
         try {
-            $afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item $Snapshot
+            if ($Checked) {
+                if ($Checked.Error) { return "; not cached: the check after the run failed: $($Checked.Error)" }
+                if (-not $Checked.Ran) { return '; not cached: the check after the run did not run' }
+                $afterRun = $Checked.AfterRun
+            }
+            else { $afterRun = Test-ArenaStepStillValid $cacheModel $keyInfo $item $Snapshot $repo $installRoots $runnerArguments }
             if ($afterRun) { return "; not cached: $afterRun" }
             Save-ArenaCachedPass $KeyInfo $Item $Seconds $Log $Checkout $cacheModel.Snapshot.Head $Detail
         }
@@ -288,8 +285,10 @@ $previousDatabase = $env:SPT_DATABASE
 $previousRuntime = $env:SPT_RUNTIME
 $previousWorker = $env:ARENA_VERIFICATION_WORKER
 $previousMutantParallel = $env:ARENA_MUTANT_PARALLEL
+# The encoding the steps' output is decoded with, read before any runspace runs git (Invoke-ArenaGitLines switches
+# the process-wide console encoding for its call).
+$stepEncoding = [Console]::OutputEncoding
 $slots = @()
-$redeployMutex = $null
 Push-Location $repo
 try {
     $env:SPT_DATABASE = Join-Path $runtime 'SPT_Data\database'
@@ -391,69 +390,72 @@ try {
         # Mutants inside a step build side by side too (Invoke-ArenaSourceChecks.ps1); share the cores between
         # the workers unless the caller chose a number.
         if (-not $env:ARENA_MUTANT_PARALLEL) { $env:ARENA_MUTANT_PARALLEL = [string][Math]::Max(2, [Math]::Floor([Environment]::ProcessorCount / ($slots.Count * 2))) }
-        $redeployMutex = [Threading.Mutex]::new($false, $ArenaRedeployMutexName)
-        $redeployHeld = $false
-        $queue = [Collections.Generic.List[object]]::new([object[]]@($pending | Sort-Object Expected -Descending))
+        $smallHashes = Get-ArenaSmallHashMemo
+        $queue = [Collections.Generic.Queue[object]]::new([object[]]@($pending | Sort-Object Expected -Descending))
         $free = [Collections.Generic.Queue[object]]::new([object[]]$slots)
         $running = [Collections.Generic.List[object]]::new()
         $done = [Collections.Generic.List[object]]::new()   # finished since the last clean live-install check
         $installBroken = $null
         while ($queue.Count -or $running.Count) {
-            # Start what fits: a free worker, and the Redeploy mutex for a step that builds the client.
+            # Start what fits: one step per free worker.
             while ($free.Count -and $queue.Count) {
-                $index = -1
-                for ($i = 0; $i -lt $queue.Count; $i++) {
-                    if (-not $queue[$i].RedeployBuild) { $index = $i; break }
-                    if (-not $redeployHeld) {
-                        $taken = $false
-                        try { $taken = $redeployMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $taken = $true }
-                        if ($taken) { $redeployHeld = $true; $index = $i; break }
-                    }
-                }
-                if ($index -lt 0) { break }
-                $step = $queue[$index]; $queue.RemoveAt($index)
+                $step = $queue.Dequeue()
                 $slot = $free.Dequeue()
                 try {
                     # A step must not leave a non-ignored change behind; if one did, the next step in that worker
-                    # would test a tree that is not the one under test. Check and sync again before reuse.
-                    if ($slot.PSObject.Properties['Used']) {
-                        $drift = Test-ArenaSnapshotStillValid $slot.Snapshot @($slot.Snapshot.Files.Keys)
-                        if ($drift) { Write-Output "ARENA_VERIFICATION_WORKER vw$($slot.Index) drifted ($drift); syncing again"; $slot.Snapshot = Sync-ArenaWorker $repo $cacheModel.Snapshot $slot.Path $restoreProjects }
+                    # would test a tree that is not the one under test. The job of the step before checked it.
+                    if ($slot.PSObject.Properties['Drift'] -and $slot.Drift) {
+                        Write-Output "ARENA_VERIFICATION_WORKER vw$($slot.Index) drifted ($($slot.Drift)); syncing again"
+                        $slot.Snapshot = Sync-ArenaWorker $repo $cacheModel.Snapshot $slot.Path $restoreProjects
                     }
-                    $slot | Add-Member -NotePropertyName Used -NotePropertyValue $true -Force
+                    $slot | Add-Member -NotePropertyName Drift -NotePropertyValue 'the step before reported no drift check' -Force
                     $command = Get-StepCommand $step $slot.Path
                     if ($step.Kind -eq 'xunit') { $trx = Join-Path $results 'run-arena-verification.trx'; if (Test-Path -LiteralPath $trx) { Remove-Item -LiteralPath $trx -Force } }
                 }
                 catch {
                     # This step fails, the worker is not used again, the run goes on.
                     Add-Verdict $step.Name $false 0 "runner: could not start in worker vw$($slot.Index): $($_.Exception.Message)"
-                    if ($step.RedeployBuild -and $redeployHeld) { $redeployMutex.ReleaseMutex(); $redeployHeld = $false }
                     continue
                 }
-                $job = Start-ThreadJob -ArgumentList $slot.Path, $command.Exe, $command.Arguments, $step.Log -ScriptBlock {
-                    param($root, $exe, $arguments, $log)
+                $work = [pscustomobject]@{
+                    Helpers = $jobHelpers; Root = $slot.Path; Exe = $command.Exe; Arguments = $command.Arguments; Log = $step.Log
+                    Environment = (Get-ArenaWorkerEnvironment $slot.Path); Encoding = $stepEncoding
+                    Model = $cacheModel; KeyInfo = $step.KeyInfo; Item = $step.Item; Snapshot = $slot.Snapshot; RepoRoot = $repo
+                    InstallRoots = $installRoots; RunnerArguments = $runnerArguments; SmallHashes = $smallHashes
+                }
+                # Start-ThreadJob runs at most 5 jobs at a time unless told otherwise; a sixth worker's step would wait
+                # in its queue while the worker idles.
+                $job = Start-ThreadJob -ThrottleLimit $slots.Count -ArgumentList $work -ScriptBlock {
+                    param($work)
                     # Only a real exit code of the step's process may come back; anything else is -1.
+                    $code = -1
+                    $watch = [Diagnostics.Stopwatch]::StartNew()
                     try {
-                        Set-Location -LiteralPath $root
-                        $ErrorActionPreference = 'Continue'
-                        $global:LASTEXITCODE = -1
-                        & $exe @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
-                        [pscustomobject]@{ ExitCode = [int]$LASTEXITCODE }
+                        . ([scriptblock]::Create($work.Helpers))
+                        $code = (Invoke-ArenaWorkerProcess $work.Exe $work.Arguments $work.Root $work.Environment $work.Log $work.Encoding).ExitCode
                     }
-                    catch { Add-Content -LiteralPath $log -Value "runner: the step did not run: $($_.Exception.Message)"; [pscustomobject]@{ ExitCode = -1 } }
+                    catch { Add-Content -LiteralPath $work.Log -Value "runner: the step did not run: $($_.Exception.Message)" }
+                    $stepSeconds = $watch.Elapsed.TotalSeconds
+                    # The checks after the step run here, beside the other workers, not in the runner's one thread:
+                    # whether the worker still matches the checkout under test (else it is synced before its next
+                    # step), and for a PASS that may be cached whether its inputs moved while it ran.
+                    $drift = 'the drift check failed'; $checked = [pscustomobject]@{ Ran = $false; AfterRun = $null; Error = $null }
+                    try {
+                        Set-ArenaSmallHashMemo $work.SmallHashes
+                        $drift = Test-ArenaSnapshotStillValid $work.Snapshot @($work.Snapshot.Files.Keys)
+                        if ($code -eq 0 -and $work.KeyInfo -and $work.KeyInfo.Cacheable) {
+                            $checked.AfterRun = Test-ArenaStepStillValid $work.Model $work.KeyInfo $work.Item $work.Snapshot $work.RepoRoot $work.InstallRoots $work.RunnerArguments
+                            $checked.Ran = $true
+                        }
+                    }
+                    catch { $checked.Error = $_.Exception.Message; $drift = "$drift ($($_.Exception.Message))" }
+                    [pscustomobject]@{ ExitCode = [int]$code; Seconds = $stepSeconds; Drift = $drift; Checked = $checked }
                 }
                 $running.Add([pscustomobject]@{ Step = $step; Slot = $slot; Job = $job; Start = Get-Date })
             }
-            if (-not $running.Count -and -not $free.Count) {
+            if (-not $running.Count) {
                 foreach ($left in $queue) { Add-Verdict $left.Name $false 0 'runner: no worker left to run it (see the failures above)' }
                 $queue.Clear(); break
-            }
-            if (-not $running.Count) {
-                # Only client builds are left and another run holds the Redeploy mutex: wait for it.
-                $taken = $false
-                try { $taken = $redeployMutex.WaitOne(5000) } catch [Threading.AbandonedMutexException] { $taken = $true }
-                if ($taken) { $redeployMutex.ReleaseMutex() }
-                continue
             }
             $finished = Wait-Job -Job @($running | ForEach-Object Job) -Any -Timeout 2
             if (-not $finished) { continue }
@@ -461,10 +463,12 @@ try {
             $running.Remove($entry) | Out-Null
             $reported = @(Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue | Where-Object { $_ -and $_.PSObject.Properties['ExitCode'] }) | Select-Object -Last 1
             $code = if ($reported) { $reported.ExitCode } else { -1 }
+            $entry.Slot.Drift = if ($reported) { $reported.Drift } else { 'the step reported nothing' }
+            $checked = if ($reported) { $reported.Checked } else { [pscustomobject]@{ Ran = $false; AfterRun = $null; Error = 'the step reported nothing' } }
             if (-not (Test-Path -LiteralPath $entry.Step.Log)) { Set-Content -LiteralPath $entry.Step.Log -Value 'runner: the step wrote no output' }
             Remove-Job -Job $entry.Job -Force
-            if ($entry.Step.RedeployBuild -and $redeployHeld) { $redeployMutex.ReleaseMutex(); $redeployHeld = $false }
-            $seconds = ((Get-Date) - $entry.Start).TotalSeconds
+            # The step's own time, without the checks after it (they ran in its job).
+            $seconds = if ($reported -and $null -ne $reported.Seconds) { [double]$reported.Seconds } else { ((Get-Date) - $entry.Start).TotalSeconds }
             $verdict = Get-StepVerdict $entry.Step ([int]$code)
             $passed = $verdict.Passed; $detail = $verdict.Detail
             # The live install is shared: a change fails every step that ran since the last clean check, and
@@ -478,7 +482,7 @@ try {
             if ($changed) { $passed = $false; $detail += "; $installBroken" }
             elseif ($entry.PSObject.Properties['Tainted']) { $passed = $false; $detail += "; $($entry.Tainted)" }
             else { $done.Clear() }
-            $detail += $entry.Step.KeyNote + (Complete-Step $entry.Step.Item $entry.Step.KeyInfo $passed $seconds $detail $entry.Step.Log $entry.Slot.Snapshot $entry.Slot.Path)
+            $detail += $entry.Step.KeyNote + (Complete-Step $entry.Step.Item $entry.Step.KeyInfo $passed $seconds $detail $entry.Step.Log $entry.Slot.Snapshot $entry.Slot.Path $checked)
             Add-Verdict $entry.Step.Name $passed $seconds $(if ($entry.Step.Kind -eq 'xunit') { $detail } else { "$detail; worker vw$($entry.Slot.Index); log $($entry.Step.Log)" })
             $free.Enqueue($entry.Slot)
         }
@@ -487,7 +491,6 @@ try {
 finally {
     # An interrupted run leaves no step running behind it.
     if ($running) { foreach ($entry in $running) { try { Stop-Job -Job $entry.Job; Remove-Job -Job $entry.Job -Force } catch { } } }
-    if ($redeployMutex) { try { if ($redeployHeld) { $redeployMutex.ReleaseMutex() } } catch { }; $redeployMutex.Dispose() }
     if ($slots.Count) { Remove-ArenaWorkerSlots $slots }
     Pop-Location
     $env:SPT_DATABASE = $previousDatabase

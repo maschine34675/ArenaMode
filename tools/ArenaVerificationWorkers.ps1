@@ -10,12 +10,78 @@
 # out, then every file whose bytes, presence or tracked flag differ copied (with a fresh write time: a copied file
 # keeps the source's older time otherwise, and MSBuild would take its stale obj/ output for current) or deleted,
 # and the worker's index aligned; the worker's own snapshot must then equal the source snapshot file by file, or
-# the run stops. The worker shares nothing in the checkout with any other worker; only the sibling Redeploy
-# checkout stays shared, which a build of ArenaMode.Client or ArenaMode.sln with project references writes
-# (Redeploy.Core's obj/ and bin/); those steps take a machine-wide mutex.
+# the run stops. The worker shares nothing in the checkout with any other worker. The sibling Redeploy checkout is
+# shared by all of them: a build of ArenaMode.Client or ArenaMode.sln builds Redeploy.Core through the project
+# reference, and would write its obj/ and bin/ there. Every process of a worker step therefore gets
+# tools/ArenaWorkerRedeploy.props through its own environment (Get-ArenaWorkerEnvironment), which moves the obj/
+# and bin/ of every project in that checkout into the worker's artifacts\redeploy-build; the sources stay shared
+# and are only read.
 
 $ArenaWorkerPrefix = 'ArenaMode-vw'
-$ArenaRedeployMutexName = 'Global\ArenaVerification-RedeployCore'
+# Inside a worker; kept by the sync like obj/ and bin/, so Redeploy.Core builds incrementally.
+$ArenaWorkerRedeployBuild = 'artifacts\redeploy-build'
+
+# The environment variables of every process of a step (and of the restore) in $Worker. They must be set per
+# process: the steps of all workers run in thread jobs and runspaces of ONE runner process, and a variable set
+# with $env: there would reach the steps of the other workers.
+function Get-ArenaWorkerEnvironment([string]$Worker) {
+    $full = [IO.Path]::GetFullPath($Worker).TrimEnd('\')
+    return @{
+        CustomBeforeDirectoryBuildProps = Join-Path $full 'tools\ArenaWorkerRedeploy.props'
+        ARENA_VERIFICATION_REDEPLOY_CHECKOUT = Join-Path (Split-Path -Parent $full) 'Redeploy'
+        ARENA_VERIFICATION_REDEPLOY_BUILD = Join-Path $full $ArenaWorkerRedeployBuild
+    }
+}
+
+# Runs one program with $Environment added to its own environment only. Standard output and standard error are
+# merged in the order their lines arrive (as `2>&1` does) into $Log, or returned as Output when $Log is empty.
+# ExitCode is the program's own exit code, -1 when it did not start. $Encoding decodes the output; the runner
+# passes the console encoding it read at its start (a runspace that runs git may switch the process-wide one).
+function Invoke-ArenaWorkerProcess([string]$Exe, [string[]]$Arguments, [string]$WorkingDirectory, [hashtable]$Environment = @{}, [string]$Log = '', [Text.Encoding]$Encoding = [Console]::OutputEncoding) {
+    $resolved = Get-Command $Exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    $psi = [Diagnostics.ProcessStartInfo]::new($(if ($resolved) { $resolved.Source } else { $Exe }))
+    foreach ($argument in $Arguments) { $psi.ArgumentList.Add([string]$argument) }
+    $psi.WorkingDirectory = $WorkingDirectory
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
+    $psi.StandardOutputEncoding = $Encoding; $psi.StandardErrorEncoding = $Encoding
+    foreach ($name in $Environment.Keys) { $psi.Environment[$name] = [string]$Environment[$name] }
+    $collected = [Text.StringBuilder]::new()
+    $writer = if ($Log) { [IO.StreamWriter]::new($Log, $false, [Text.UTF8Encoding]::new($false)) } else { $null }
+    try {
+        try { $process = [Diagnostics.Process]::Start($psi) }
+        catch {
+            $message = "runner: the step did not run: $($_.Exception.Message)"
+            if ($writer) { $writer.WriteLine($message) } else { [void]$collected.AppendLine($message) }
+            return [pscustomobject]@{ ExitCode = -1; Output = $collected.ToString() }
+        }
+        try {
+            $out = $process.StandardOutput; $err = $process.StandardError
+            $readOut = $out.ReadLineAsync(); $readErr = $err.ReadLineAsync()
+            while ($readOut -or $readErr) {
+                $open = [Threading.Tasks.Task[]]@(@($readOut, $readErr) | Where-Object { $_ })
+                # Short waits: a stop of the job (Stop-Job when the run is interrupted) only gets through between
+                # two statements, never during a .NET wait.
+                $index = [Threading.Tasks.Task]::WaitAny($open, 250)
+                if ($index -lt 0) { continue }
+                $ready = $open[$index]
+                $line = $ready.Result
+                if ([object]::ReferenceEquals($ready, $readOut)) { $readOut = if ($null -eq $line) { $null } else { $out.ReadLineAsync() } }
+                else { $readErr = if ($null -eq $line) { $null } else { $err.ReadLineAsync() } }
+                if ($null -ne $line) { if ($writer) { $writer.WriteLine($line) } else { [void]$collected.AppendLine($line) } }
+            }
+            while (-not $process.WaitForExit(250)) { }
+            return [pscustomobject]@{ ExitCode = $process.ExitCode; Output = $collected.ToString() }
+        }
+        finally {
+            # An interrupted run leaves no step running behind it (the native call this replaced was stopped with
+            # its job): a step left running would go on writing into a worker the next run syncs and uses.
+            try { if (-not $process.HasExited) { $process.Kill($true) } } catch { }
+            $process.Dispose()
+        }
+    }
+    finally { if ($writer) { $writer.Dispose() } }
+}
 
 function Get-ArenaRepoIdentity([string]$Root) {
     $common = (Invoke-ArenaGitLines $Root @('rev-parse', '--path-format=absolute', '--git-common-dir') | Select-Object -First 1)
@@ -55,9 +121,12 @@ function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker, [string[]
         $null = Invoke-ArenaGitLines $Worker @('clean', '-fdq')
         # The harness evidence of the previous run in this worker (artifacts/ is ignored, so clean keeps it);
         # without this a worker grows by every run, and Syncthing mirrors it. bin/ and obj/ stay for
-        # incremental builds.
+        # incremental builds, and so does the worker's Redeploy build folder.
         $evidence = Join-Path $Worker 'artifacts'
-        if (Test-Path -LiteralPath $evidence) { Remove-Item -LiteralPath $evidence -Recurse -Force -ErrorAction SilentlyContinue }
+        $keep = Split-Path -Leaf $ArenaWorkerRedeployBuild
+        if (Test-Path -LiteralPath $evidence) {
+            Get-ChildItem -LiteralPath $evidence -Force | Where-Object { $_.Name -ine $keep } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
     else {
         # A worker folder deleted by hand stays registered and blocks `worktree add` until pruned.
@@ -105,15 +174,22 @@ function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker, [string[]
         }
     }
     # Steps that build with --no-restore rely on a restore that ran earlier; the obj/ of a worker is its own and
-    # starts empty, so restore those projects when their assets are missing or older than the project file.
+    # starts empty, so restore those projects when their assets are missing or older than the project file. The
+    # restore runs with the worker's environment, so a Redeploy project it reaches gets its assets in the worker's
+    # Redeploy build folder, where the build looks for them; while that folder does not exist yet, every project
+    # is restored once.
+    $environment = Get-ArenaWorkerEnvironment $Worker
+    $redeployBuild = $environment.ARENA_VERIFICATION_REDEPLOY_BUILD
+    $redeployRestored = Test-Path -LiteralPath $redeployBuild
     foreach ($project in $RestoreProjects) {
         $full = Join-Path $Worker $project
         if (-not (Test-Path -LiteralPath $full)) { continue }
         $assets = Join-Path (Split-Path $full) 'obj\project.assets.json'
-        if ((Test-Path -LiteralPath $assets) -and (Get-Item -LiteralPath $assets).LastWriteTimeUtc -ge (Get-Item -LiteralPath $full).LastWriteTimeUtc) { continue }
-        $output = & dotnet restore $full --nologo -v:q 2>&1 | Out-String
-        if ($LASTEXITCODE -ne 0) { throw "dotnet restore $project failed in ${Worker}: $output" }
+        if ($redeployRestored -and (Test-Path -LiteralPath $assets) -and (Get-Item -LiteralPath $assets).LastWriteTimeUtc -ge (Get-Item -LiteralPath $full).LastWriteTimeUtc) { continue }
+        $restore = Invoke-ArenaWorkerProcess 'dotnet' @('restore', $full, '--nologo', '-v:q') $Worker $environment
+        if ($restore.ExitCode -ne 0) { throw "dotnet restore $project failed in ${Worker}: $($restore.Output)" }
     }
+    [IO.Directory]::CreateDirectory($redeployBuild) | Out-Null
     return $result
 }
 
@@ -142,16 +218,4 @@ function Compare-ArenaSnapshots($Expected, $Actual) {
     }
     foreach ($rel in $Actual.Files.Keys) { if (-not $Expected.Files.ContainsKey($rel) -and $Actual.Files[$rel].Hash -ne '<deleted>') { return "$rel is extra" } }
     return $null
-}
-
-# Whether a step writes the shared Redeploy checkout: it builds ArenaMode.Client or ArenaMode.sln (project
-# references build Redeploy.Core into ../Redeploy). Conservative: a staged build that passes
-# BuildProjectReferences=false is counted too.
-function Test-ArenaStepBuildsRedeploy($Model, $Scope) {
-    foreach ($rel in $Scope.Active) {
-        $fact = $Model.Facts[$rel]
-        if (-not $fact -or ($rel -in $ArenaKeyInfrastructureFiles)) { continue }
-        foreach ($b in @($fact.ProductionBuilds)) { if ($b -in 'sln', 'ArenaMode.Client') { return $true } }
-    }
-    return $false
 }
