@@ -54,6 +54,8 @@ $faults = @(
     # the next step there).
     @{ Name = 'worker-after-run-unchecked'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step whose inputs change during a worker run is not cached'; Cases = @('parallel-touch')
         Find = '$checked.AfterRun = Test-ArenaStepStillValid $work.Model $work.KeyInfo $work.Item $work.Snapshot $work.RepoRoot $work.InstallRoots $work.RunnerArguments'; Replace = '$checked.AfterRun = $null' },
+    @{ Name = 'thread-jobs-throttled'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'six workers run six steps at the same time'; Cases = @('parallel-six')
+        Find = 'Start-ThreadJob -ThrottleLimit $slots.Count -ArgumentList $work'; Replace = 'Start-ThreadJob -ArgumentList $work' },
     @{ Name = 'worker-drift-unchecked'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a worker that a step changed is synced again before its next step'; Cases = @('parallel-touch')
         Find = '$drift = Test-ArenaSnapshotStillValid $work.Snapshot @($work.Snapshot.Files.Keys)'; Replace = '$drift = $null' },
     # The workers build the shared sibling Redeploy checkout each into a folder of their own.
@@ -157,6 +159,7 @@ $evidence = @{
     'artifacts-not-mirrored' = 'ARTIFACT_TOY_MISSING_FIXTURE'
     'no-restore-in-workers' = 'NETSDK1004'
     'worker-runs-workers' = 'Refusing to sync'
+    'thread-jobs-throttled' = 'BARRIER_SEEN=5'
     'worker-after-run-unchecked' = 'TOUCHED_PASS_CACHED'
     'worker-drift-unchecked' = 'ECHO_SAW_A_CHANGED_WORKER'
     'redeploy-props-not-passed' = '\Redeploy\ToyCore\bin\Release\net10.0\ToyCore.dll'
@@ -244,6 +247,20 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
 'ECHO_TOY_PASSED'
 '@
     Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') ($echo + "`nif (`$env:ARENA_RUNNER_CHECKS_ECHO_MARK) { Set-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_ECHO_MARK 'echo ran' }`n")
+    # Stages that each wait (up to 60 s) until ARENA_RUNNER_CHECKS_BARRIER_COUNT stages have started: they pass only
+    # when that many steps run at the same time.
+    Write-Text (Join-Path $repo 'tools/BarrierToyChecks/Verify.ps1') @'
+param([string]$Stage)
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value "BarrierToyChecks:$Stage"
+Set-Content -LiteralPath (Join-Path $env:ARENA_RUNNER_CHECKS_BARRIER "$Stage.started") $Stage
+$want = [int]$env:ARENA_RUNNER_CHECKS_BARRIER_COUNT
+$deadline = (Get-Date).AddSeconds(60)
+while (@(Get-ChildItem -LiteralPath $env:ARENA_RUNNER_CHECKS_BARRIER -Filter '*.started').Count -lt $want -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
+$seen = @(Get-ChildItem -LiteralPath $env:ARENA_RUNNER_CHECKS_BARRIER -Filter '*.started').Count
+"BARRIER_SEEN=$seen"
+if ($seen -lt $want) { exit 1 }
+'BARRIER_TOY_PASSED'
+'@
     # Two stages that build a project of the sibling Redeploy checkout at the same time (each waits up to 60 s
     # for the other to start), with --no-restore like the harnesses that rely on the workers' restore.
     Write-Text (Join-Path $repo 'tools/RedeployToyChecks/RedeployToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n  <ItemGroup><ProjectReference Include=`"..\..\..\Redeploy\ToyCore\ToyCore.csproj`" /></ItemGroup>`n</Project>`n"
@@ -663,6 +680,12 @@ $cases = [ordered]@{
         $restamps = @($built | ForEach-Object { if (Test-Path -LiteralPath $_) { (Get-Item -LiteralPath $_).LastWriteTimeUtc } })
         $kept = $restamps.Count -eq 2 -and $restamps[0] -eq $stamps[0] -and $restamps[1] -eq $stamps[1]
         Check ($again.Exit -eq 0 -and $kept) 'a worker keeps its Redeploy build between runs' "$stamps -> $restamps$(if ($again.Exit -eq 0 -and -not $kept) { "`nREDEPLOY_REBUILT" })`n$($again.Output)" }
+    'parallel-six' = { param($s)
+        $barrier = Join-Path $s.Base 'barrier'; [IO.Directory]::CreateDirectory($barrier) | Out-Null
+        $stages = @(1..6 | ForEach-Object { "BarrierToyChecks:$_" })
+        $r = Invoke-Runner $s ($stages -join ',') -NoCache -Extra @('-Parallel', '6') -Environment @{ ARENA_RUNNER_CHECKS_BARRIER = $barrier; ARENA_RUNNER_CHECKS_BARRIER_COUNT = '6' }
+        $logs = ($stages | ForEach-Object { $p = Join-Path $s.Repo "artifacts/run-arena-verification/$($_ -replace '[^A-Za-z0-9]', '_').log"; if (Test-Path -LiteralPath $p) { Get-Content -Raw -LiteralPath $p } }) -join "`n"
+        Check ($r.Output -match 'ARENA_VERIFICATION_WORKERS 6' -and @($stages | Where-Object { $r.Verdicts[$_].Passed }).Count -eq 6) 'six workers run six steps at the same time' "$($r.Output)`n$logs" }
     'parallel-touch' = { param($s)
         # The queue starts the longest last PASS first: ToyChecks (it changes Toy.cs in its worker) and
         # SleepToyChecks, which then waits until EchoToyChecks has run, so EchoToyChecks must take ToyChecks' worker.

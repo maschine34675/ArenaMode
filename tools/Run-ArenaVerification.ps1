@@ -421,7 +421,9 @@ try {
                     Model = $cacheModel; KeyInfo = $step.KeyInfo; Item = $step.Item; Snapshot = $slot.Snapshot; RepoRoot = $repo
                     InstallRoots = $installRoots; RunnerArguments = $runnerArguments; SmallHashes = $smallHashes
                 }
-                $job = Start-ThreadJob -ArgumentList $work -ScriptBlock {
+                # Start-ThreadJob runs at most 5 jobs at a time unless told otherwise; a sixth worker's step would wait
+                # in its queue while the worker idles.
+                $job = Start-ThreadJob -ThrottleLimit $slots.Count -ArgumentList $work -ScriptBlock {
                     param($work)
                     # Only a real exit code of the step's process may come back; anything else is -1.
                     $code = -1
