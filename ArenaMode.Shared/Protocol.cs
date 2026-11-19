@@ -34,6 +34,21 @@ public static class Protocol
     /// </summary>
     public const string TacticalRoundRoute = "/arenamode/tactical-round";
 
+    /// <summary>
+    /// The reason of the Tactical round route when the raid is in its native end (FinalizingEnd).
+    /// One constant for both halves: the server writes it and the client compares it, so the two can
+    /// never drift apart. It marks a TRANSIENT refusal, because an aborted native end returns the same
+    /// raid to InRaid with its reported round kept; the client must not treat it as "no raid" (which
+    /// turns the opening rounds off for the rest of the raid).
+    /// </summary>
+    public const string TacticalRoundRaidEndingRefusal = "raid is ending";
+
+    /// <summary>
+    /// Highest seq of a Tactical round report: the server refuses anything above, the client never
+    /// sends anything above (its seq counter lives for the whole game process).
+    /// </summary>
+    public const int TacticalMaxSeq = 1_000_000;
+
     /// <summary>The client uploads its own BepInEx settings here so the config page can show them.</summary>
     public const string ClientSettingsPushRoute = "/arenamode/client-settings/push";
 

@@ -200,6 +200,8 @@ public sealed partial class BotTierScalePatchTests
         Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Refused,
             sessions.TryReportTacticalRound(id, sessions.GetArmToken(id), 3, 2, out _, out _, out _, out var refusal));
         Assert.Equal("raid is ending", refusal);
+        // The client compares the reason through this constant; its text is the wire contract.
+        Assert.Equal("raid is ending", Protocol.TacticalRoundRaidEndingRefusal);
         Assert.True(sessions.AbortNativeEndFinalization(id, end));
         Assert.Equal((2, 1), RawTactical(sessions, id));
         Assert.Equal(ArenaSessionService.TacticalRoundReportResult.Accepted, Report(sessions, id, 3, 2));

@@ -1592,7 +1592,7 @@ public class ArenaSessionService
     /// Duplicate and freeze the stored round for the rest of the raid. A real raid reports a few
     /// hundred times at most.
     /// </summary>
-    internal const int MaxTacticalSeq = 1_000_000;
+    internal const int MaxTacticalSeq = Protocol.TacticalMaxSeq;
 
     /// <summary>
     /// Stores the round a solo Tactical client reports, so the gear band of the next generation
@@ -1631,7 +1631,7 @@ public class ArenaSessionService
                 // to InRaid with its round kept, so a client may treat this refusal as transient
                 // instead of as "no raid" (which ends reporting for the rest of the raid).
                 refusal = entry?.State == ArenaSessionState.FinalizingEnd
-                    ? "raid is ending"
+                    ? Protocol.TacticalRoundRaidEndingRefusal
                     : "no live Arena raid";
                 return TacticalRoundReportResult.Refused;
             }
