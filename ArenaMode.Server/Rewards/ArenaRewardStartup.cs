@@ -60,27 +60,29 @@ public sealed class ArenaRewardStartup(
             }
             else
             {
-                // An unexpected failure before this start owned anything: rewards pause, and no Arena session may start
-                // on top of an unsettled one this start could not look at.
-                Rewards.ObserveRewardsPaused(unusable, recoveryPending: true);
-                RewardPausedNote.Write(root, unusable, recoveryPending: true);
-                logger.Warning(ComposeAdmissionPauseWarning(unusable));
+                // An unexpected failure before this start owned anything: rewards pause. No Arena session may start on top
+                // of an unsettled one this start could not look at, but with no session on record Arena stays usable.
+                bool pending = RewardOfflineSession.MayHaveUnsettledSession(root);
+                Rewards.ObserveRewardsPaused(unusable, recoveryPending: pending);
+                RewardPausedNote.Write(root, unusable, recoveryPending: pending);
+                logger.Warning(ComposeAdmissionPauseWarning(unusable, pending));
             }
             return;
         }
         if (!admission.Proceed) return;
         using var startupGate = admission.Gate;
         // Only a proven or not-excludable live second writer stops SPT here (it throws). Every other recovery
-        // problem pauses rewards for this start: nothing is paid, enrolled or changed, and the next start retries.
+        // problem pauses rewards for this start: nothing is paid, and the next start retries from the records.
         var pause = await RecoverOrPauseAsync(root, () => LoadedProfileCount() == 0,
             () => logger.Info("[ArenaMode] Old Arena session discarded; rewards set to OFF. Normal SPT will start."),
             cancellationToken, RecoveryRetryDelay,
             retrying: (attempt, e) => logger.Debug($"[ArenaMode] Offline Arena recovery hit {e.GetType().Name}; retry {attempt} of {RecoveryAttempts - 1}."));
         if (pause is not null)
         {
-            Rewards.ObserveRewardsPaused(pause.Code, recoveryPending: true);
-            RewardPausedNote.Write(root, pause.Code, recoveryPending: true);
-            logger.Warning(ComposeRecoveryPauseWarning(pause));
+            bool pending = RewardOfflineSession.MayHaveUnsettledSession(root);
+            Rewards.ObserveRewardsPaused(pause.Code, recoveryPending: pending);
+            RewardPausedNote.Write(root, pause.Code, recoveryPending: pending);
+            logger.Warning(ComposeRecoveryPauseWarning(pause, pending));
             return;
         }
         RewardPausedNote.Remove(root);
@@ -98,7 +100,7 @@ public sealed class ArenaRewardStartup(
             if (reason is not null) throw new RewardDataException(reason);
             if (!RewardStartupFiles.MarkerAbsent(root)) return;
             using var window = new RewardStartupWindow(root, () => LoadedProfileCount() == 0);
-            foreach (var outcome in await RewardStartupProcessor.ProcessAsync(window, cancellationToken))
+            var colaStop = await ProcessUntilColaStopAsync(window, outcome =>
             {
                 Rewards.ObserveStartupOutcome(outcome);
                 LogAuthority(outcome);
@@ -108,14 +110,16 @@ public sealed class ArenaRewardStartup(
                     logger.Debug($"[ArenaMode] Reward skipped for profile {outcome.ProfileId} ({outcome.Result.Reason}).");
                 else
                     logger.Debug($"[ArenaMode] Startup reward: {outcome.Result.Status} ({outcome.Result.Reason}).");
+            }, cancellationToken);
+            if (colaStop is not null)
+            {
+                // The Arena session itself is settled (recovery above finished): only rewards pause, Arena stays usable.
+                Rewards.ObserveRewardsPaused(ColaPauseCode, recoveryPending: false);
+                RewardPausedNote.Write(root, ColaPauseCode, recoveryPending: false);
+                logger.Warning(ComposeColaPauseWarning(colaStop));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (RewardColaRecoveryException e)
-        {
-            logger.Error(DescribeColaStop(e));
-            throw;
-        }
         catch (Exception e)
         {
             // A refusal affects rewards, never ordinary server startup or raids.
@@ -123,6 +127,24 @@ public sealed class ArenaRewardStartup(
             Rewards.ObserveStartupUnavailable(reason);
             logger.Warning(ComposeRefusalWarning(reason, callbacks));
         }
+    }
+
+    internal const string ColaPauseCode = "reward-cola-recovery-incomplete";
+
+    /// <summary>
+    /// Settles every profile in order. A Tarkova Cola recovery failure (a payment may exist while its companion write is
+    /// unfinished) does not stop SPT: it ends the pass and is returned, so rewards pause; profiles settled before it were
+    /// reported to <paramref name="onOutcome"/> and stay settled, and the next start retries the Cola recovery first.
+    /// </summary>
+    internal static async Task<RewardColaRecoveryException?> ProcessUntilColaStopAsync(RewardStartupWindow window,
+        Action<RewardStartupOutcome> onOutcome, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RewardStartupProcessor.ProcessAsync(window, cancellationToken, onOutcome);
+            return null;
+        }
+        catch (RewardColaRecoveryException e) { return e; }
     }
 
     private int LoadedProfileCount() => (LoadedProfiles ?? (() => saves.GetProfiles().Count))();
@@ -185,25 +207,34 @@ public sealed class ArenaRewardStartup(
         catch { return true; }
     }
 
-    internal static string ComposeRecoveryPauseWarning(RecoveryPause pause)
+    internal static string ComposeRecoveryPauseWarning(RecoveryPause pause, bool recoveryPending = true)
     {
         if (pause.Code == "native-startup-boundary-unavailable")
             return "[ArenaMode] Arena rewards are paused for this start: another mod loads the profiles before Arena's reward step (native-startup-boundary-unavailable). "
-                + "SPT starts normally; the last Arena session, if any, stays unsettled and is retried at the next start.";
+                + "SPT starts normally; the last Arena session, if any, stays unsettled and is retried at the next start."
+                + (recoveryPending ? " Until then Arena cannot start a new session." : " No Arena session is on record, so Arena itself is unaffected.");
         string remedy = pause.Cause is RewardOfflineException { ExplainsItself: true } own ? own.Message
             : pause.Cause.InnerException is IOException or UnauthorizedAccessException
                 ? "Close programs that may lock user\\arena-rewards (virus scanner, backup, sync) and restart SPT."
                 : "Restart SPT once. If the same code returns, keep user\\arena-rewards as it is (do not delete or move it) and report the code.";
+        // Recovery works in steps and a step may already have been written before a later one failed: the retry continues
+        // from the records and never repeats a step, so the claim is only that no reward was paid.
         return $"[ArenaMode] Arena rewards are paused for this start: the last Arena session could not be settled ({pause.Code}: {DescribePauseCode(pause.Code)}). "
-            + "SPT starts normally. Nothing was paid, enrolled or changed, the Arena session is kept untouched and is retried at the next start; "
-            + "until then Arena cannot start a new session and the reward card says rewards are paused. "
+            + "SPT starts normally. No reward was paid, the Arena session is kept and is retried from its records at the next start; "
+            + (recoveryPending ? "until then Arena cannot start a new session and the reward card says rewards are paused. "
+                : "the reward card says rewards are paused. ")
             + $"Remedy: {remedy} See docs/REWARDS-RUNTIME.md, 'Rewards paused at start'.";
     }
 
-    internal static string ComposeAdmissionPauseWarning(string code)
+    internal static string ComposeAdmissionPauseWarning(string code, bool recoveryPending = true)
         => $"[ArenaMode] Profile rewards are paused for this start: the reward step failed before it could take ownership ({code}). "
-            + "SPT starts normally; nothing was paid, enrolled or changed, and no new Arena session starts on top of an unsettled one. This is retried at the next start. "
-            + "See docs/REWARDS-RUNTIME.md, 'Rewards paused at start'.";
+            + "SPT starts normally and nothing was paid or enrolled. "
+            + (recoveryPending ? "No new Arena session starts on top of an unsettled one. " : "No Arena session is on record, so Arena itself is unaffected. ")
+            + "This is retried at the next start. See docs/REWARDS-RUNTIME.md, 'Rewards paused at start'.";
+
+    internal static string ComposeColaPauseWarning(RewardColaRecoveryException e)
+        => DescribeColaStop(e) + $" Profile rewards are paused for this start ({ColaPauseCode}): SPT starts normally, nothing further is paid, "
+            + "and the next start retries this recovery first. Arena itself is unaffected.";
 
     private static string DescribePauseCode(string code) => code switch
     {
@@ -237,7 +268,7 @@ public sealed class ArenaRewardStartup(
         string cause = e.InnerException is null ? "" : $" ({(e.InnerException is RewardDataException ? e.InnerException.Message : e.InnerException.GetType().Name)})";
         // Older reasons are bare codes or a sentence with its own full stop: one sentence end, the cause before it.
         string reason = e.Message.TrimEnd().TrimEnd('.');
-        return $"[ArenaMode] Startup stopped to keep the profiles and the Tarkova Cola reward files as they are: {reason}{cause}. "
+        return $"[ArenaMode] The Tarkova Cola reward files are kept as they are: {reason}{cause}. "
             + "Do not delete or move the reward journal or the Cola plan files. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.";
     }
 

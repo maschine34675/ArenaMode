@@ -300,6 +300,31 @@ public sealed class RewardColaJournalTests
     }
 
     [Fact]
+    public async Task AColaRecoveryFailureEndsTheStartupPassWithoutStoppingSpt()
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.Complete(plan);
+        File.Delete(f.DonePath);
+        File.WriteAllText(f.ForeignPath, "{\"xp\":{\"speedcola\":900}}");
+        string native = f.Profile, foreign = f.Foreign;
+        var seen = new List<RewardStartupOutcome>();
+
+        // Used to escape ArenaRewardStartup.OnLoadAsync and stop SPT; now it is handed back so rewards pause.
+        var stop = await ArenaRewardStartup.ProcessUntilColaStopAsync(f.Window, seen.Add, CancellationToken.None);
+
+        Assert.NotNull(stop);
+        Assert.Empty(seen);
+        Assert.Equal(native, f.Profile);
+        Assert.Equal(foreign, f.Foreign);
+        string warning = ArenaRewardStartup.ComposeColaPauseWarning(stop);
+        Assert.Contains(ArenaRewardStartup.ColaPauseCode, warning);
+        Assert.Contains("SPT starts normally", warning);
+        Assert.Contains("Do not delete or move the reward journal", warning);
+    }
+
+    [Fact]
     public void UnpaidIntentIsImmutableAndCurrentNormalProgressCannotBeSilentlyRebased()
     {
         using var f = new Fixture();

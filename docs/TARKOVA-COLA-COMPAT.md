@@ -60,8 +60,8 @@ The companion research file uses an immutable plan prepared before the native
 transaction, then an atomic compare/write/readback after native payment is proven.
 Its completion record prevents repeated deltas. Recovery can finish an already
 paid transfer even after opt-out, but cannot issue a new payment while OFF. A
-conflicting companion file after native payment stops startup for recovery (the one reward-file failure that still does, see the
-[startup failure policy](REWARDS-RUNTIME.md#startup-failure-policy)); it
+conflicting companion file after native payment pauses rewards for that start (SPT itself starts, see the
+[startup failure policy](REWARDS-RUNTIME.md#startup-failure-policy)) and is retried first at the next start; it
 never overwrites intervening progress or rolls the PMC profile back. Keep the
 normal profile, Cola profile and reward metadata together; do not delete journals
 to resolve such a refusal. Before payment, missing mods or incompatible state
@@ -75,7 +75,7 @@ have been paid already has its completion record and no unknown file lies beside
 them, startup continues without writing anything: the Cola progress stays as it
 is and the profile gets no further rewards. A wipe or a moved installation is
 reported by one Warning; a deleted profile file is logged at Debug level only.
-When a paid plan has no completion record, startup still stops, now naming that
+When a paid plan has no completion record, rewards stay paused, the Warning naming that
 cause: restore a profile backup taken after that reward (wipe, deleted file) or
 start the installation that created the records (moved install), then start
 again. A file that cannot be read or a damaged record needs a copy of the

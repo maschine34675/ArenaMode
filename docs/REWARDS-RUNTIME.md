@@ -147,10 +147,6 @@ excluded. `ArenaRewardStartup.OnLoadAsync` sorts every failure into one of two c
 - A private server marker (`arena-session.json`) or lease file appearing under this
   folder while recovery runs.
 - Any unknown failure while taking `.server.lock` itself, and cancellation.
-- `RewardColaRecoveryException`: a Tarkova Cola payment may exist while its companion
-  write is unfinished; going on would let the Cola mod's own progress make that
-  unfinishable. See [Tarkova Cola compatibility](TARKOVA-COLA-COMPAT.md). This is the one
-  stop that is about files, not about a second writer.
 
 **Soft (SPT starts, rewards pause).** Everything else: about fifty data and consistency
 codes of the offline recovery (`offline-activation-proof-missing`,
@@ -158,7 +154,8 @@ codes of the offline recovery (`offline-activation-proof-missing`,
 a session recorded by another installation folder (moved or copied install), file errors
 that persist after three attempts 500 ms apart, native profiles that were already loaded
 (`native-startup-boundary-unavailable`), and unexpected admission failures on a plain tree
-(`reward-admission-<code>`). A new `RewardOfflineException` is soft by default; a check
+(`reward-admission-<code>`), and a Tarkova Cola recovery failure
+(`reward-cola-recovery-incomplete`, below). A new `RewardOfflineException` is soft by default; a check
 that can mean "someone else is writing" must set `LiveWriter` or throw
 `RewardLiveOwnerException` (the test `EveryOfflineReasonCodeOfTheRecoveryIsClassified`
 lists every code).
@@ -167,20 +164,36 @@ lists every code).
 
 A soft failure pauses rewards for the whole installation for this start:
 
-- No `ProcessAsync`: nothing is paid, enrolled, defaulted or archived, for any profile, and
-  no reward record is written. The last Arena session (active pointer, history, closure,
-  inbox) stays exactly as it was; the next start runs the same recovery again from the
-  untouched records and pays exactly once.
+- No `ProcessAsync`: nothing is paid, enrolled, defaulted or archived, for any profile. The
+  recovery of the last Arena session works in steps (it can recreate a lost pointer, write
+  the closure, apply the reward choice, import receipts), and a step that was written before
+  a later one failed stays written: the retry continues from the records, repeats no step
+  and pays exactly once. Only "no reward was paid" is promised, not "no file changed".
+  Failures that happen before the first step (a missing activation proof, a session of another
+  installation, several unfinished sessions, profiles already loaded) leave the whole reward
+  tree byte for byte as it was.
+- A Tarkova Cola recovery failure (a Cola payment may exist while its companion write is
+  unfinished, see [Tarkova Cola compatibility](TARKOVA-COLA-COMPAT.md)) ends the profile pass
+  at that profile and pauses rewards (`reward-cola-recovery-incomplete`, `recoveryPending`
+  false). Profiles settled before it stay settled and are reported as usual; the failing
+  profile's Cola files are not changed, and the next start runs that recovery first. The Cola
+  mod's own progress is not under this mod's control, so until it is resolved the companion
+  files can drift: the Warning names the cause and the remedy.
 - `RewardRuntimeCoordinator.ObserveRewardsPaused(code, recoveryPending)` records the reason.
   The menu card shows "Rewards are paused ..." (`withheld`, no toggle) and the reward choice
   is frozen: changing it would make the retry fail with `offline-consent-conflict`. No run
   is captured and no delegation is minted.
 - Because the previous session may be unsettled, a new Arena entry is declined before the
-  normal server is paused (`rewards-paused-recovery-pending`). Every recovery and admission
-  pause sets this; only the unusable-storage case (above) keeps its older behaviour.
+  normal server is paused (`rewards-paused-recovery-pending`). A recovery or admission pause
+  sets this only when the records show an Arena session that may be unsettled (an active
+  pointer, a lease that neither completed nor was discarded, or records that cannot be read;
+  `RewardOfflineSession.MayHaveUnsettledSession`). With no session on record Arena stays usable
+  with rewards off, as for `native-profiles-already-loaded`. The unusable-storage case (above)
+  keeps its older behaviour.
 - One Warning per start: "Arena rewards are paused for this start: the last Arena session
-  could not be settled (<code>: <meaning>). SPT starts normally. Nothing was paid, enrolled or
-  changed ..." with the remedy. A moved-install session carries its own full sentence (both
+  could not be settled (<code>: <meaning>). SPT starts normally. No reward was paid, the Arena
+  session is kept and is retried from its records at the next start ..." with the remedy. Both
+  pause Warnings contain "rewards are paused for this start"; the helper dialogs quote that. A moved-install session carries its own full sentence (both
   folders and the way out).
 - `user/arena-rewards/rewards-paused.json` is a diagnostic note for the session helper:
   `{schema, reason, recoveryPending, serverPid, serverStartedUtc, writtenUtc}`. The helper
@@ -195,6 +208,7 @@ A soft failure pauses rewards for the whole installation for this start:
 | `offline-recovery-lease-mismatch`, `offline-history-binding-mismatch` | session recorded by another installation folder | start SPT from the recorded folder once (the message names it) |
 | `native-startup-boundary-unavailable` | another mod loaded the profiles before Arena's reward step | the last session stays unsettled until the load order is fixed |
 | `reward-admission-<code>` | the reward step failed before it took ownership | restart SPT; report the code |
+| `reward-cola-recovery-incomplete` | a Tarkova Cola payment may exist while its companion write is unfinished | keep the reward journal and the Cola files as they are; see the Warning and [Tarkova Cola compatibility](TARKOVA-COLA-COMPAT.md) |
 
 ### Lost reward authority
 
@@ -374,10 +388,10 @@ outcomes:
   mod's own files.
 - The companion side is not complete (or cannot be read, 2026-11-08: the startup
   recovery then keeps the profile quarantined, and its Warning names the first gap).
-  Startup stops (unlike the other reward failures, which pause rewards; see
-  [Startup failure policy](#startup-failure-policy)), because a half-finished
-  companion write could leave the Cola files inconsistent and nothing here can
-  finish it. The Error names the actual cause and the remedy that is true for it:
+  Rewards pause for that start (`reward-cola-recovery-incomplete`, see
+  [Startup failure policy](#startup-failure-policy); before 0.7.0 startup stopped), because a
+  half-finished companion write could leave the Cola files inconsistent and nothing here can
+  finish it. The Warning names the actual cause and the remedy that is true for it:
   - A possibly paid plan has no completion record, or the journal records a Cola
     payment as not committed (an unfinished transaction): restore the profile file
     from a backup taken after that reward (by default SPT keeps backups in

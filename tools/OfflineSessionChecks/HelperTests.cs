@@ -1073,6 +1073,7 @@ public sealed class OfflineSessionHelperTests
             Assert.Contains("Arena ended and SPT is running again", notice);
             Assert.Contains("could not settle the Arena session", notice);
             Assert.Contains("retried the next time SPT starts", notice);
+            Assert.Contains("report the code", notice); // a pause that recurs must not leave the player without a next step
             Assert.Contains("offline-activation-proof-missing", notice);
             Assert.Contains(@"user\arena-rewards", notice);
             Assert.Contains("helper.log", notice);

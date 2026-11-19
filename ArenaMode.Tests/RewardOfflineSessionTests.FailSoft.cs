@@ -450,6 +450,61 @@ public sealed partial class RewardOfflineSessionTests
         Assert.False(RewardOfflineSession.HasActive(f.Root));
         Assert.False(File.Exists(RewardOfflineSession.LeasePath(f.Root, f.Grant.SessionId)));
     }
+
+    [Fact]
+    public async Task APauseWithNoArenaSessionOnRecordLeavesArenaUsableAndSaysSo()
+    {
+        using var f = new Fixture();
+        Assert.False(RewardOfflineSession.MayHaveUnsettledSession(f.Root));
+
+        // Another mod loaded the profiles first and no Arena session ever existed: nothing for a new session to land on.
+        var (coordinator, log) = await StartSpt(f, () => 1);
+
+        Assert.Equal(new RewardPauseState("native-startup-boundary-unavailable", false), coordinator.Pause);
+        Assert.Null(RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request, coordinator.StartupUnavailable, coordinator.Pause));
+        var warning = Assert.Single(log.Lines, l => l.Level == "Warning").Text;
+        Assert.Contains("Arena itself is unaffected", warning);
+        Assert.DoesNotContain("cannot start a new session", warning);
+        var note = JsonDocument.Parse(File.ReadAllText(RewardPausedNote.PathFor(f.Root))).RootElement;
+        Assert.False(note.GetProperty("recoveryPending").GetBoolean());
+    }
+
+    [Fact]
+    public void AnUnsettledSessionIsRecognisedFromItsRecordsAndASettledOneIsNot()
+    {
+        using var f = new Fixture();
+        f.Start(); StopPrivate(f);
+        Assert.True(RewardOfflineSession.MayHaveUnsettledSession(f.Root)); // the active pointer
+        f.Recover();
+        Assert.False(RewardOfflineSession.MayHaveUnsettledSession(f.Root)); // closed and completed
+
+        using var lost = new Fixture();
+        lost.Ready(); File.Delete(RewardOfflineSession.ActivePath(lost.Root));
+        Assert.True(RewardOfflineSession.MayHaveUnsettledSession(lost.Root)); // a lease that never completed, pointer lost
+
+        using var odd = new Fixture();
+        string history = Path.Combine(odd.Root, "user", "arena-rewards", "offline-sessions");
+        Directory.CreateDirectory(history);
+        File.WriteAllText(Path.Combine(history, "stray.txt"), "x");
+        Assert.True(RewardOfflineSession.MayHaveUnsettledSession(odd.Root)); // not readable as records: unknown counts as unsettled
+    }
+
+    [Fact]
+    public async Task TheRecoveryWarningDoesNotClaimThatNothingWasChangedAndBothWarningsShareThePhraseTheDialogQuotes()
+    {
+        using var f = new Fixture();
+        f.Start(); StopPrivate(f);
+        File.Delete(Path.Combine(SessionFolder(f, f.Lease!.SessionId), "activation.json"));
+        var (_, log) = await StartSpt(f, () => 0);
+        var recovery = Assert.Single(log.Lines, l => l.Level == "Warning").Text;
+        Assert.Contains("No reward was paid", recovery);
+        Assert.DoesNotContain("untouched", recovery);
+        Assert.DoesNotContain("enrolled or changed", recovery);
+        Assert.Contains("rewards are paused for this start", recovery);
+        string admission = ArenaRewardStartup.ComposeAdmissionPauseWarning("reward-admission-ArgumentException");
+        Assert.Contains("rewards are paused for this start", admission);
+        Assert.DoesNotContain("enrolled or changed", admission);
+    }
 }
 
 public sealed class RewardPausedTextAndNoteTests
@@ -459,6 +514,7 @@ public sealed class RewardPausedTextAndNoteTests
     [InlineData("offline-recovery-IOException", RewardUnavailableText.SessionUnsettled)]
     [InlineData("native-startup-boundary-unavailable", RewardUnavailableText.ProfilesLoadedEarly)]
     [InlineData("reward-admission-ArgumentException", RewardUnavailableText.PausedAtStart)]
+    [InlineData(ArenaRewardStartup.ColaPauseCode, RewardUnavailableText.ColaPaused)]
     public void ThePauseCodesHaveTheirOwnCardSentenceInBothSessions(string code, string sentence)
     {
         Assert.Equal(sentence, RewardUnavailableText.ForStartupReason(code));

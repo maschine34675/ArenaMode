@@ -85,7 +85,7 @@ public sealed class HelperFailureNoticeTests
         Assert.Contains("could not settle your last Arena session when it started", text);
         Assert.Contains("will not start a new one on top of it", text);
         Assert.Contains("Close SPT and start it again", text);
-        Assert.Contains("Arena rewards are paused", text);
+        Assert.Contains("\"rewards are paused for this start\"", text); // the phrase both server Warnings contain
         Assert.Contains("Your profile was not changed.", text);
         Assert.Contains(@"SPT server log folder: D:\SPT\user\logs\spt", text);
         Assert.EndsWith("Code: entry-preflight/session-unsettled", text);

@@ -7,7 +7,9 @@ internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementRe
 
 internal static class RewardStartupProcessor
 {
-    internal static async Task<IReadOnlyList<RewardStartupOutcome>> ProcessAsync(RewardStartupWindow window, CancellationToken cancellationToken)
+    // onOutcome sees each profile's outcome as soon as it is settled, so a failure on a later profile cannot hide it.
+    internal static async Task<IReadOnlyList<RewardStartupOutcome>> ProcessAsync(RewardStartupWindow window, CancellationToken cancellationToken,
+        Action<RewardStartupOutcome>? onOutcome = null)
     {
         window.RequireOpen();
         var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory);
@@ -23,7 +25,9 @@ internal static class RewardStartupProcessor
         foreach (var id in ids)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            results.Add(await ProcessProfileAsync(window, id, cancellationToken, applyDefault: true));
+            var outcome = await ProcessProfileAsync(window, id, cancellationToken, applyDefault: true);
+            results.Add(outcome);
+            onOutcome?.Invoke(outcome);
         }
         return results;
     }

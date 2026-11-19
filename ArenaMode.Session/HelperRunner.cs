@@ -1114,7 +1114,7 @@ namespace ArenaMode.SessionHelper
         internal string ReturnPausedNotice(string sptFolder)
             => "Arena ended and SPT is running again, but it could not settle the Arena session when it started, so Arena rewards are paused and this start paid nothing. "
                 + "The Arena session is kept and is retried the next time SPT starts; it is not lost, and a new Arena session cannot start until it is settled. "
-                + "Close SPT and start it again once. Do not delete user\\arena-rewards. The SPT server log has the reason (" + _rewardsPausedReason + ")."
+                + "Close SPT and start it again once. If the same pause appears after that restart, report the code and the SPT server log. Do not delete user\\arena-rewards. The SPT server log has the reason (" + _rewardsPausedReason + ")."
                 + (sptFolder == null ? string.Empty : "\n\nSPT server log folder: " + Path.Combine(sptFolder, "user", "logs", "spt"));
 
         private static string DeclinedWhy(string category)
@@ -1137,7 +1137,7 @@ namespace ArenaMode.SessionHelper
             switch (category)
             {
                 case HelperOfflineSession.UnsettledCategory:
-                    return "Close SPT and start it again. If it keeps happening, the SPT server log has a warning that starts with \"Arena rewards are paused\" and names the cause. Your profile and the old session are kept.";
+                    return "Close SPT and start it again. If it keeps happening, the SPT server log has a warning that contains \"rewards are paused for this start\" and names the cause; report that code if it keeps coming back. Your profile and the old session are kept.";
                 case "save-not-confirmed":
                     return "Another program or mod usually writes the profile files while SPT runs (cloud sync, backup, antivirus, a profile editor, a second SPT): "
                         + "close them and try again. If it keeps happening, report it with the \"Session switch refused\" line from the SPT server log.";

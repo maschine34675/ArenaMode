@@ -102,7 +102,7 @@ from `HelperRunner.EnterFailureNotice`, `HelperOfflineSession.WaitingDialogText`
 `HelperRewardReturn.*DialogText`; log lines are unchanged.
 
 Two dialogs belong to a normal server that started with Arena reward recovery paused
-(server Warning "Arena rewards are paused for this start"). An entry on top of the
+(server Warning containing "rewards are paused for this start"). An entry on top of the
 unsettled session is refused (the helper's own check before it stops anything, or the
 server's `offline-session-already-active` / `rewards-paused-recovery-pending`
 decline) with code `session-unsettled` (`entry-preflight/session-unsettled` when the

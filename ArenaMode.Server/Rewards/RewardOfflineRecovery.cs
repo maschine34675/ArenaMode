@@ -185,6 +185,30 @@ internal static partial class RewardOfflineSession
 
     // Caller already holds both ordinary locks. An immutable lease was published
     // only after final save/readback; recovering its pointer cannot mint authority.
+    /// <summary>
+    /// True unless the records show that no Arena session can be unsettled: an active pointer, or a session folder with a
+    /// lease that neither completed nor was discarded, or anything that cannot be read. A pause with false leaves Arena
+    /// usable (rewards off), because there is nothing for a new session to land on top of.
+    /// </summary>
+    internal static bool MayHaveUnsettledSession(string root)
+    {
+        try
+        {
+            if (HasActive(root)) return true;
+            string directory = Path.Combine(root, RewardStartupFiles.RelativeDirectory, "offline-sessions");
+            if (!Directory.Exists(directory)) return false;
+            foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
+            {
+                if (!Directory.Exists(entry)) return true;
+                if (File.Exists(Path.Combine(entry, "lease.json"))
+                    && !File.Exists(Path.Combine(entry, "completion.json")) && !File.Exists(Path.Combine(entry, "discard-completion.json")))
+                    return true;
+            }
+            return false;
+        }
+        catch { return true; }
+    }
+
     private static void RecoverMissingPointer(string root)
     {
         string directory = Path.Combine(root, RewardStartupFiles.RelativeDirectory, "offline-sessions");
