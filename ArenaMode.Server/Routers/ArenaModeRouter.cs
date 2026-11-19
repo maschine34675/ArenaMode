@@ -44,6 +44,10 @@ public record ArenaRaidStartRequest : IRequestData
 
     [JsonPropertyName("participants")]
     public int? Participants { get; set; }
+
+    /// <summary>"maximum" or "reduced"; missing means maximum, anything else is refused.</summary>
+    [JsonPropertyName("difficulty")]
+    public string? Difficulty { get; set; }
 }
 
 public record ArenaRaidLifecycleRequest : IRequestData
@@ -257,6 +261,7 @@ public sealed class ArenaModeRouter : StaticRouter
                 areaTeamSize = Sessions?.GetAreaTeamSize(sessionId) ?? 0,
                 deathmatchHostility = Sessions?.GetDeathmatchHostility(sessionId),
                 participants = Sessions?.GetParticipants(sessionId),
+                difficulty = ArenaDifficultyPolicy.ToWire(Sessions?.GetDifficulty(sessionId) ?? ArenaDifficultyStep.Maximum),
                 participantBosses = Sessions?.GetParticipantBosses(sessionId) == true,
                 armToken = Sessions?.GetArmToken(sessionId),
                 clientRaidStarted = Sessions?.IsClientRaidStarted(sessionId) == true,
@@ -476,6 +481,16 @@ public sealed class ArenaModeRouter : StaticRouter
                 out var deathmatchHostility, out var hostilityFailure))
             return Json(new { armed = false, reason = hostilityFailure });
 
+        // An unknown difficulty step is refused like an unknown hostility; a missing
+        // one is Maximum, so a client that does not send the field keeps working.
+        if (!ArenaDifficultyPolicy.TryParse(request.Difficulty, out var difficultyStep))
+            return Json(new { armed = false, reason = "Unknown difficulty step" });
+        string difficulty = ArenaDifficultyPolicy.ToWire(difficultyStep);
+        // A client from before the difficulty model sends no field. It keeps working at
+        // Maximum, but its saved step is not honoured, so say so where a bug report looks.
+        if (string.IsNullOrEmpty(request.Difficulty))
+            ArenaContext.Logger?.Debug("[ArenaMode] Raid start without a difficulty field (older client): using maximum.");
+
         // Resolve before snapshot recovery/preparation, and before replay: an
         // unknown or mismatched area must never silently become a full-map raid.
         string areaId = ArenaAreaCatalog.NormalizeId(request.AreaId!);
@@ -512,7 +527,8 @@ public sealed class ArenaModeRouter : StaticRouter
                     areaId,
                     areaTeamSize,
                     deathmatchHostility,
-                    participants))
+                    participants,
+                    difficulty))
             {
                 _logger.Debug(
                     $"[ArenaMode] Replayed identical committed raid-start for session {sessionId}.");
@@ -525,6 +541,7 @@ public sealed class ArenaModeRouter : StaticRouter
                     areaTeamSize = Sessions.GetAreaTeamSize(sessionId),
                     deathmatchHostility = Sessions.GetDeathmatchHostility(sessionId),
                     participants = Sessions.GetParticipants(sessionId),
+                    difficulty = ArenaDifficultyPolicy.ToWire(Sessions.GetDifficulty(sessionId)),
                     participantBosses = Sessions.GetParticipantBosses(sessionId),
                     replayed = true,
                 });
@@ -607,7 +624,8 @@ public sealed class ArenaModeRouter : StaticRouter
                 areaId,
                 areaTeamSize,
                 deathmatchHostility,
-                participants))
+                participants,
+                difficulty))
         {
             return Json(new
             {
@@ -650,6 +668,7 @@ public sealed class ArenaModeRouter : StaticRouter
         {
             armed = true, snapshotTaken = true, armToken, areaId, areaTeamSize, deathmatchHostility,
             participants = Sessions.GetParticipants(sessionId),
+            difficulty = ArenaDifficultyPolicy.ToWire(Sessions.GetDifficulty(sessionId)),
             participantBosses = Sessions.GetParticipantBosses(sessionId),
         });
     }

@@ -70,7 +70,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
     }
 
     [Fact]
-    public void SoloArenaStillAppliesConfiguredTierRamp()
+    public void SoloArenaStillAppliesTheConfiguredGearBand()
     {
         var sessionId = new MongoId(ArenaSession);
         ArenaContext.Sessions = StartArena(sessionId, "factory4_day", protectedTeam: false);
@@ -162,14 +162,18 @@ public sealed partial class BotTierScalePatchTests : IDisposable
     private static ArenaSessionService StartArena(
         MongoId sessionId,
         string location,
-        bool protectedTeam)
+        bool protectedTeam,
+        string mode = "tactical",
+        string? difficulty = null)
     {
         var sessions = new ArenaSessionService(TestLogger.Create<ArenaSessionService>());
         string token = sessions.Arm(
             sessionId,
             location,
-            "tactical",
-            protectPitFireTeam: protectedTeam);
+            mode,
+            protectPitFireTeam: protectedTeam,
+            deathmatchHostility: mode == "deathmatch" ? "ffa" : null,
+            difficulty: difficulty);
         Assert.Equal(
             ArenaLocalRaidStartDisposition.ArenaStarted,
             sessions.ProcessLocalRaidStart(
@@ -177,6 +181,21 @@ public sealed partial class BotTierScalePatchTests : IDisposable
                 location,
                 Protocol.BuildNativeStartIdentity(token)));
         return sessions;
+    }
+
+    /// <summary>Moves the live raid's start back, so the server wall clock reads this much elapsed time.</summary>
+    private static void SetElapsed(ArenaSessionService sessions, MongoId sessionId, TimeSpan elapsed)
+    {
+        FieldInfo sessionsField = typeof(ArenaSessionService).GetField(
+            "_sessions",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var entries = Assert.IsAssignableFrom<IDictionary>(sessionsField.GetValue(sessions));
+        object? entry = entries[sessionId.ToString()];
+        Assert.NotNull(entry);
+        entry!.GetType().GetField(
+            "InRaidAtUtc",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
+            .SetValue(entry, DateTime.UtcNow - elapsed);
     }
 
     private static void MakeRaidStale(ArenaSessionService sessions, MongoId sessionId)

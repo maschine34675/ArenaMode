@@ -780,7 +780,7 @@ internal static partial class Program
         BoundedAreaModeContract();
         MatchReadinessAndCountdown();
         MatchSpawnGateRelease();
-        MatchDifficultyClock();
+        MatchPlayingClock();
         MatchReadinessLossBetweenRosterTicks();
         MatchTerminalPopulationAndPresentation();
         MatchTimeLimitAndRuleSnapshot();

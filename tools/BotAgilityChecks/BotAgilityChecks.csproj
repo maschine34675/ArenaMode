@@ -7,5 +7,6 @@
   <ItemGroup>
     <Compile Include="$(AgilitySource)" Link="Production/ArenaBotAgility.cs" />
     <Compile Include="../../ArenaMode.Client/Movement/ArenaBotMovement.cs" Link="Production/ArenaBotMovement.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
   </ItemGroup>
 </Project>

@@ -21,7 +21,7 @@ internal static partial class Program
         Settings.Allowlist = ArenaMapCatalog.DefaultClientAllowlist;
         ArenaAreaInitialSpawnPatch.IsReady = true;
         RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-            ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"],
+            ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"],
                 ["participants"] = JObject.Parse(body)["participants"], ["participantBosses"] = false,
                 ["areaId"] = JObject.Parse(body)["areaId"], ["areaTeamSize"] = JObject.Parse(body)["areaTeamSize"] }.ToString()
             : "{\"disarmed\":true,\"state\":\"Idle\"}";
@@ -59,7 +59,7 @@ internal static partial class Program
             RequestHandler.Post = (route, body) =>
             {
                 if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
-                var result = new JObject { ["armed"] = true,["armToken"] = JObject.Parse(body)["requestId"],["areaId"] = teams };
+                var result = new JObject { ["armed"] = true,["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"],["areaId"] = teams };
                 if (reply != null) result["areaTeamSize"] = reply;
                 return result.ToString();
             };

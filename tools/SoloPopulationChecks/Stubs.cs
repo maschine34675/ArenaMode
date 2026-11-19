@@ -182,7 +182,7 @@ namespace ArenaMode.Combat
 }
 namespace ArenaMode.Bots
 {
-    internal static class ArenaPressure { internal static int PmcFloor(int value) => value; internal static BotDifficulty DifficultyFor(bool pmc) => BotDifficulty.hard; }
+    internal static class ArenaDifficulty { internal static int PmcFloor(int value) => value; internal static BotDifficulty DifficultyFor(bool pmc) => BotDifficulty.hard; }
     internal static class ArenaBotSpawnFilter
     {
         internal static bool CanDispatch(BotZone z, List<ISpawnPoint> p) => !Harness.RejectPlacement;

@@ -14,6 +14,7 @@ function New-Case([string]$name) {
     foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $repo "ArenaMode.Client/Modes/$file") -Destination $dir }
     Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Client/Respawn/ArenaReplayWaitPolicy.cs') -Destination $dir
     Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs') -Destination $dir
+    Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Shared/ArenaDifficultyPolicy.cs') -Destination $dir
     foreach ($file in @('Program.cs','Stubs.cs')) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination $dir }
     [IO.File]::WriteAllText((Join-Path $dir 'Checks.csproj'), $project)
     return $dir

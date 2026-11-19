@@ -1,4 +1,5 @@
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT;
 using System;
@@ -84,8 +85,12 @@ internal static class ArenaHostility
         // says. Tactical spawns one squad and the round runs until it is dead, so
         // a bot nobody can find is not a quiet map — it is a round that will not
         // end, and the player waiting it out is the whole cost.
-        if (Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode)
-            interval = Mathf.Max(2f, interval / 2f);
+        // The difficulty step stretches the interval last, after the per-map value and the
+        // Tactical halving, so Reduced reports the player's position less often everywhere
+        // except in Zombies, which the step does not slow (ArenaDifficultyPolicy.ReportStep).
+        interval = (float)ArenaDifficultyPolicy.SweepInterval(
+            interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode,
+            ArenaDifficultyPolicy.ReportStep(ArenaSession.ActiveMode, ArenaDifficulty.Step));
 
         _nextSweepAt = Time.time + Mathf.Max(1f, interval);
 

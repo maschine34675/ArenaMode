@@ -28,6 +28,7 @@ internal static class Program
             Singleton<AbstractGame>.Instance = ArenaSession.Game = Game;
             ArenaSession.IsActive = true; ArenaMatchService.Current = new();
             ArenaMatchService.TeamStartAbortPending = false; ArenaMode.Areas.ArenaAreaRuntime.IsPending = false;
+            ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
             Settings.BotMovementEnabled = new(true); Settings.BotWalkSpeedMult = new(1.25f); Settings.BotSprintSpeedMult = new(1.3f);
             ArenaBotMovementSain.Allowed = true; ArenaBotMovementSain.Throw = false; Time.timeScale = 1;
         }
@@ -126,6 +127,25 @@ internal static class Program
         rig.Context.CurrentState.Name = EPlayerState.Sprint; motion = new(.1f, 0, 0);
         lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
         Assert(Near(motion.x, .13f), "sprint uses separate factor"); ArenaBotMovement.End(lease);
+        // The frozen difficulty step scales only the surplus over 1.0: walk 1.25 -> 1.125, sprint 1.3 -> 1.15.
+        ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Reduced;
+        rig.Context.CurrentState.Name = EPlayerState.Run; motion = new(.1f, 0, 0);
+        lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
+        Assert(lease != null && Near(motion.x, .1125f), "reduced step halves the walk speed surplus"); ArenaBotMovement.End(lease);
+        rig.Context.CurrentState.Name = EPlayerState.Sprint; motion = new(.1f, 0, 0);
+        lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
+        Assert(lease != null && Near(motion.x, .115f), "reduced step halves the sprint speed surplus"); ArenaBotMovement.End(lease);
+        // The cap of 1.5 comes before the scale: a configured 99 at Reduced is 1.25, not 1.5.
+        Settings.BotSprintSpeedMult.Value = 99; motion = new(.1f, 0, 0);
+        lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
+        Assert(lease != null && Near(motion.x, .125f), "reduced step scales the capped surplus, not the raw setting"); ArenaBotMovement.End(lease);
+        Settings.BotSprintSpeedMult.Value = 1.3f;
+        ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
+        Settings.BotWalkSpeedMult.Value = 1f; ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Reduced;
+        rig.Context.CurrentState.Name = EPlayerState.Run; motion = new(.1f, 0, 0);
+        Assert(ArenaBotMovement.Begin(rig.Context, ref motion, .02f) == null && Near(motion.x, .1f), "reduced step never turns a neutral setting into a boost");
+        Settings.BotWalkSpeedMult.Value = 1.25f; ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
+        rig.Context.CurrentState.Name = EPlayerState.Sprint;
         Settings.BotSprintSpeedMult.Value = 99; motion = new(.1f, 0, 0);
         lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
         Assert(Near(motion.x, .15f), "user multiplier bounded at one point five"); ArenaBotMovement.End(lease);

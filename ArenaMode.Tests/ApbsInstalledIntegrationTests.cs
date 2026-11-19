@@ -82,8 +82,8 @@ public sealed partial class BotTierScalePatchTests
             ApbsBotTierCompatibility.TryEnable([host.WithVersion(version)]);
             Assert.True(ApbsBotTierCompatibility.Enabled, ApbsBotTierCompatibility.FailureReason);
             host.Configure(0, false, 1);
-            var versionToken = StartTimedArena();
-            Assert.Single(host.Generate(new(ArenaSession), host.Wave(), Condition(versionToken, 300, 240)));
+            StartIndependentTeamArena();
+            Assert.Single(host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 }));
             Assert.Equal((60, 70), (host.Samples.Single().Min, host.Samples.Single().Max));
             if (version == "2.4.1+rebuild")
                 Assert.DoesNotContain(logs.Warnings, line => line.Contains("newer than the reviewed"));
@@ -104,14 +104,17 @@ public sealed partial class BotTierScalePatchTests
         foreach (int profileLevel in new[] { 1, 70 })
         {
             host.Configure(mode, split, profileLevel);
-            var token = StartTimedArena();
-            foreach (int elapsed in new[] { 0, 120, 240 })
+            StartIndependentTeamArena();
+            foreach (int elapsed in new[] { 0, 7, 14 })
             {
+                // Minutes on the server wall clock: a fixed mode must not move with them.
+                SetElapsed(ArenaContext.Sessions!, new(ArenaSession), TimeSpan.FromMinutes(elapsed));
                 var wave = host.Wave();
-                var bots = host.Generate(new(ArenaSession), wave, Condition(token, 300, elapsed));
+                var bots = host.Generate(new(ArenaSession), wave, new GenerateCondition { Limit = 1 });
                 Assert.Single(bots);
                 var sample = Assert.Single(host.Samples);
-                int anchor = elapsed == 0 ? 1 : elapsed == 120 ? 33 : 65;
+                // The wire clock no longer moves the band: the Maximum gear level from the first request.
+                int anchor = 65;
                 Assert.NotSame(wave, sample.Details);
                 Assert.Equal(Math.Max(1, anchor - 5), sample.Min);
                 Assert.Equal(anchor + 5, sample.Max);
@@ -127,12 +130,20 @@ public sealed partial class BotTierScalePatchTests
             }
         }
 
+        // Gun Game is the one ramped band: halfway through the map's 15 minutes the anchor is
+        // halfway between level 1 and 65 through the adapter as well (Delta, no split).
+        host.Configure(0, false, 1);
+        StartIndependentTeamArena("gungame");
+        SetElapsed(ArenaContext.Sessions!, new(ArenaSession), TimeSpan.FromMinutes(7.5));
+        Assert.Single(host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 }));
+        Assert.Equal((28, 38), (host.Samples.Single().Min, host.Samples.Single().Max));
+
         // Fixed Delta makes pass-through comparisons deterministic, including
         // PFT, another session on the same map and the map-level opt-out.
         host.Configure(0, false, 1);
         foreach (string context in new[] { "ordinary", "protected", "optout" })
         {
-            StartTimedArena(context == "protected" ? "tactical" : "teamdeathmatch", context == "protected");
+            StartIndependentTeamArena(context == "protected" ? "tactical" : "teamdeathmatch", context == "protected");
             if (context == "optout") ArenaContext.Config.Maps["factory4_day"].ScaleBotTier = false;
             var wave = host.Wave();
             var native = host.UnownedRange(wave);
@@ -143,7 +154,7 @@ public sealed partial class BotTierScalePatchTests
 
         // Parallel legacy batch: the permit must survive real native PLINQ
         // dispatch while staying attached only to each synchronous clone.
-        StartTimedArena("tactical");
+        StartIndependentTeamArena("tactical");
         ArenaContext.Config.Maps["factory4_day"].ScaleBotTier = true;
         ArenaContext.Config.Maps["factory4_day"].BotTierStartLevel = 65;
         var batch = host.Wave(); batch.BotCountToGenerate = 24;
@@ -170,8 +181,8 @@ public sealed partial class BotTierScalePatchTests
         // Known-bug control: disabling only the adapter restores APBS's global
         // profile anchor. The same late Arena demand no longer gets 60..70.
         ApbsBotTierCompatibility.Disable();
-        var lateToken = StartTimedArena();
-        host.Generate(new(ArenaSession), host.Wave(), Condition(lateToken, 300, 240));
+        StartIndependentTeamArena();
+        host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 });
         Assert.NotEqual((60, 70), (host.Samples.Single().Min, host.Samples.Single().Max));
         ApbsBotTierCompatibility.TryEnable([host.Mod]);
         Assert.True(ApbsBotTierCompatibility.Enabled);
@@ -179,7 +190,7 @@ public sealed partial class BotTierScalePatchTests
         // A throwing generator must still remove cloned ownership and restore
         // the pending thread scope; native TryGenerateSingleBot handles failure.
         host.ThrowInPrepare = true;
-        Assert.Empty(host.Generate(new(ArenaSession), host.Wave(), Condition(lateToken, 300, 240)));
+        Assert.Empty(host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 }));
         Assert.NotNull(host.LastClone);
         Assert.False(ArenaBotTierOwnership.TryGetRange(host.LastClone!, new(1, 100), 79, out _));
         host.ThrowInPrepare = false;

@@ -10,7 +10,7 @@ internal static partial class Program
     private static JObject ParticipantAck(string body)
     {
         var sent = JObject.Parse(body);
-        return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"],
+        return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["difficulty"] = sent["difficulty"],
             ["areaId"] = sent["areaId"], ["areaTeamSize"] = sent["areaTeamSize"],
             ["deathmatchHostility"] = sent["deathmatchHostility"],
             ["participants"] = sent["participants"], ["participantBosses"] = false };

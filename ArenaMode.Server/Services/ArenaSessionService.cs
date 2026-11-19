@@ -50,6 +50,8 @@ public class ArenaSessionService
         public string? Mode;
         public string? DeathmatchHostility;
         public int? Participants;
+        /// <summary>Frozen at arm like <see cref="Participants"/>; a request without the field is Maximum.</summary>
+        public ArenaDifficultyStep Difficulty;
         public bool ParticipantBosses;
         public string AreaId = ArenaAreaCatalog.FullMapId;
         public int AreaTeamSize;
@@ -107,10 +109,13 @@ public class ArenaSessionService
         string? areaId = null,
         int? areaTeamSize = null,
         string? deathmatchHostility = null,
-        int? participants = null)
+        int? participants = null,
+        string? difficulty = null)
     {
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out var hostilityFailure))
             throw new ArgumentException(hostilityFailure, nameof(deathmatchHostility));
+        if (!ArenaDifficultyPolicy.TryParse(difficulty, out var frozenDifficulty))
+            throw new ArgumentException("Unknown difficulty step", nameof(difficulty));
         if (!ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)
             || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out areaFailure))
             throw new ArgumentException(areaFailure, nameof(areaId));
@@ -130,6 +135,7 @@ public class ArenaSessionService
                 Mode = mode,
                 DeathmatchHostility = frozenHostility,
                 Participants = selectedParticipants,
+                Difficulty = frozenDifficulty,
                 ParticipantBosses = FreezeParticipantBosses(map, mode, selectedParticipants),
                 AreaId = ArenaAreaCatalog.NormalizeId(areaId!),
                 AreaTeamSize = selectedSize,
@@ -176,10 +182,12 @@ public class ArenaSessionService
         string? areaId = null,
         int? areaTeamSize = null,
         string? deathmatchHostility = null,
-        int? participants = null)
+        int? participants = null,
+        string? difficulty = null)
     {
         armToken = null;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
+            || !ArenaDifficultyPolicy.TryParse(difficulty, out var frozenDifficulty)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, protectPitFireTeam, out var area, out _)
             || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out _)
             || !ArenaParticipantPolicy.TryResolve(map!, mode!, area != null, protectPitFireTeam,
@@ -195,6 +203,7 @@ public class ArenaSessionService
                 || !string.Equals(entry.AreaId, ArenaAreaCatalog.NormalizeId(areaId!), StringComparison.Ordinal)
                 || entry.AreaTeamSize != selectedSize
                 || entry.Participants != selectedParticipants
+                || entry.Difficulty != frozenDifficulty
                 || !string.Equals(entry.DeathmatchHostility, frozenHostility, StringComparison.Ordinal)
                 || !string.Equals(entry.Map, map, StringComparison.OrdinalIgnoreCase)
                 || !string.Equals(entry.Mode, mode, StringComparison.OrdinalIgnoreCase))
@@ -240,10 +249,12 @@ public class ArenaSessionService
         string? areaId = null,
         int? areaTeamSize = null,
         string? deathmatchHostility = null,
-        int? participants = null)
+        int? participants = null,
+        string? difficulty = null)
     {
         if (!Protocol.IsLifecycleRequestId(armToken)
             || !DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
+            || !ArenaDifficultyPolicy.TryParse(difficulty, out var frozenDifficulty)
             || !ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out _)
             || !ArenaAreaCatalog.TryResolveTeamSize(area, mode, protectPitFireTeam, areaTeamSize, out int selectedSize, out _)
             || !ArenaParticipantPolicy.TryResolve(map, mode!, area != null, protectPitFireTeam,
@@ -269,7 +280,7 @@ public class ArenaSessionService
                         mode,
                         protectPitFireTeam,
                         armToken,
-                        ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants);
+                        ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants, frozenDifficulty);
             }
         }
 
@@ -280,7 +291,7 @@ public class ArenaSessionService
                 mode,
                 protectPitFireTeam,
                 armToken,
-                ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants);
+                ArenaAreaCatalog.NormalizeId(areaId!), selectedSize, frozenHostility, selectedParticipants, frozenDifficulty);
     }
 
     private bool PublishArmPreparationLocked(
@@ -292,7 +303,8 @@ public class ArenaSessionService
         string areaId,
         int areaTeamSize,
         string? deathmatchHostility,
-        int? participants)
+        int? participants,
+        ArenaDifficultyStep difficulty)
     {
         if (_sessions.TryGetValue(key, out var existing)
             && existing.State != ArenaSessionState.Idle)
@@ -307,6 +319,7 @@ public class ArenaSessionService
             Mode = mode,
             DeathmatchHostility = deathmatchHostility,
             Participants = participants,
+            Difficulty = difficulty,
             ParticipantBosses = FreezeParticipantBosses(map, mode, participants),
             AreaId = areaId,
             AreaTeamSize = areaTeamSize,
@@ -374,6 +387,7 @@ public class ArenaSessionService
             entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.DeathmatchHostility = null;
             entry.Participants = null;
+            entry.Difficulty = ArenaDifficultyStep.Maximum;
             entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
@@ -757,6 +771,15 @@ public class ArenaSessionService
                 ? entry.Participants : null;
     }
 
+    /// <summary>The frozen step of the current non-idle arm; Maximum when there is none.</summary>
+    public ArenaDifficultyStep GetDifficulty(MongoId sessionId)
+    {
+        lock (_lock)
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry)
+                   && entry.State != ArenaSessionState.Idle && !string.IsNullOrEmpty(entry.ArmToken)
+                ? entry.Difficulty : ArenaDifficultyStep.Maximum;
+    }
+
     /// <summary>Frozen at preparation, never recomputed by a retry or config reload.</summary>
     public bool GetParticipantBosses(MongoId sessionId)
     {
@@ -998,6 +1021,7 @@ public class ArenaSessionService
             entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.DeathmatchHostility = null;
             entry.Participants = null;
+            entry.Difficulty = ArenaDifficultyStep.Maximum;
             entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
@@ -1157,6 +1181,7 @@ public class ArenaSessionService
                 entry.AreaId = ArenaAreaCatalog.FullMapId;
                 entry.DeathmatchHostility = null;
                 entry.Participants = null;
+                entry.Difficulty = ArenaDifficultyStep.Maximum;
                 entry.ParticipantBosses = false;
                 entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ProtectPitFireTeam = false;
@@ -1196,6 +1221,7 @@ public class ArenaSessionService
                 entry.AreaId = ArenaAreaCatalog.FullMapId;
                 entry.DeathmatchHostility = null;
                 entry.Participants = null;
+                entry.Difficulty = ArenaDifficultyStep.Maximum;
                 entry.ParticipantBosses = false;
                 entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ArmToken = null;
@@ -1459,7 +1485,16 @@ public class ArenaSessionService
     /// <summary>
     /// Atomically bind bot-tier generation to one exact live Arena session and
     /// its map. The protected-team flag decides whether the caller preserves
-    /// SPT's native PMC-relative values or applies Arena's solo progression.
+    /// SPT's native PMC-relative values or applies Arena's gear band; the mode
+    /// and the frozen difficulty step choose that band (a fixed one, or the Gun
+    /// Game ramp on <paramref name="elapsed"/>, the server's own wall clock).
+    ///
+    /// The first bot request of a raid cannot precede this context: the client
+    /// sends its raid-start bot preload only after /client/match/local/start was
+    /// answered (TarkovApplication.cs:2991, then LocalGame.vmethod_1 at
+    /// LocalGame.cs:170), and ArenaStartLocalRaidPatch moves the session to
+    /// InRaid in that request's prefix (ProcessLocalRaidStart), so no request
+    /// of the armed raid needs a band outside this exact-session binding.
     /// Requests from another session on the same map must not inherit either.
     /// </summary>
     internal bool TryGetBotTierContext(
@@ -1467,11 +1502,15 @@ public class ArenaSessionService
         string? location,
         out TimeSpan elapsed,
         out bool protectedTeam,
-        out BotTierIdentity? identity)
+        out BotTierIdentity? identity,
+        out string? mode,
+        out ArenaDifficultyStep step)
     {
         elapsed = TimeSpan.Zero;
         protectedTeam = false;
         identity = null;
+        mode = null;
+        step = ArenaDifficultyStep.Maximum;
         if (string.IsNullOrEmpty(location))
             return false;
 
@@ -1484,6 +1523,8 @@ public class ArenaSessionService
 
             elapsed = DateTime.UtcNow - entry.InRaidAtUtc;
             protectedTeam = entry.ProtectPitFireTeam;
+            mode = entry.Mode;
+            step = entry.Difficulty;
             if (!string.IsNullOrEmpty(entry.ArmToken))
                 identity = new(entry, sessionId.ToString(), entry.Map!, entry.ArmToken, entry.InRaidAtUtc);
             return true;

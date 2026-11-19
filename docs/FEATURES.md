@@ -90,6 +90,10 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - The first three selected, validated stages preload during the loading screen.
 - Select the total participant count, including the player; Arena replaces
   casualties while respecting that total.
+- Difficulty builds up over the map's ramp time. A bot's gear is fixed when its
+  profile is generated, so before a PMC is requested Arena drops pooled profiles of
+  that PMC type that lag more than 5 gear levels behind the ramp and has fresh ones
+  generated. Scavs and bots that already exist are not touched.
 
 ### Deathmatch
 
@@ -219,7 +223,9 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Individual spawn requests default to **0.2 seconds** apart; **20%** of infected
   are pistol-armed shooters by default.
 - Early waves favor slow melee infected; later waves vary the slow/fast mix.
-  The configured shooter chance and population limits remain unchanged.
+  The difficulty step works on top of that (see the difficulty section below):
+  at Maximum the slow share fades and the shooter share grows wave by wave, at
+  Reduced the mix stays and at most 24 infected are alive at once.
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.
 - Optional PFT squad with **1–4 companions**. Surviving members can finish a
@@ -754,30 +760,78 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   have targeted guards against the earlier dropped-Surv12/frozen-bot cases.
 - DM/Gun Game refill a fixed selected population. Labyrinth can retain a boss
   slot within that total instead of adding uncontrolled native boss waves.
-- AI pressure includes elapsed time and the player's streak; dying resets the
-  streak contribution, not elapsed pressure. AI difficulty and equipment level
-  are separate controls.
-- For **timed independent Team DM**, time pressure and equipment progression
-  scale to the selected live match duration, reaching their time-based maximum
-  at 80% of the time limit. This is **not** implemented uniformly for every mode:
-  DM, Gun Game and solo Tactical retain their normal elapsed-time ramps.
-- Bot equipment can progress from low to high level through the raid (default
-  level anchors 1→66 over 15 minutes), affecting newly generated bots rather than
-  transforming existing gear. Protected PFT modes bypass that low-level ramp.
-- The normal AI time ramp reaches its maximum after 12 minutes; streak pressure
-  can contribute up to 35% at eight consecutive kills. PMCs progress from hard
-  toward impossible, Scavs from normal toward hard. This affects new bots;
-  Zombies uses its own role/difficulty selection.
+- **One difficulty setting, fixed strength** ([contract](reviews/DIFFICULTY-MODEL-20261118.md),
+  [native acceptance on GPU-2](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md), which also
+  lists what was not run).
+  `[Difficulty] Step` has two values: **Maximum** (default) and **Reduced**. It is
+  read once when the raid is armed, sent to the server, echoed back, and frozen
+  until the raid ends; changing it during a raid changes nothing. The F9 panel
+  shows the frozen value read-only. Nothing reads elapsed time, the kill streak
+  or the Team DM clock for difficulty in Deathmatch, Team DM, Domination or
+  Tactical (solo and PitFireTeam): the values below hold from the first spawn
+  request.
+
+  | Lever | Maximum | Reduced |
+  | --- | --- | --- |
+  | PMC AI level | impossible | hard |
+  | Scav AI level (also the Labyrinth boss slot) | hard | normal |
+  | Bot gear level (server band, +/-5 around it; not written in protected PitFireTeam raids) | the map's end level (default 66) | 60 % of it, never below the map's start level |
+  | PMCs added on top of the PMC floor (Deathmatch, Gun Game) | 4 | 2 |
+  | Refill wait between ambient bursts (legacy burst path only; participant-count Deathmatch and Gun Game refill through the solo population and do not read it) | 0.5 x the map's value | 0.75 x |
+  | Bot speed | the Fast Bots multipliers as set, capped at 1.5 (default 1.5) | half of the surplus over 1.0 (1.5 becomes 1.25) |
+  | Position reports (`HuntPlayer` sweep interval) | as configured | 1.5 x longer |
+
+  A PMC floor of 0 still means no forced PMC share, at both steps. The Fast Bots
+  mutator remains the switch for bot speed; the step only scales its surplus.
+  Hard-coded agility, the Team DM awareness refresh, the Tactical halving of the
+  sweep interval and Deathmatch free-for-all are not part of the step.
+- **Gun Game is the one mode that builds up**, on one ramp: the map's
+  `botTierRampMinutes` (default 15). The server's gear level climbs from the map's
+  start level (default 1) to the step's gear level on its wall clock since the raid
+  went live. The client uses the same ramp length, read from the per-map server
+  configuration (15 if absent), with the match clock: PMCs spawn at hard until 80 %
+  of the ramp and then at the step's level, Scavs at normal until 50 % and then at
+  the step's level, and the PMC bonus is the progress times the step's bonus,
+  rounded. Kills and a finished ladder change nothing. A bot already walking is
+  never re-rated; only newly spawned bots follow the climb.
+- Bot equipment level is a server setting of the map (`botTierStartLevel`,
+  `botTierEndLevel`, `botTierRampMinutes`, `scaleBotTier`). Outside Gun Game only
+  the end level matters (it is the Maximum gear level); `scaleBotTier = false`
+  keeps the opt-out to native levels. It affects newly generated bots, not
+  existing gear. **Protected PFT raids** keep SPT's native profile-relative
+  opponent gear at both steps and receive no APBS permit; the step still decides
+  their AI level, speed and position reports.
+- The pooled PMC profile backup is warmed for exactly the levels the step can
+  request (impossible at Maximum, hard at Reduced; in Gun Game only its opening
+  level, hard). A warmed or refilled profile keeps the gear of its generation time, so in
+  Gun Game, before a PMC is requested, pooled profiles of that role and difficulty
+  more than 5 levels behind the current ramp level are dropped and the server
+  generates a fresh batch (at most once per 30 seconds per role and difficulty; Scavs
+  and bots already spawned are not covered). Team DM and Domination no longer carry a match clock on their bot
+  requests; their raid-start profile preload stays skipped until loading time has
+  been measured natively.
+- Zombies follow the step through their composition
+  ([wave composition](reviews/ZOMBIE-FLOW-20261115.md) is the rhythm underneath).
+  Maximum: the configured number alive from wave one; the slow share of the melee
+  infected keeps 75/50/25 % in waves 1-3 and the 40/20/30 % rhythm, minus 5 points
+  per wave from wave 4 on (35, 10, 15, 20, 0, 0, 5, 0, ...); the shooter share grows
+  by a tenth of the setting per wave, at most twice the setting and 100 %, exact at
+  0 % and 100 %. Reduced: the rhythm without the fade, a flat shooter share, and at
+  most 24 alive (the lower of the setting and 24). The step is frozen at match
+  start. Position reports are not slowed in Zombies at either step.
+- Saved settings of the old model (`ScaleDifficulty`, `PressureRampMinutes`,
+  `PressureStreakPercent`, `PressurePmcBonus`, `MaxBotDifficulty`) no longer
+  exist. Once, a saved `ScaleDifficulty = false` or a `MaxBotDifficulty` below
+  impossible selects Reduced; everything else keeps Maximum.
 - APBS 2.4.1 has an explicit adapter; unsupported versions retain their own
   equipment-level selection instead of being modified blindly.
 - Fixed participant/faction counts are not increased beyond the selected total
-  by the older pressure-floor settings. No single unified difficulty slider is
-  implemented yet.
+  by the PMC floor or its bonus.
 
 Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 [agility](../ArenaMode.Client/Movement/ArenaBotAgility.cs),
-[pressure](../ArenaMode.Client/Bots/ArenaPressure.cs),
-[duration policy](../ArenaMode.Shared/ArenaDifficultyClock.cs),
+[difficulty reader](../ArenaMode.Client/Bots/ArenaDifficulty.cs),
+[difficulty policy](../ArenaMode.Shared/ArenaDifficultyPolicy.cs),
 [population ownership](reviews/SOLO-POPULATION-REVIEW.md),
 [APBS integration](reviews/APBS-COMPATIBILITY-REVIEW.md),
 [bot implementation](../ArenaMode.Client/Bots).

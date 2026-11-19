@@ -50,11 +50,19 @@ These counters do not establish an FPS gain or justify increasing population cap
 
 ## Wave composition
 
-The configured shooter chance remains unchanged, including exactly 0% and 100%.
+See also [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md): the frozen difficulty
+step fades the slow share below, grows the shooter share and, at Reduced, limits the population
+to 24. The rhythm below is the base the step works on (`ZombieCompositionPolicy.SlowPercent(wave)`);
+what a draw uses is `SlowPercent(wave, step)`.
+
+The configured shooter chance is the share of wave one and the base of every later wave
+(the difficulty step grows it at Maximum and keeps it flat at Reduced); exactly 0% and
+100% stay exact at every wave.
 Among the remaining melee infected, the slow share is 75%, 50% and 25% in waves
 1–3, then repeats 40%, 20%, 30%. The remainder uses the native fast variant.
 Native difficulties map `easy` to slow, `normal` to fast and `hard` to shooting.
-Role weights, wave quotas, population caps and equipment are unchanged. No
+Role weights, wave quotas and equipment are unchanged, and so is the population cap
+except for the Reduced limit of 24. No
 additional health or damage scaling is introduced; boss and impossible variants
 remain excluded.
 

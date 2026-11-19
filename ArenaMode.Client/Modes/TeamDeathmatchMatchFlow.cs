@@ -19,14 +19,6 @@ public sealed partial class TeamDeathmatchMode
     internal bool ResultOwnsCurrentRaid => HasResult && IsCurrentRaid()
         && ReferenceEquals(ArenaMatchService.Current, _match);
     internal float PlayingElapsed => IsDomination ? _dominationRules?.Elapsed(Time.time) ?? 0f : _rules?.Elapsed(Time.time) ?? 0f;
-    internal bool TryGetDifficultyClock(out float elapsed, out int duration)
-    {
-        elapsed = 0; duration = 0;
-        if (!IsCurrentMatch() || !MatchRulesReady) return false;
-        elapsed = PlayingElapsed;
-        duration = MatchTimeLimit;
-        return true;
-    }
     internal string ResultHeading => MatchResult == TdmMatchResult.Won ? "VICTORY"
         : MatchResult == TdmMatchResult.Lost ? "DEFEAT" : "DRAW";
     internal string ResultDetail => $"{FriendlyFaction} {FinalFriendlyScore} : {FinalOpponentScore} {OpponentFaction} — {MatchReason}";

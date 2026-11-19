@@ -138,6 +138,7 @@ namespace ArenaMode.Config
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
         public static Entry<int> TeamDeathmatchSize = new() { Value = 5 };
         public static Entry<string> TeamDeathmatchSide = new() { Value = "Profile" };
+            public static Entry<ArenaMode.Shared.ArenaDifficultyStep> DifficultyStep = new() { Value = ArenaMode.Shared.ArenaDifficultyStep.Maximum };
         public static Entry<int> AreaTeamSize = new() { Value = 2 };
         public static bool TrySelectAreaTeamSize(int size)
         { if (RefuseAreaWrite || size < 2 || size > 5) return false; AreaTeamSize.Value = size; return true; }
@@ -203,7 +204,8 @@ namespace ArenaMode.Session
         public static bool ParticipantBosses;
         public static void MarkArmed(string map, string mode, ArenaMode.Modes.DeathmatchOptions deathmatch = null,
             int? participants = null, bool participantBosses = false, string teamSide = null,
-            string localProfileId = null, EFT.EPlayerSide? nativeSide = null)
+            string localProfileId = null, EFT.EPlayerSide? nativeSide = null,
+            ArenaMode.Shared.ArenaDifficultyStep difficulty = ArenaMode.Shared.ArenaDifficultyStep.Maximum)
         {
             ArmEpoch++;
             ArenaTeamSideSelection.Capture(mode, teamSide, nativeSide == EFT.EPlayerSide.Usec,

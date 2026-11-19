@@ -7,5 +7,6 @@
   <ItemGroup>
     <Compile Remove="SainChecks/**/*.cs" />
     <Compile Include="$(BotMovementSource)" Link="Production/ArenaBotMovement.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
   </ItemGroup>
 </Project>

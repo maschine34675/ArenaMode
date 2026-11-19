@@ -1,5 +1,14 @@
 # Match-duration difficulty — 2026-09-09
 
+> **Superseded on 2026-11-18** by [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md).
+> The following no longer exist: the match-duration curve and the 80 % horizon, the
+> kill-streak surge, the 64 % PMC switch, the `ScaleDifficulty`, `PressureRampMinutes`,
+> `PressureStreakPercent`, `PressurePmcBonus` and `MaxBotDifficulty` settings,
+> `ArenaBotDifficultyClockPatch` with its three hooks, the `TimedWave` request type, the
+> `arenaMatchClock` wire condition, the server's request-size cap and the readiness gate of
+> the prewarm. Bot strength is now one frozen step, fixed from the first spawn outside
+> Gun Game. The text below is kept as the record of the 2026-09 design.
+
 Finite **independent Team Deathmatch** now uses its frozen match duration and
 released playing clock for both existing time-dependent difficulty curves:
 

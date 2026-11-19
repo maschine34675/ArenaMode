@@ -220,7 +220,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (!_population.TryReserve(usec, CountBots(usec), Time.realtimeSinceStartup, out var ticket)) return;
         var role = usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
         Plugin.ModLogger.LogDebug($"Team Deathmatch preparing {(usec ? "USEC" : "BEAR")} request {ticket.Id}.");
-        int planned = BurstSpawnService.SpawnFactionBot(role, ArenaPressure.DifficultyFor(true),
+        int planned = BurstSpawnService.SpawnFactionBot(role, ArenaDifficulty.DifficultyFor(true),
             bot => Adopt(ticket, bot),
             () => IsRequestCurrent(ticket),
             () => BeginNativeDispatch(ticket),

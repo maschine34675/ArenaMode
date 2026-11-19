@@ -9,5 +9,6 @@
     <Compile Include="../../ArenaMode.Client/Bots/ArenaSainVersion.cs" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(TempoSource)" Link="Production/ArenaBotTempo.cs" />
     <Compile Include="../../ArenaMode.Client/Movement/ArenaBotMovement.cs" Link="Production/ArenaBotMovement.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
   </ItemGroup>
 </Project>

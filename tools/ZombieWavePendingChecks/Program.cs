@@ -21,7 +21,7 @@ internal static class Program
         internal readonly GameWorld World = new();
         internal readonly ArenaMatch Match = new();
         internal readonly ZombieMode Mode;
-        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f, bool snapshot = false)
+        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f, bool snapshot = false, int maxAlive = 2)
         {
             Time.time = 0; Time.timeScale = 1;
             Singleton<AbstractGame>.Instance = Game;
@@ -41,7 +41,7 @@ internal static class Program
                 World.RegisteredPlayers.Add(player); World.Ever[player.ProfileId] = player;
                 bots.BotsController.Bots.BotOwners.Add(bot); PitFireTeamCompat.Followers.Add(bot);
             }
-            Settings.ZombieMaxAlive.Value = 2; Settings.ZombieWaveStartSize.Value = size; Settings.ZombieWaveGrowth.Value = 0;
+            Settings.ZombieMaxAlive.Value = maxAlive; Settings.ZombieWaveStartSize.Value = size; Settings.ZombieWaveGrowth.Value = 0;
             Settings.ZombieSpawnIntervalSeconds.Value = .2f; Settings.ZombieIntermissionSeconds.Value = 2;
             Settings.ZombieStuckWaveTimeoutSeconds.Value = watchdog;
             Settings.ZombieShooterPercent.Value = 37;
@@ -84,6 +84,21 @@ internal static class Program
             Check(ZombieRoleMix.LastWave == 2, "draw follows actual second wave instead of opening composition");
             Check(ZombieRoleMix.LastShooter == 37, "later draw retains frozen shooter percentage after live config edit");
         }
+
+        // The step is frozen at match start: the alive limit and every draw use it, not the live value.
+        foreach (var (step, expectedDispatches) in new[] { (ArenaMode.Shared.ArenaDifficultyStep.Reduced, 0), (ArenaMode.Shared.ArenaDifficultyStep.Maximum, 1) })
+        {
+            ArenaDifficulty.Step = step;
+            using var f = new Fixture(size: 30, maxAlive: 40);
+            ArenaDifficulty.Step = step == ArenaMode.Shared.ArenaDifficultyStep.Reduced ? ArenaMode.Shared.ArenaDifficultyStep.Maximum : ArenaMode.Shared.ArenaDifficultyStep.Reduced;
+            ZombieSpawnService.Alive = 24;
+            f.Tick(.2f);
+            Check(ZombieSpawnService.Dispatched == expectedDispatches, "the alive limit follows the frozen step (Reduced caps 40 at 24, Maximum keeps it)");
+            ZombieSpawnService.Alive = 0; ZombieSpawnService.Pending = 0; ZombieRoleMix.Draws = 0;
+            f.Tick(.5f);
+            Check(ZombieRoleMix.Draws > 0 && ZombieRoleMix.LastStep == step, "draws use the step frozen at match start, not the live value");
+        }
+        ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
 
         using (var f = new Fixture(snapshot: true))
         {

@@ -75,69 +75,23 @@ for focused follow-up; see [native evidence](reports/2026-10/GPU-SPAWN-GATE-COMP
   A separate fix should stop live-roster observation during teardown of its
   exact game, without weakening active-play identity or persistence guards.
 
-## Difficulty controls in the native game menu
+## Difficulty
 
-Goal: expose understandable, mode-specific settings without conflating bot AI,
-equipment, population pressure and victory rules. Actual gameplay balancing
-tests remain the user's responsibility.
+The proposal for difficulty controls in the native game menu is superseded by the model of
+2026-11-18 ([DIFFICULTY-MODEL-20261118.md](reviews/DIFFICULTY-MODEL-20261118.md)): one
+`[Difficulty] Step` (Maximum or Reduced), fixed bot strength from the first spawn, and build-up
+only in Gun Game. The pressure curve, the kill-streak term and the separate settings for them
+are gone. Still open:
 
-Current mechanisms established by read-only inspection:
-
-- `ArenaPressure`: independent time/streak curve. Saved settings: full time
-  pressure at 12 minutes, up to 35 percentage points at eight consecutive kills;
-  death resets the streak contribution but not elapsed match time. Arena's PMC
-  requests use hard -> impossible at 80%; Scavs normal -> hard at 50%. The PMC
-  floor is hard even when the configured maximum is easy/normal.
-- Ambient refills in Endless, Rounds and Gun Game: saved PMC floor 8 plus up to
-  4, bounded by the map refill target; base cooldown 8 s -> 4 s at full pressure.
-  Map targets are Factory 12, Labs/Labyrinth 10. Additional native/mod waves and
-  bosses have separate paths; this is not a universal maximum or AI override.
-- `ArenaBotTierScalePatch`: separate server generation curve, saved midpoint level
-  1 -> 66 over 15 minutes with a +/-5 range. Affects generation context, not
-  existing bot gear or an Arena HP/damage multiplier. Protected PFT is excluded;
-  TDM is not. Cached, already generated profiles can retain older equipment.
-- SAIN preset behavior remains relevant. The Arena filter replaces Rat, Timmy
-  and Coward with the preset's Normal personality on assignment. Personality
-  Normal is distinct from native BotDifficulty.normal; existing bots are not
-  explicitly reassigned when toggling the filter.
-- HuntPlayer supplies player positions periodically, not a universal aggression
-  multiplier. TDM uses its own mutual opponent awareness and ignores this switch.
-- Player kits, skills/movement aids, medical/magazine speed and respawn protection
-  independently affect practical difficulty.
-
-Mode distinctions to preserve:
-
-| Mode | Existing relevant rules / constraints |
-| --- | --- |
-| Endless | Continuous population and shared time/streak progression. |
-| Rounds | Saved 15 kills OR 300 s, 15 s break; world/bots and global progression remain across rounds. |
-| Gun Game | Saved 24 weapon rungs; local kills advance, final-rung kill starts another ladder; optional death demotion currently off. Enemy progression is time-based, not tied to the player's rung. |
-| Solo Tactical | Saved 5 PMCs, selectable 1-15 or Scavs; 20 s buy, 240 s fight; saved economy 250,000 start / 35,000 kill / 150,000 win / 80,000 loss. |
-| Protected PFT Tactical | Fixed player+4 vs5; saved 3 wins; protected entry loadout, no buy economy, no Arena gear ramp. Existing PFT follower lifecycle requires hard AI. |
-| Team Deathmatch | Saved 5v5, selectable 2-12 per team before match; pressure and equipment progression affect both factions, including allies. No separate enemy-only strength slider. |
-
-Proposed UI: AI strength, equipment, population/pace, and mode rules, with optional
-mode-specific Easy/Normal/Hard presets built on top. A real easier PMC baseline
-needs new logic; relabeling the existing maximum would be misleading. Hide
-irrelevant controls (ambient PMC floor in Tactical/TDM, HuntPlayer in TDM).
-
-Explicit application labels are required:
-
-- Live/next update: pressure parameters, future position reports, refill choices.
-  Existing knowledge/population/AI is not automatically undone.
-- New bots/profiles: AI choice, personality assignment and equipment generation.
-- Next round/life: proposed safe boundary for Tactical size/type, timer/rewards,
-  kit and respawn protection; some current readers otherwise react immediately.
-- Next match: mode, TDM team size, PFT win target, map clone limits/waves/bosses,
-  frozen kit/ladder catalog and rung count.
-
-The web client-settings sync polls in the menu, not during active Arena raids.
-Native-menu server settings need an explicit validated save/override path; the
-current config route reads config. Native difficulty datasets are process-cached:
-do not clear global caches to force an Arena-only tuning change. Relevant entry
-points: `Config/Settings.cs`, `Config/SettingsSync.cs`, `Bots/ArenaPressure.cs`,
-`Bots/ArenaSainPersonalities.cs`, `Session/ArenaClientConfig.cs` under the client;
-server `Patches/ArenaBotTierScalePatch.cs` and `Services/ArenaSessionService.cs`.
+- A difficulty row on the map screen. The step is a BepInEx setting with an F12 row today and
+  is frozen when the raid is armed; the native menu does not show it.
+- The native measurements the contract lists (impossible against hard under SAIN, Tactical
+  round one at the Maximum band, the weakest stock kits, whether the map timer ends a raid
+  before the Gun Game ramp). Until they are done the numbers in the table are provisional.
+- A Gun Game ramp driven by kills instead of time, as a possible later refinement. The
+  decision of 2026-11-18 is time only.
+- Zombies: the escalation by composition and the Reduced population limit that the contract
+  describes are not implemented as of this entry.
 
 ## Smaller playable areas within larger maps
 

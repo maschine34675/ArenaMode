@@ -157,7 +157,7 @@ internal static class ColaArmChecks
 
     private static string Accept(JObject payload) => new JObject
     {
-        ["armed"] = true, ["armToken"] = payload["requestId"],
+        ["armed"] = true, ["armToken"] = payload["requestId"], ["difficulty"] = payload["difficulty"],
         ["participants"] = payload["participants"], ["participantBosses"] = false,
         ["deathmatchHostility"] = payload["deathmatchHostility"]
     }.ToString();

@@ -16,7 +16,7 @@ namespace ArenaMode.Bots;
 /// Top-up burst spawner: whenever the alive population drops below the target,
 /// inject bots directly on spawn points we choose ourselves — no wave, no boss
 /// path, none of the engine's placement filters. The ABPS pump is the baseline
-/// pressure; this closes the refill gap after a killing spree and holds the PMC
+/// supply; this closes the refill gap after a killing spree and holds the PMC
 /// floor that makes the arena worth playing.
 /// </summary>
 internal static class BurstSpawnService
@@ -133,16 +133,16 @@ internal static class BurstSpawnService
             var pendingScav = CountPending(RecentScavInjections);
             var projected = alive + pendingPmc + pendingScav;
 
-            // PMCs are the pressure that makes the arena fun; scavs only fill the
+            // PMCs are what makes the arena fun; scavs only fill the
             // rest. Without a separate floor the single "alive" target is met by
             // whatever spawns fastest — which was scavs, every time.
-            var pmcFloor = Mathf.Min(ArenaPressure.PmcFloor(Settings.PmcFloor.Value), target);
+            var pmcFloor = Mathf.Min(ArenaDifficulty.PmcFloor(Settings.PmcFloor.Value), target);
             var wantPmc = alivePmc + pendingPmc < pmcFloor;
 
             // The target bounds the POPULATION; the PMC floor only decides what
             // the next spawn should be. Skipping the bound whenever PMCs were
             // short worked while the floor sat safely below the target — but
-            // pressure raises the floor, and once it CATCHES the target the
+            // the step's PMC bonus raises the floor, and once it CATCHES the target the
             // bound never fires again: a map asking for ten was carrying
             // fourteen, on a corridor map, with SAIN thinking for all of them.
             // A PMC deficit may still overshoot a little, so a scav-filled map
@@ -161,14 +161,14 @@ internal static class BurstSpawnService
                 ? (_nextPmcIsBear ? WildSpawnType.pmcBEAR : WildSpawnType.pmcUSEC)
                 : WildSpawnType.assault;
 
-            // Baselines are what this line used to hardcode; pressure only
-            // ever raises them, so a raid never starts easier than it did.
-            var difficulty = ArenaPressure.DifficultyFor(wantPmc);
+            // The level comes from the fixed policy row of the frozen step
+            // (Gun Game alone ramps); there is no time or streak term.
+            var difficulty = ArenaDifficulty.DifficultyFor(wantPmc);
 
             Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
-                + $"— requesting {role} ({difficulty}, pressure {ArenaPressure.Describe()}). "
+                + $"— requesting {role} ({difficulty}, difficulty {ArenaDifficulty.Describe()}). "
                 + $"Others alive: {DescribeRoles()}");
 
             if (wantPmc)
@@ -179,7 +179,7 @@ internal static class BurstSpawnService
             SpawnPair(spawner, zone, role, difficulty, wantPmc);
 
             _nextAttemptAt = Time.time
-                + ArenaPressure.BurstCooldown(ArenaClientConfig.GetBurstCooldownSeconds(map));
+                + ArenaDifficulty.BurstCooldown(ArenaClientConfig.GetBurstCooldownSeconds(map));
         }
         catch (Exception ex)
         {
@@ -1262,7 +1262,7 @@ internal static class BurstSpawnService
                 continue;
 
             // PitFireTeam followers occupy BotOwner slots but are the local
-            // player's four teammates. Counting them toward Arena pressure
+            // player's four teammates. Counting them toward the Arena bot population
             // would silently reduce the five requested opponents to one.
             if (Compat.PitFireTeamCompat.IsTeamMember(bot))
                 continue;
@@ -1330,23 +1330,26 @@ internal static class BurstSpawnService
     /// </summary>
     public static void PrewarmPmcProfiles()
     {
-        // This runs before ArenaMatch is constructed. Finite TDM freezes these
-        // same settings at OnMatchStart; do not preload its peak difficulty with
-        // opening-tier equipment. Its per-wave server batch is request-sized.
-        if (ArenaSession.IsActive && ArenaBotDifficultyClockPatch.IsReady && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
-            && Settings.TeamDeathmatchTimeLimitSeconds.Value > 0) return;
+        // Runs before ArenaMatch is constructed; the frozen step and the mode are
+        // already in ArenaSession. The decision lives in the shared policy so it is
+        // testable: nothing outside an active session, none for Zombie, none for a
+        // Tactical squad of scavs, one level in the fixed modes, and in Gun Game only
+        // the opening level (a profile pooled now carries the start-level gear band, so
+        // the step's level is requested fresh once the ramp reaches it). The squad
+        // setting is read live; a squad switched to PMC mid-raid pays one cold round trip.
         try
         {
+            var levels = Shared.ArenaDifficultyPolicy.PrewarmLevels(
+                ArenaSession.IsActive, ArenaSession.ActiveMode, Settings.TacticalSquadIsPmc.Value, ArenaDifficulty.Step);
+            if (levels.Length == 0)
+                return;
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
             if (spawner == null)
                 return;
 
-            // Keyed by (role, difficulty) with exact equality, so every difficulty
-            // we might ASK for needs its own backup — otherwise the pre-warm
-            // stops covering PMC refills at exactly the moment pressure peaks
-            // and the refills matter most.
-            foreach (var difficulty in new[] { BotDifficulty.hard, BotDifficulty.impossible })
+            foreach (var level in levels)
             {
+                var difficulty = (BotDifficulty)(int)level;
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);
             }

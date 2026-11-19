@@ -12,10 +12,10 @@ public sealed partial class BotTierScalePatchTests
 {
     private static BotGenerationDetails OwnedWave()
     {
-        var token = StartTimedArena();
+        var token = StartIndependentTeamArena();
         var wave = Details("factory4_day", 47, 33, 61);
         wave.IsPmc = true; wave.Role = "pmcUSEC"; wave.Side = "Usec"; wave.BotCountToGenerate = 15;
-        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession), wave, Condition(token, 300, 240));
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession), wave);
         return wave;
     }
 
@@ -65,7 +65,7 @@ public sealed partial class BotTierScalePatchTests
                     sessions.ProcessLocalRaidStart(new(ArenaSession), "factory4_day", Protocol.BuildNativeStartIdentity(token));
                     break;
                 case "stale": MakeRaidStale(sessions, new(ArenaSession)); break;
-                case "serviceReplacement": StartTimedArena(); break;
+                case "serviceReplacement": StartIndependentTeamArena(); break;
                 case "optOut": ArenaContext.Config.Maps["factory4_day"].ScaleBotTier = false; break;
                 case "cloneLevel": clone.PlayerLevel++; break;
                 case "cloneRange": clone.LocationSpecificPmcLevelOverride!.Max++; break;

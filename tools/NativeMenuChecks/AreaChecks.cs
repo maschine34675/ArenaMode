@@ -36,7 +36,7 @@ internal static partial class Program
         {
             if (route != Protocol.RaidStartRoute) return "{\"disarmed\":true,\"state\":\"Idle\"}";
             var sent = JObject.Parse(body);
-            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"],
+            return new JObject { ["armed"] = true, ["armToken"] = sent["requestId"], ["difficulty"] = sent["difficulty"], ["areaId"] = sent["areaId"], ["deathmatchHostility"] = sent["deathmatchHostility"],
                 ["participants"] = sent["participants"], ["participantBosses"] = false, ["areaTeamSize"] = sent["areaTeamSize"] }.ToString();
         };
     }
@@ -47,7 +47,7 @@ internal static partial class Program
         {
             ConfigureAreaNegotiation();
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
+                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"], ["areaId"] = wrongArea }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
             Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false, ArenaAreaCatalog.CustomsFactoryCenterTeamsId, 2),
                 "bounded start rejects missing, downgraded, future or differently cased area acknowledgement");
@@ -93,7 +93,7 @@ internal static partial class Program
         {
             ConfigureAreaNegotiation();
             RequestHandler.Post = (route, body) => route == Protocol.RaidStartRoute
-                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["areaId"] = wrongArea }.ToString()
+                ? new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"], ["areaId"] = wrongArea }.ToString()
                 : "{\"disarmed\":true,\"state\":\"Idle\"}";
             Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "teamdeathmatch", false,
                     ArenaAreaCatalog.CustomsFactoryCenterTeamsId, 2) && ArenaAreaRuntime.ArmCalls == 0,
@@ -155,7 +155,7 @@ internal static partial class Program
         Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
         ArenaAreaNavigationPatches.IsReady = ArenaAreaLoadPatch.IsReady = ArenaAreaSpawnPointsPatch.IsReady = false;
         RequestHandler.Post = (route, body) => new JObject
-            { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"],
+            { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"],
                 ["participants"] = JObject.Parse(body)["participants"], ["participantBosses"] = false }.ToString();
         Assert(Start(Request(), out task) && ArenaAreaRuntime.ArmedArea == null,
             "full-map participant negotiation needs neither area hooks nor an area echo");

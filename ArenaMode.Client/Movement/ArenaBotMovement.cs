@@ -1,7 +1,9 @@
 #nullable disable
+using ArenaMode.Bots;
 using ArenaMode.Config;
 using ArenaMode.Modes;
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT;
 using HarmonyLib;
@@ -120,7 +122,11 @@ internal static class ArenaBotMovement
                 || !ArenaBotMovementSain.AllowsBoost(owner, player)) return null;
 
             float requested = (state == EPlayerState.Sprint ? Settings.BotSprintSpeedMult : Settings.BotWalkSpeedMult)?.Value ?? 1f;
-            if (!Finite(requested) || requested <= 1f) return null;
+            if (!Finite(requested)) return null;
+            // The difficulty step scales only the surplus over 1.0, from the step frozen at arm:
+            // effective = 1 + (setting - 1) x scale. The user's own cap of 1.5 is applied first.
+            requested = (float)ArenaDifficultyPolicy.BotSpeedFactor(requested, ArenaDifficulty.Step);
+            if (requested <= 1f) return null;
             double factor = Math.Min(requested, 1.5f);
             bool cornerLimited = false;
             var mover = owner.Mover;
@@ -185,7 +191,10 @@ internal static class ArenaBotMovement
         {
             _loggedWorld = new WeakReference(world); _nextDiagnostic = Time.time + 60f;
             _boosted = _cornerLimited = _stepLimited = 0;
-            Plugin.ModLogger.LogDebug($"Arena bot movement active: walk x{Settings.BotWalkSpeedMult.Value:0.##}, sprint x{Settings.BotSprintSpeedMult.Value:0.##}; both teams, grounded motion only, native collision retained.");
+            // The effective factors of this raid (the frozen difficulty step scales the surplus of
+            // the settings), not the settings themselves: a Reduced raid reads x1.25 for 1.5.
+            var frozenStep = ArenaDifficulty.Step;
+            Plugin.ModLogger.LogDebug($"Arena bot movement active: walk x{ArenaDifficultyPolicy.BotSpeedFactor(Settings.BotWalkSpeedMult.Value, frozenStep):0.##}, sprint x{ArenaDifficultyPolicy.BotSpeedFactor(Settings.BotSprintSpeedMult.Value, frozenStep):0.##} (difficulty {ArenaDifficultyPolicy.ToWire(frozenStep)}, settings x{Settings.BotWalkSpeedMult.Value:0.##} / x{Settings.BotSprintSpeedMult.Value:0.##}); both teams, grounded motion only, native collision retained.");
         }
         if (boosted) _boosted++;
         if (corner) _cornerLimited++;

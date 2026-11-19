@@ -497,6 +497,29 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
+pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
+[native report](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):** done and accepted natively on GPU-2 (dev
+build `72273354`, client and server DLL only, still installed). In: one frozen `[Difficulty] Step` (Maximum default,
+Reduced) sent on the arm path and echoed by the server; `ArenaDifficultyPolicy` as the single table; fixed AI level,
+gear band, PMC bonus, bot speed surplus and position-report interval outside Gun Game; the Gun Game ramp over
+`botTierRampMinutes` with `ArenaGunGameFreshGearPatch` dropping pooled PMC profiles more than 5 levels below it;
+Zombies following the step through their composition and, at Reduced, a limit of 24; removal of the pressure
+settings with a one-time migration, of `ArenaBotDifficultyClockPatch`, `TimedWave`, the server's wire-clock branch
+and the prewarm readiness gate. Seen natively: both steps in Deathmatch, Tactical and Zombies, Maximum in Team DM,
+Domination, Gun Game and a protected PitFireTeam raid, an ordinary raid, the frozen step, the old `.cfg`, the bot
+speed at both steps, the 60-minute raid timer on a ported map, `impossible` against `hard` and `hard` against
+`normal` value by value. Not run natively: Zombie waves beyond the first (fade and shooter growth are harness-only),
+Gun Game at Reduced and its scav switch, a long Team DM or Domination match with the full reserve per request,
+loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
+maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a
+long match; the menu row ALIVE AT ONCE shows the setting while Reduced applies 24; Tactical's round-one kit without
+a purchase is the cheapest one (drifter, .366 EKO, the lowest penetration of the catalogue) although the opponents
+now wear top-tier armour from round one, and a played Tactical round at Maximum is still owed; the server's gear clock
+starts with the local-start request and the client's AI clock with the match (the server is ahead by the loading
+time), and `botTier*` are read live on the server. Client and server must be installed together; an older client
+against a new server runs at Maximum (Debug line in the server log).
+
 **Pre-release polish, 2026-11-13 (in `master`; [contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
 [native report](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)):** done and seen natively except for
 what the report lists as not run: a Domination match to its limit on the new venues, the other two Lab
@@ -997,7 +1020,7 @@ Native coverage still missing (offline or harness coverage only):
   the character preview ([CHARACTER-PREVIEW-REVIEW.md](reviews/CHARACTER-PREVIEW-REVIEW.md));
   exit waymarkers overlapping the status panel (status unknown).
 
-Longer-standing: [FUTURE-WORK.md](FUTURE-WORK.md) (difficulty controls, further bounded
+Longer-standing: [FUTURE-WORK.md](FUTURE-WORK.md) (what remains of the difficulty work, further bounded
 areas, objective modes such as Capture the Flag; its area section records prototype progress
 and links the evidence). Multiplayer with Fika is a concept only
 ([MULTIPLAYER-FIKA-CONCEPT-20261026.md](reports/2026-10/MULTIPLAYER-FIKA-CONCEPT-20261026.md)).

@@ -5,6 +5,7 @@ using ArenaMode.Events;
 using ArenaMode.Kits;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT;
 using System;
@@ -71,6 +72,11 @@ public sealed partial class ZombieMode : IArenaMode
     // A live F12 edit mid-raid must not retarget a wave already in flight.
     private ZombieWavePolicy.Config _config;
     private int _shooterPercent;
+
+    // The difficulty step of this raid, frozen at match start from the armed session
+    // (never the live setting): it decides the alive limit, the slow-share fade and the
+    // shooter growth of every wave, so one raid never mixes two steps.
+    private ArenaDifficultyStep _step;
 
     private ZombieWavePolicy.State _waveState;
     private System.Random _rng; // Unity also has a Random type in scope here — must stay fully qualified.
@@ -238,9 +244,10 @@ public sealed partial class ZombieMode : IArenaMode
             shooterPercent = Settings.ZombieShooterPercent.Value;
         }
 
+        _step = ArenaDifficulty.Step;
         _config = new ZombieWavePolicy.Config
         {
-            MaxAlive = Settings.ZombieMaxAlive.Value,
+            MaxAlive = ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value),
             WaveStartSize = waveStartSize,
             WaveGrowth = Settings.ZombieWaveGrowth.Value,
             IntermissionSeconds = Settings.ZombieIntermissionSeconds.Value,
@@ -296,7 +303,7 @@ public sealed partial class ZombieMode : IArenaMode
         Plugin.ModLogger.LogDebug(
             $"Zombie match started: wave 1 of {_config.WaveStartSize}, +{_config.WaveGrowth}/wave, "
             + $"max alive {_config.MaxAlive}, spawn every {_config.SpawnIntervalSeconds:0.##}s, "
-            + $"intermission {_config.IntermissionSeconds:0.##}s, shooter share {_shooterPercent}%.");
+            + $"intermission {_config.IntermissionSeconds:0.##}s, shooter share {_shooterPercent}%, difficulty {ArenaDifficultyPolicy.ToWire(_step)}.");
     }
 
     public void Tick(float deltaTime)
@@ -413,7 +420,7 @@ public sealed partial class ZombieMode : IArenaMode
 
             for (int i = 0; i < result.SpawnNow; i++)
             {
-                var draw = ZombieRoleMix.Next(_rng, _shooterPercent, _waveState.WaveNumber);
+                var draw = ZombieRoleMix.Next(_rng, _shooterPercent, _waveState.WaveNumber, _step);
                 bool dispatched = ZombieSpawnService.TryMapRole(draw.Role, out var role)
                     && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty)
                     && ZombieSpawnService.TryRequest(role, difficulty);
