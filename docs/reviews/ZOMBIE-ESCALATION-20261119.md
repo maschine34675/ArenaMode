@@ -96,13 +96,20 @@ panel line already carries wave, count and clock) and a harness pins that.
 The bodies carry no difficulty a reader of the game can see (`uibridge_bots` has Role but no difficulty, and
 slow and fast melee share the layer), so the native acceptance could not have told the waves apart. `ZombieMode`
 counts the **accepted** dispatches of a wave by difficulty (a rejected dispatch returned its slot and is drawn
-again, so it is not counted) and writes one Debug line per wave, when the wave is fully dispatched or, at the
-latest, when it ends:
+again, so it is not counted) and writes one Debug line per wave, when the policy's own spawn count reaches the
+wave size (`SpawnedThisWave`, not the sum of the draws). That is the only trigger: the policy counts a slot only
+together with a draw the tally sees, and a wave cannot end before the count reaches the size, so a wave-end flush
+would be unreachable (an earlier version had one; the review found no test could reach it):
 
 `Zombie wave 5 composition: easy 0, normal 50, hard 0 (size 50, theme Runners).`
 
-It is reset per wave and written once. Slots returned by individual recovery are drawn again after the line,
-which is not repeated. This line is what the native acceptance reads (`gpu-run log`). The first design printed
+It is reset per wave and written once. A slot that fails asynchronously (profile or placement) or is returned by
+individual recovery is drawn again: the first draw stays in the tally (the sum can exceed the size) and the line
+is written when the policy count is reached, so it states the **requested** mix, not the bodies that arrived.
+The arrived mix of wave 10 (arrivals per pair, time to fill) is only measurable natively and stays a gate of
+stage Z1: do not treat this line as proof of it (`ZombieProfilePlan.BackupTargets` sizes the pools from the
+plain shooter setting, so an all-shooter wave at a low setting asks for more hard profiles than were preloaded).
+This line is what the native acceptance reads (`gpu-run log`). The first design printed
 the slow share from `ZombieCompositionPolicy`, which none of the harnesses that compile `ZombieMode.cs` links or
 stubs; the tally needs no such type.
 

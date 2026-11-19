@@ -518,11 +518,11 @@ settings with a one-time migration, of `ArenaBotDifficultyClockPatch`, `TimedWav
 and the prewarm readiness gate. Seen natively: both steps in Deathmatch, Tactical and Zombies, Maximum in Team DM,
 Domination, Gun Game and a protected PitFireTeam raid, an ordinary raid, the frozen step, the old `.cfg`, the bot
 speed at both steps, the 60-minute raid timer on a ported map, `impossible` against `hard` and `hard` against
-`normal` value by value. Not run natively: Zombie waves beyond the first (fade, shooter growth and, since 2026-11-19, the special waves are harness-only),
+`normal` value by value. Not run natively: Zombie waves beyond the first (fade, shooter growth and, since 2026-11-19, the special waves are harness-only; the ALIVE AT ONCE row now shows the effective value first at Reduced, stage Z1 of docs/reviews/ZOMBIE-ESCALATION-20261119.md on `feature/opening-rounds-zombie-waves`),
 Gun Game at Reduced and its scav switch, a long Team DM or Domination match with the full reserve per request,
 loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
 maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a
-long match; (the menu row ALIVE AT ONCE question is answered since 2026-11-19: it shows the effective value first at Reduced, see docs/reviews/ZOMBIE-ESCALATION-20261119.md, stage Z1, on `feature/opening-rounds-zombie-waves`, not natively run); Tactical's round-one kit without
+long match; Tactical's round-one kit without
 a purchase is the cheapest one (drifter, .366 EKO, the lowest penetration of the catalogue) although the opponents
 now wear top-tier armour from round one, and a played Tactical round at Maximum is still owed; the server's gear clock
 starts with the local-start request and the client's AI clock with the match (the server is ahead by the loading
