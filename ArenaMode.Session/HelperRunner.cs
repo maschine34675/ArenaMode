@@ -91,6 +91,10 @@ namespace ArenaMode.SessionHelper
         private bool _gameStarted;
         private bool _normalGameReopened;
 
+        // The reason code when the normal server came back after Arena with its reward recovery paused (the Arena session is
+        // not settled yet); null when it settled the session. Set by StartOfflineNormalSession, read by Leave.
+        private string _rewardsPausedReason;
+
         // The Arena game of this watchdog run (the watch command opened it by pid, or a test harness set it): what
         // WaitForArenaGameExit waits for. Null when the game is already gone.
         public Process ArenaGame { get; internal set; }
@@ -147,6 +151,10 @@ namespace ArenaMode.SessionHelper
             try
             {
                 HelperHttpEndpoint normal = ReadNormalEndpoint(request);
+
+                // An earlier session that is not settled blocks a new one. Checked before anything is stopped, so the normal
+                // server and the player's game are as they were (the failure path below reopens the game).
+                if (request.Schema == ArenaSessionContract.OfflineRequestSchema) HelperOfflineSession.RequireNoUnsettledSession(request.SptRuntimeDir);
 
                 StopResult stopped = StopArenaServer(request.SptRuntimeDir);
                 // OtherInstallation: its tree is the one Build would delete next and its port the one it would reuse.
@@ -278,10 +286,14 @@ namespace ArenaMode.SessionHelper
             _log.Info("leave: returning to the normal session");
             if (!AwaitGame(request)) return false;
 
+            _rewardsPausedReason = null;
             try
             {
                 StartNormalSession(request, settleRewards: true);
                 _log.Info("leave finished");
+                // The game is already open, so this one dialog cannot be covered while EFT initializes.
+                if (_rewardsPausedReason != null)
+                    NotifyFailure(ReturnPausedNotice(request.SptRuntimeDir), ReturnPausedCode);
                 return true;
             }
             catch (Exception ex)
@@ -410,7 +422,14 @@ namespace ArenaMode.SessionHelper
                 if (entry != null) entry.Dispose();
             }
             HelperHttpEndpoint normal = ReadNormalEndpoint(request);
-            HelperOfflineSession.StartNormal(lease, normal, StartProcess, WaitForServer, Info);
+            string paused = HelperOfflineSession.StartNormal(lease, normal, StartProcess, WaitForServer, Info);
+            if (paused != null)
+            {
+                // The normal server is up and consistent; it only left the Arena session unsettled. It is never stopped or
+                // restarted here (a restart cannot help and would loop), and the game opens against it as usual.
+                _rewardsPausedReason = paused;
+                _log.Warn("the normal server paused its reward recovery at start (" + paused + "); the Arena session stays unsettled and is retried at the next SPT start. Opening the game against the running server.");
+            }
             if (!startGame) return;
             List<string> arguments; string error;
             if (!HelperCommandLine.TryRewriteGameArguments(request.GameArgs, false, normal.BackendPort, out arguments, out error))
@@ -1059,6 +1078,8 @@ namespace ArenaMode.SessionHelper
             if (ex is HelperOfflineSession.ServerStoppingException) body = ex.Message;
             else if (declined != null && declined.Resumed)
                 body = "Arena did not start. " + DeclinedWhy(declined.Category) + " Your profile was not changed. " + DeclinedFix(declined.Category);
+            else if (declined != null && declined.Category == HelperOfflineSession.UnsettledCategory)
+                body = "Arena did not start. " + DeclinedWhy(declined.Category) + " Arena copied no profile. " + DeclinedFix(declined.Category);
             else if (declined != null)
                 body = "Arena did not start. SPT refused to prepare Arena, and Arena copied no profile. "
                     + "If SPT is not running any more, start it again from the launcher. The SPT server log has the reason.";
@@ -1084,10 +1105,24 @@ namespace ArenaMode.SessionHelper
                 + "If SPT is not running, start it again from the launcher; if it keeps failing, report it with the details below."
                 + (sptFolder == null ? string.Empty : "\n\nSPT server log folder: " + Path.Combine(sptFolder, "user", "logs", "spt"));
 
+        internal const string ReturnPausedCode = "return-rewards-paused";
+
+        // The dialog after a return whose normal server is up but could not settle the Arena session at its start. Every claim is
+        // one the paths prove: the server is running and the game is open (this runs after StartGame); the paused note matched
+        // that server process, which stops before it pays anything; the session records are kept (the pointer stays, and the
+        // helper refuses to rebuild the private tree or start another session while it exists). The reason code comes from the note.
+        internal string ReturnPausedNotice(string sptFolder)
+            => "Arena ended and SPT is running again, but it could not settle the Arena session when it started, so Arena rewards are paused and this start paid nothing. "
+                + "The Arena session is kept and is retried the next time SPT starts; it is not lost, and a new Arena session cannot start until it is settled. "
+                + "Close SPT and start it again once. If the same pause appears after that restart, report the code and the SPT server log. Do not delete user\\arena-rewards. The SPT server log has the reason (" + _rewardsPausedReason + ")."
+                + (sptFolder == null ? string.Empty : "\n\nSPT server log folder: " + Path.Combine(sptFolder, "user", "logs", "spt"));
+
         private static string DeclinedWhy(string category)
         {
             switch (category)
             {
+                case HelperOfflineSession.UnsettledCategory:
+                    return "SPT could not settle your last Arena session when it started, so it will not start a new one on top of it.";
                 case "save-not-confirmed":
                     return "SPT's saved profile did not match the profile in its memory, so Arena stopped before copying anything.";
                 case "session-busy": return "A profile is still in a raid or busy, so SPT could not save it safely.";
@@ -1101,6 +1136,8 @@ namespace ArenaMode.SessionHelper
         {
             switch (category)
             {
+                case HelperOfflineSession.UnsettledCategory:
+                    return "Close SPT and start it again. If it keeps happening, the SPT server log has a warning that contains \"rewards are paused for this start\" and names the cause; report that code if it keeps coming back. Your profile and the old session are kept.";
                 case "save-not-confirmed":
                     return "Another program or mod usually writes the profile files while SPT runs (cloud sync, backup, antivirus, a profile editor, a second SPT): "
                         + "close them and try again. If it keeps happening, report it with the \"Session switch refused\" line from the SPT server log.";

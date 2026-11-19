@@ -3,6 +3,9 @@ using ArenaMode.Shared;
 
 namespace ArenaMode.Server.Rewards;
 
+/// <summary>Why and how this start paused rewards; see <see cref="RewardRuntimeCoordinator.ObserveRewardsPaused"/>.</summary>
+internal sealed record RewardPauseState(string Reason, bool RecoveryPending);
+
 /// <summary>
 /// Capture and durable metadata only. This service never writes a live or
 /// serialized player profile; enrollment/payment belong to the startup window.
@@ -25,6 +28,7 @@ internal sealed class RewardRuntimeCoordinator
     private readonly Dictionary<string, string> _startupFailures = new(StringComparer.Ordinal);
     private string? _startupUnavailable;
     private bool _storageUnusable;
+    private RewardPauseState? _pause;
     private readonly Func<DateTimeOffset> _now;
     private readonly RewardConsentControl _control;
     private readonly RewardPrivateConsent _privateConsent;
@@ -62,6 +66,18 @@ internal sealed class RewardRuntimeCoordinator
     internal void ObserveStartupUnavailable(string reason, bool storageUnusable = false)
     { lock (_sync) { _startupUnavailable = reason; _storageUnusable = storageUnusable; } }
 
+    /// <summary>
+    /// This start paused rewards for the whole installation because the reward step failed in a way that is not a refusal of
+    /// the installation (a recovery that could not finish, an admission error): SPT starts, but nothing is paid, enrolled or
+    /// changed until the next start retries from the untouched records. While paused the reward choice is frozen (a change
+    /// would make the retry fail with offline-consent-conflict), no run is captured and no delegation is minted.
+    /// recoveryPending: the previous Arena session may be unsettled, so no new session may start on top of it.
+    /// </summary>
+    internal void ObserveRewardsPaused(string reason, bool recoveryPending)
+    { lock (_sync) { _startupUnavailable = reason; _storageUnusable = false; _pause = new(reason, recoveryPending); } }
+
+    internal RewardPauseState? Pause { get { lock (_sync) return _pause; } }
+
     /// <summary>The reason this start's reward step did not run, or null; the Arena entry writes it into the session lease.</summary>
     internal string? StartupUnavailable { get { lock (_sync) return _startupUnavailable; } }
 
@@ -77,6 +93,13 @@ internal sealed class RewardRuntimeCoordinator
                 ExperiencePerKill = Policy.ExperiencePerKill, ExperiencePerRoundWin = Policy.ExperiencePerRoundWin, MaxExperience = Policy.MaxExperience
             };
             result.CanChange = !result.PrivateSession && !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
+            if (_pause is not null && !result.PrivateSession)
+            {
+                result.CanChange = false;
+                result.State = "withheld";
+                result.Detail = UnavailableDetail(id);
+                return result;
+            }
             if (result.PrivateSession && _privateConsent.HasControl)
             {
                 result = _privateConsent.Status();
@@ -204,6 +227,7 @@ internal sealed class RewardRuntimeCoordinator
     // step before ours, an unreviewed server): RewardUnavailableText decides from the reason code.
     private string UnavailableDetail(string id)
     {
+        if (_pause is { } paused) return RewardUnavailableText.ForStartupReason(paused.Reason);
         string? profile = _startupFailures.GetValueOrDefault(id);
         if (profile?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true) return RewardUnavailableText.RecordsMismatch;
         if (profile is not null) return RewardUnavailableText.Temporary;
@@ -216,6 +240,7 @@ internal sealed class RewardRuntimeCoordinator
         lock (_sync)
         {
             if (_snapshots.ContainsKey(id) || _runs.ContainsKey(id)) throw new RewardDataException("reward-session-active");
+            if (_pause is not null) return GetStatus(id); // frozen: see ObserveRewardsPaused
             RewardEnrollment.SetConsent(_root, id, enabled);
             return GetStatus(id);
         }
@@ -230,6 +255,7 @@ internal sealed class RewardRuntimeCoordinator
         {
             lock (_sync)
             {
+                if (_pause is not null) return GetStatus(id);
                 if (expectedRevision.HasValue && expectedRevision != RewardEnrollment.ReadConsent(_root, id).Revision)
                 {
                     var status = GetStatus(id);
@@ -277,7 +303,7 @@ internal sealed class RewardRuntimeCoordinator
             string reason = "";
             if (request.Enabled.HasValue)
             {
-                if (!canChange || _snapshots.ContainsKey(id) || _runs.ContainsKey(id))
+                if (!canChange || _pause is not null || _snapshots.ContainsKey(id) || _runs.ContainsKey(id))
                     return new(false, "reward-session-active", consent.Revision, null, null);
                 if (request.ExpectedRevision != consent.Revision) reason = "stale-consent";
                 else SetConsent(id, request.Enabled.Value);
@@ -536,6 +562,11 @@ internal sealed class RewardRuntimeCoordinator
     private RewardHandoff? Authority(string id, bool required)
     {
         RewardHandoff? authority = null;
+        if (_pause is not null && RewardStartupFiles.MarkerAbsent(_root))
+        {
+            if (required) throw new RewardDataException("rewards-not-enabled-or-enrolled");
+            return null;
+        }
         if (RewardStartupFiles.MarkerAbsent(_root))
         {
             if (RewardEnrollment.WantsRewards(_root, id))

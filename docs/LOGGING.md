@@ -16,6 +16,11 @@ optional grenades or spare magazines that did not fit are Debug. A no-contest
 round and a kit without any reserve stay Warning: there the round has no valid
 result or the player fights on the loaded magazine alone.
 
+A start whose rewards are paused is not gameplay either: it is one Warning per start that
+names the reason code ("Arena rewards are paused for this start: ...", see
+[Rewards paused at start](REWARDS-RUNTIME.md#rewards-paused-at-start)), never Debug. A
+withheld reward once stayed hidden behind a Debug line for 14 days.
+
 The difficulty model follows this rule: the server's gear-band line (`Bot gear band on ...`,
 mode, step and level) and the client's per-spawn level lines are Debug. The step is not an
 Info topic; the only Info line is the one-time `Arena difficulty step set to Reduced from the
@@ -95,6 +100,20 @@ reports. The code is `stage/reason` for a declined entry (the same text as the
 otherwise a fixed word such as `entry-paused` or `start-failed`. Dialog texts come
 from `HelperRunner.EnterFailureNotice`, `HelperOfflineSession.WaitingDialogText` and
 `HelperRewardReturn.*DialogText`; log lines are unchanged.
+
+Two dialogs belong to a normal server that started with Arena reward recovery paused
+(server Warning containing "rewards are paused for this start"). An entry on top of the
+unsettled session is refused (the helper's own check before it stops anything, or the
+server's `offline-session-already-active` / `rewards-paused-recovery-pending`
+decline) with code `session-unsettled` (`entry-preflight/session-unsettled` when the
+server declined). A return whose normal server answers but left the session
+unsettled opens the game against that server (never stopping or restarting it) and
+shows one dialog afterwards, "Arena ended and SPT is running again, but it could not
+settle the Arena session when it started", with the server's reason code in the text
+and `Code: return-rewards-paused`. The helper accepts that only when
+`user\arena-rewards\rewards-paused.json` names the very server process it started
+or found (pid and start time); otherwise the old failure dialog and its log line stay.
+The dialog makes no claim about the profile, because the helper cannot prove it.
 
 ## Session save refusals
 

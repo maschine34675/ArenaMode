@@ -152,6 +152,9 @@ namespace ArenaMode.SessionHelper
                     var ping = Send(origin, pin, profileId, "/arenamode/ping", null, verify);
                     List<HelperServerMod> mods = AllowedMods(ping, policy, Runtime);
                     string sessionId = Guid.NewGuid().ToString("N");
+                    // The normal server is up and has had its chance to settle the last session. A pointer that is still there
+                    // means it could not (its recovery paused); no new session starts on top of it.
+                    HelperOfflineSession.RequireNoUnsettledSession(Runtime);
                     HelperRunner.RequireNoRunningGame(Path.Combine(GameRoot, "EscapeFromTarkov.exe"));
                     var reply = Send(origin, pin, profileId, "/arenamode/session/prepare",
                         new Dictionary<string, object> { { "SessionId", sessionId } }, verify);

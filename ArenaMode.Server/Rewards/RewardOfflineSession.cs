@@ -30,8 +30,24 @@ internal sealed record RewardOfflineClosure(int Schema, string SessionId, string
     bool Activated, RewardOfflineReceipt[] Receipts);
 internal sealed record RewardOfflineCompletion(int Schema, string SessionId, string ClosureHash);
 
-// Must propagate past the reward-only refusal: an unknown owner may still write.
-internal sealed class RewardOfflineException(string message, Exception? inner = null) : Exception(message, inner);
+// Recovery of an Arena session could not finish. By default this is SOFT: SPT starts with Arena rewards paused and the
+// next start retries from the untouched records (ArenaRewardStartup.RecoverOrPauseAsync). LiveWriter marks the one
+// kind that must still stop SPT: another process may be writing right now (a live or unverifiable private process, an
+// active pointer that changed under both locks, a private server appearing). A new check that can mean "someone else is
+// writing" has to set it (or throw RewardLiveOwnerException); RewardOfflineSessionTests.EveryOfflineReasonCodeOfTheRecoveryIsClassified lists every code.
+internal sealed class RewardOfflineException(string message, Exception? inner = null) : Exception(message, inner)
+{
+    internal bool LiveWriter { get; init; }
+    /// <summary>True when the message already says what to do (moved or copied installation), so the log needs no generic remedy.</summary>
+    internal bool ExplainsItself { get; init; }
+    /// <summary>The bare reason code for logs, the menu card and the lease: the inner reason code or exception type name.</summary>
+    internal string ReasonCode => InnerException is RewardDataException or RewardLiveOwnerException ? InnerException.Message
+        : InnerException is not null ? InnerException.GetType().Name : "offline-recovery-incomplete";
+}
+
+// Another process may own or be writing the original runtime. Thrown by the checks that prove or cannot exclude it;
+// RecoverBeforeStartup turns it into a RewardOfflineException with LiveWriter set.
+internal sealed class RewardLiveOwnerException(string reason, Exception? inner = null) : Exception(reason, inner);
 
 /// <summary>One ordinary-runtime lease. Only metadata crosses this boundary, never a private profile.</summary>
 internal static partial class RewardOfflineSession
@@ -50,6 +66,20 @@ internal static partial class RewardOfflineSession
     }
     internal static string LeasePath(string root, string id) => Path.Combine(SessionDirectory(root, id), "lease.json");
     internal static string Hash(RewardOfflineLease lease) => RewardIdentity.Hash(RewardRuntimeFiles.Json(lease));
+    /// <summary>Test seam for the liveness probe of the private process; null uses the real one.</summary>
+    internal static Func<RewardOfflineActivation, bool>? LivenessProbe { get; set; }
+
+    // A private process that is alive, or whose liveness cannot be established ("unreadable is not proof of death"),
+    // may still write the profiles: that stops SPT instead of pausing rewards.
+    internal static void RequirePrivateProcessGone(RewardOfflineActivation activation)
+    {
+        bool alive;
+        try { alive = (LivenessProbe ?? ProcessStillAlive)(activation); }
+        catch (Exception e) when (e is not OperationCanceledException)
+        { throw new RewardLiveOwnerException("offline-private-process-unverifiable", e); }
+        if (alive) throw new RewardLiveOwnerException("offline-private-process-still-running");
+    }
+
     internal static bool HasActive(string root) => RewardRuntimeFiles.Exists(root, ActivePath(root));
 
     internal static bool Requested(string root)
@@ -67,11 +97,11 @@ internal static partial class RewardOfflineSession
     // startupUnavailable: why this normal server's own start did not run the reward step, if it did not
     // (RewardRuntimeCoordinator.StartupUnavailable); a lease without authority carries it for the session's card.
     internal static RewardOfflineLease CreateReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        Action<string>? onAuthorityUnavailable = null, string? startupUnavailable = null)
+        Action<string>? onAuthorityUnavailable = null, string? startupUnavailable = null, RewardPauseState? paused = null)
     {
         // The shutdown sequence's semaphore does not cover publication. Identical
         // HTTP retries must not race two different random delegations into the lease.
-        lock (Sync) return CreateReadyCore(root, grant, request, onAuthorityUnavailable, startupUnavailable);
+        lock (Sync) return CreateReadyCore(root, grant, request, onAuthorityUnavailable, startupUnavailable, paused);
     }
 
     // Everything CreateReady can refuse, without a single write. The shutdown listener runs it BEFORE
@@ -80,20 +110,21 @@ internal static partial class RewardOfflineSession
     // the profile's reward authority is unusable (the lease then carries none), or null. A transient file error
     // (sharing violation, access denied) while reading that authority is not "unusable": nothing is paused yet,
     // so it throws and the entry is declined while the normal server is still alive.
-    internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request, string? startupUnavailable = null)
+    internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request, string? startupUnavailable = null,
+        RewardPauseState? paused = null)
     {
         lock (Sync)
         {
-            BuildReady(RewardStartupFiles.Canonical(root), grant, request, preflight: true, startupUnavailable, out _, out string? unavailable, out _);
+            BuildReady(RewardStartupFiles.Canonical(root), grant, request, preflight: true, startupUnavailable, paused, out _, out string? unavailable, out _);
             return unavailable;
         }
     }
 
     private static RewardOfflineLease CreateReadyCore(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        Action<string>? onAuthorityUnavailable, string? startupUnavailable)
+        Action<string>? onAuthorityUnavailable, string? startupUnavailable, RewardPauseState? paused)
     {
         root = RewardStartupFiles.Canonical(root);
-        var lease = BuildReady(root, grant, request, preflight: false, startupUnavailable, out bool published, out string? unavailable, out string? reason);
+        var lease = BuildReady(root, grant, request, preflight: false, startupUnavailable, paused, out bool published, out string? unavailable, out string? reason);
         if (!published)
         {
             RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
@@ -126,7 +157,7 @@ internal static partial class RewardOfflineSession
     // matches this installation or whose ledger left the profile (wipe, restored backup, moved or copied
     // install, editor) yields a lease WITHOUT authority, exactly like a profile that never enrolled.
     private static RewardOfflineLease BuildReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        bool preflight, string? startupUnavailable, out bool published, out string? authorityUnavailable, out string? scopedReason)
+        bool preflight, string? startupUnavailable, RewardPauseState? paused, out bool published, out string? authorityUnavailable, out string? scopedReason)
     {
         authorityUnavailable = null;
         scopedReason = null;
@@ -153,10 +184,15 @@ internal static partial class RewardOfflineSession
         else
         {
             if (HasActive(root)) throw new RewardDataException("offline-session-already-active");
+            // This start could not settle the previous session (or could not even look): a new lease would sit on top of
+            // an unsettled one. Declined here, before the normal server is paused.
+            if (paused is { RecoveryPending: true }) throw new RewardDataException("rewards-paused-recovery-pending");
             // The player's own choice stays a precondition: the return path rewrites it and refuses to go on
             // over a damaged file. Refusing here, before the stop sequence, leaves the normal session untouched.
             var consent = RewardEnrollment.ReadConsent(root, grant.ProfileId);
-            var authority = ReadEntryAuthority(root, grant, preflight, out authorityUnavailable);
+            // A paused start mints no delegation and no handoff: rewards stay off for the whole installation. The lease
+            // then carries the start's pause reason (startup:<code>) for the private session's card.
+            var authority = paused is not null ? null : ReadEntryAuthority(root, grant, preflight, out authorityUnavailable);
             lease = new(1, grant.SessionId, grant.ProfileId, root, RewardStartupFiles.Canonical(request.PrivateRoot),
                 request.MarkerCreatedUtc, request.Port, consent.Revision, consent.Enabled, authority, Secret(),
                 grant.ServerPid, grant.ServerStartedUtc, grant.ServerArguments.ToArray(), request.OperationId,

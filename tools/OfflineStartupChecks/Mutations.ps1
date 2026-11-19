@@ -4,7 +4,7 @@ $run = Join-Path $repo ('artifacts/offline-startup-mutations/' + [Guid]::NewGuid
 [IO.Directory]::CreateDirectory($run) | Out-Null
 $mutations = @(
     @{ Name = 'live-owner-bypassed'; File = 'RewardOfflineRecovery.cs';
-       Old = 'if (ProcessStillAlive(activation)) throw new RewardDataException("offline-private-process-still-running");';
+       Old = 'RequirePrivateProcessGone(activation);';
        New = '// mutation: no process ownership check';
        Test = 'ReleasedLockDoesNotProveThePrivateProcessHasFinishedShutdown' },
     @{ Name = 'discard-receipt-rejection-lost'; File = 'RewardOfflineRecovery.cs';
@@ -12,7 +12,7 @@ $mutations = @(
        New = '// mutation: old delegation is no longer terminal';
        Test = 'LateDiscardedReceiptCannotPayOrBlockANewHealthySession' },
     @{ Name = 'lost-pointer-drops-unapplied-discard'; File = 'RewardOfflineRecovery.cs';
-       Old = 'if (!DiscardCompleted(root, lease, discard)) pending.Add(lease);';
+       Old = '                    pending.Add(lease);';
        New = '// mutation: an unfinished discard is treated as terminal';
        Test = 'InterruptedDiscardAndLostPointerFinishOnceWithoutRestoringOldOn' },
     # The 0.4.1 bug (maschine34675/ArenaMode#1): every other pre-load callback counts as "earlier", whatever its position.
@@ -39,7 +39,12 @@ $mutations = @(
     @{ Name = 'unlisted-step-admitted'; File = 'ArenaRewardStartup.cs';
        Old = 'return "startup-callback-unlisted";';
        New = 'return null;';
-       Test = 'NativeAdmissionRejectsContractDrift' }
+       Test = 'NativeAdmissionRejectsContractDrift' },
+    # A private process whose liveness cannot be read counts as gone: "unreadable is not proof of death".
+    @{ Name = 'unverifiable-process-treated-as-gone'; File = 'RewardOfflineSession.cs';
+       Old = '{ throw new RewardLiveOwnerException("offline-private-process-unverifiable", e); }';
+       New = '{ alive = false; }';
+       Test = 'APrivateProcessWhoseLivenessCannotBeReadStillStopsStartup' }
 )
 $originals = @{}
 $restoreRequired = $false

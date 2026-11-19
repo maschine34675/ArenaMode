@@ -147,8 +147,10 @@ namespace ArenaMode.SessionHelper
                     RequireProcess(server, Grant.ServerPid, Grant.ServerStarted, Path.Combine(Grant.Source, HelperLayout.ServerExeName));
                     RequireListener(server, normal.ServerHost, normal.ServerPort);
                 }
-                // A refused transition must not have published or activated a private session.
-                if (Exists(ActivePath(Grant.Source))
+                // A refused transition must not have published or activated a private session. A pointer to an EARLIER session
+                // that the normal server could not settle at its start is not this transition's: that is exactly why Arena was
+                // refused, and the player's game must still reopen against the unchanged normal server.
+                if (Exists(ActivePath(Grant.Source)) && Text(Reference(Read(ActivePath(Grant.Source))), "sessionId") == Grant.SessionId
                     || Exists(Path.Combine(Grant.Source, "user", "arena-rewards", "offline-sessions", Grant.SessionId, "lease.json"))) throw Refused();
             }
 
@@ -259,9 +261,27 @@ namespace ArenaMode.SessionHelper
                 case "IOException": case "UnauthorizedAccessException": detail = "file-access"; break;
                 case "return-session-not-idle": detail = "session-busy"; break;
                 case "return-profile-save-not-confirmed": detail = "save-not-confirmed"; break;
+                // An earlier Arena session is still unsettled (the normal server paused its recovery at start).
+                case "offline-session-already-active": case "rewards-paused-recovery-pending": detail = UnsettledCategory; break;
                 default: detail = "see-server-log"; break;
             }
             return stage + "/" + detail;
+        }
+
+        /// <summary>The category (and helper code) of an entry that is refused because an earlier Arena session is not settled.</summary>
+        internal const string UnsettledCategory = "session-unsettled";
+
+        /// <summary>
+        /// Refuses an entry while the records still hold an Arena session that was not settled: the pointer is retired at the end
+        /// of every successful recovery, so its presence at entry always means "not settled yet". Runs before anything is stopped,
+        /// so it also holds against a server that does not know the new decline code.
+        /// </summary>
+        internal static void RequireNoUnsettledSession(string source)
+        {
+            if (Exists(ActivePath(source)))
+                throw new HelperException("An earlier Arena session is not settled yet: SPT could not finish it when it started. "
+                    + "Close SPT, start it again and try Arena once more; the SPT server log names the cause.")
+                    { Code = UnsettledCategory, PointsToServerLog = true };
         }
 
         /// <summary>The reason category of a <see cref="DeclineCode"/> (the part after the slash).</summary>
@@ -667,7 +687,39 @@ namespace ArenaMode.SessionHelper
                 + " Nothing was changed.";
         }
 
-        internal static void StartNormal(Lease lease, HelperHttpEndpoint normal,
+        internal const string PausedNoteFileName = "rewards-paused.json";
+
+        /// <summary>
+        /// The reason code the normal server recorded when it paused rewards at its start, or null. Accepted only when the note
+        /// names exactly this server process (pid and start time) and was written after it started, so a note left by an earlier
+        /// start never explains this one. Diagnostic only: it never authorizes anything and never changes any state.
+        /// </summary>
+        internal static string ReadPausedNote(string source, Process server)
+        {
+            try
+            {
+                DateTime started;
+                if (server == null || !HelperProcesses.TryGetStartTimeUtc(server, out started)) return null;
+                var note = Parse(Read(Path.Combine(source, "user", "arena-rewards", PausedNoteFileName), 4096), 6);
+                string reason = Text(note, "reason");
+                if (Int(note, "schema") != 1 || Int(note, "serverPid") != server.Id || !(note["recoveryPending"] is bool)) return null;
+                DateTime noteStart = Utc(note, "serverStartedUtc"), written = Utc(note, "writtenUtc");
+                if (Math.Abs((noteStart - started).TotalSeconds) > 2 || written < noteStart.AddSeconds(-2)) return null;
+                if (reason.Length == 0 || reason.Length > 120) return null;
+                foreach (char c in reason)
+                    if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == '.')) return null;
+                return reason;
+            }
+            catch (Exception) { return null; }
+        }
+
+        /// <summary>
+        /// Starts (or finds) the normal server and checks that it settled the Arena session. Returns null when it did. Returns the
+        /// reason code when the server is up but paused its recovery (it names itself in the paused note): the server is kept as it
+        /// is, never stopped or restarted, and the session stays unsettled for its next start. Without such a note an unsettled
+        /// session still throws.
+        /// </summary>
+        internal static string StartNormal(Lease lease, HelperHttpEndpoint normal,
             Func<string, string, string, Process> start, Action<string, int, Process, string, bool> wait, Action<string> log)
         {
             // Caller has already released .startup.lock, so ordinary initialization can
@@ -698,8 +750,18 @@ namespace ArenaMode.SessionHelper
                 wait(normal.ServerHost, normal.ServerPort, replacement, "the normal server after Arena", false);
                 // Listening with a failed mod initialization must never be mistaken for
                 // successful import. Native startup must retire this session first.
-                RequireClosed(lease);
-                if (Exists(ActivePath(lease.Source))) throw Refused();
+                try
+                {
+                    RequireClosed(lease);
+                    if (Exists(ActivePath(lease.Source))) throw Refused();
+                }
+                catch (Exception)
+                {
+                    string paused = ReadPausedNote(lease.Source, replacement);
+                    if (paused == null) throw;
+                    return paused;
+                }
+                return null;
             }
             finally { if (replacement != null) replacement.Dispose(); }
         }
