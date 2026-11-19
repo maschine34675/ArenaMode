@@ -169,3 +169,4 @@ PoolPrewarmChecks
 SainExtractGuardChecks
 WeaponVariantChecks
 WeaponPoolGuardChecks
+tools/ZombiePerformanceChecks/Verify-Collector.ps1
