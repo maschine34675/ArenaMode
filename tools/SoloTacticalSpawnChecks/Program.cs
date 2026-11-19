@@ -147,6 +147,11 @@ internal static partial class Program
         int openingToast = opening.IndexOf("assembling {_squadRequested} opponents", StringComparison.Ordinal);
         Assert(openingGuard >= 0 && openingRequest > openingGuard && openingToast > openingRequest,
             "the released request goes out only into its own live round, and the assembling toast follows it");
+        // Opening rounds: the band gate is a second hold between the guard and the request, downstream of the
+        // body-move hold (TacticalOpeningChecks pins its details).
+        int openingGate = opening.IndexOf("if (!_openingBand.ShouldRelease(round))", StringComparison.Ordinal);
+        Assert(openingGate > openingGuard && openingGate < openingRequest,
+            "the opening-round band gate sits between the guard and the request, after the body-move hold");
         Assert(MethodBody(source, "private void EndRound(bool won)").Contains("_squadDispatch.Cancel();", StringComparison.Ordinal)
                && MethodBody(source, "public void OnMatchEnd()").Contains("_squadDispatch.Cancel();", StringComparison.Ordinal),
             "a round or match that ends before the body lands releases nothing");
