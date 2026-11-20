@@ -112,7 +112,8 @@ in five bursts, 5259 exceptions in all:
 | 08:40:41.145 | 11.7 s | 1173 |
 
 Each burst starts in the frame after a watchdog retirement of 32 infected that is followed at once by the next spawn,
-and ends at the next mass retirement (the first one at the player's body swap of the kit refill).
+and ends at the next mass retirement (the first one at the retirement of the last 2 infected of wave 5, 11 ms before
+the player's body swap of the kit refill).
 
 - Tally of the day: 5 of 55 mass retirements in run A, 0 of 9 in run B (all shooters, so the shooter share is not the
   trigger) and 0 of 12 in run C. None in the 41 mass retirements of the two logs of the night before and in none of the
@@ -124,6 +125,10 @@ and ends at the next mass retirement (the first one at the player's body swap of
 - The profile patch touches no audio code. Whether the exception needs the sustained throughput that the correction
   makes possible, the raid's length, or something else is open, and so is whether it can happen in a played match (it
   was never seen in one). The watchdog also exists in normal play (100 s without a kill). Nothing was changed for it.
+- Followed up the same day from the decompile and this log, without a run:
+  [AUDIO-OCCLUDER-EXCEPTION-20261120.md](AUDIO-OCCLUDER-EXCEPTION-20261120.md) (an infected's spine container that
+  the game's audio limiter resumed is returned to the pool twice at its death; the exception ends with the death of
+  the bot that drew the second copy).
 
 ## Restore
 

@@ -45,6 +45,19 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   there was used as an argument in the first doc comment of the patch. Managed exceptions and engine warnings do reach that
   log; whether `Debug.LogError` does was never checked. Before an absent line is evidence, make the game write
   one on purpose and look for it.
+- **`Can't handle not proposed occlusion test : Combined` is the game's audio pool handing one container out twice
+  (2026-11-20)** — the main `MultiSourceSpatialAudioOccluder` keeps one-shot containers under the id they had when
+  registered; `PoolWithoutAlloc.PutObject` does not check for an object it already holds. When a container is pooled
+  twice, a one-shot and a bot's first audio registration can draw the two copies in one frame, and the occluder then
+  throws from `OnUpdate` every frame (and skips the rest of `SpatialAudioSystem.Update`, muting later one-shots) until
+  the bot that holds it dies. Confirmed by the code and the log shape (no `OnLateUpdate` stack; the bursts end two
+  frames after the holder's death). The double return found, from the decompile only and not yet seen in memory: the
+  audio limiter (infected only, `IsAiUseSimpleSkeleton`) pauses and resumes a bot's spine container, and the resume
+  adds it to `_activeSoundContainers`, so at the bot's death the dead-player coroutine and `method_26` both return it.
+  It is a game bug that a normal raid with infected shares; Arena touches no audio container code, and the watchdog's
+  mass retirements only make the coincidence likelier. Do not chase it in Arena code, and do not "fix" it by spreading
+  retirements or with a finalizer; the options are argued in
+  docs/reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md.
 - **A test double or seam that replaces a Config-derived value turns an anchored mutant equivalent
   (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
   `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A
