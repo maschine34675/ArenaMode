@@ -26,8 +26,69 @@ and marker-pack refresh. Metadata checks also inspect the actual released DLLs:
 1.2.1 SHA256 `c41507eb1edb6d6c8101314fedf9eb52c874c980e757cbc8348f084d2231b1b8`,
 1.3.0 SHA256 `87878b34a7bb4d50dcf05daa6cd9a93a27543b0c26aa38fa213c40053a6db19b`.
 The source change does not raise the separately reviewed corpse-adapter version.
-Native acceptance of this new build is pending; the older evidence below applies
-only to its named 1.2.1 builds.
+Native acceptance of the new build passed as recorded below. The older evidence
+in later sections applies only to its named 1.2.1 builds.
+
+### 1.3.0 native acceptance and preservation
+
+Source `794453e7d1efdd80518d6d192d0f90e16c27043c` was deployed as the client and
+matching BigBrain companion only. Fresh SPT-GPU-2 process
+`6b4593a1e0134aea8cdc58729e1bfc09` loaded:
+
+| Assembly | SHA256 | Loaded MVID |
+|---|---|---|
+| ArenaMode.Client | `9FFB7C339C46A0268B7D20B25CC8576281A58DDC442DE63D00E1AAB0D7CB1103` | `4128ce9d-9caa-462c-9036-c07b1aa945fc` |
+| ArenaMode.BigBrainCompat | `96DF0F67A324604F5F7B47E6F5A87D8FC3FA391C7E7DCEBFB549A92CDA2B3079` | `86e9915f-7242-4a24-b740-28c00951666e` |
+| DynamicMaps 1.3.0 | `87878B34A7BB4D50DCF05DAA6CD9A93A27543B0C26AA38FA213C40053A6DB19B` | `c3dde04b-4ada-4109-925d-43266af7ffb9` |
+
+UiBridge compared these identities with the VM payload and host disk. The owned
+MapPort loader (`b7fb819`) retained all 11 baseline maps and added six overviews
+from `maschine-ArenaMapPort/dynamicmaps`. No third-party files, Core or server
+binaries were deployed.
+
+Iceberg verified all three projected A/B/C markers, neutral/red/blue state,
+retained definition/centre/zoom, Main/Mini/Peek transitions and removal at the real
+time-limit result. Other native markers remained. Factory verified the vanilla
+map and native floor filter: the random layout had A on level 1, B on -1 and C on
+0; only A was active with image alpha 1 on selected level 1. The other markers
+had alpha 0 and were inactive. The later contested A was yellow and matched its
+live point. Both natural result and manual disconnect ended with `_current=null`.
+
+One Factory owner/marker read pair spans a 476 ms transition from BEAR-owned to
+contested. It is recorded as **non-evaluable**, not counted as a successful colour
+comparison. Its later coherent contested pair and all Iceberg ownership pairs
+pass the strict oracle. Initial attempts also exposed a test harness collection
+reference mistake and a host letter-key delivery limitation; they are retained as
+failed evidence. The accepted Peek runs used temporary F4, restored to M afterwards.
+
+All 54 selected verification results passed (53 registered checks plus xUnit),
+including 4,422 xUnit passes and three existing skips. The marker harness passed
+59 assertions and rejected 23 source mutants against both known API shapes.
+Environment-only reference-path failures from the first verification sweep were
+corrected and the affected checks rerun; no install writes occurred during builds.
+The native evidence validator independently passes and rejects 25 faulty fixtures.
+
+Temporary client values were restored without persisting test settings. Native
+menu reporting refreshed the generated server mirror from those restored values;
+six stale mirror entries now agree with the unchanged pre-test client CFG. All
+93 DynamicMaps installation files, 12 owned overview files and 49 PitFireTeam
+records per host stayed byte-identical. Six new native map-selection bindings
+propagated to the VM normally. No other client settings changed. Profile differences
+were confined to health/hideout timestamps. MainMenu, free control and disabled
+test hooks were confirmed after cleanup.
+
+Private evidence is under `D:/ArenaMapPort/work/dynamicmaps130-impl/evidence`,
+including `build-binding.json`, `native-verification.json`, `preservation.json`
+and the `iceberg-native`/`factory-native` screenshots and reports. Full selected
+verification evidence is under `artifacts/dynamicmaps130` in this worktree.
+Subsequent documentation commits do not change the tested DLLs.
+
+Limits: 1.2.1 has offline production/official-binary coverage, not a new native
+raid in this run. The separate corpse adapter was not changed or promoted and
+still emits its unverified-1.3 warning. A native `BotFirstAid`/MedsController null
+reference at 20:46:05 during Iceberg teardown is recorded separately; its stack
+contains neither changed map adapter and its cause is not established here.
+The scoped map-adapter warning/error queries returned no lines.
 
 ## Behavior and ownership
 
