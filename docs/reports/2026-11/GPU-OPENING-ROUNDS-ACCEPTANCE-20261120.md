@@ -23,7 +23,7 @@ Zombie waves were passed without playing them: godmode on, no kill, and the no-k
 | Cost of the purge | **pass**: from request to live, the slowest round with a purge was 1.8 s above round 1 of its raid; every other one was faster than round 1 |
 | Zombie menu row ALIVE AT ONCE | **pass**: `24 (setting 32, Reduced)`, fits its cell; the raid recipe reads it |
 | Zombie special waves 5 and 10 (waves of 6) | **pass**: at Maximum with a shooter share of 20, Runners in wave 5 and Shooters in wave 10 (composition, callouts, status line); none at Reduced; none at a share of 100; at a share of 0 only the Runners wave |
-| Zombie waves at the default size | **finding, also on the build before**: the profiles of the difficulties the waves draw run out; from wave 5 on the waves fill at 0.6 to 0.7 infected per second. Wave 10 at the default size was not reached |
+| Zombie waves at the default size | **finding, also on the build before**: the profiles of the difficulties the waves draw run out; from wave 5 on the waves fill at 0.6 to 0.7 infected per second. Wave 10 at the default size was not reached. *Superseded on 2026-11-20: the attribution (an empty pool, a refill once a minute) was wrong, every reloaded profile was pooled twice; see [GPU-ZOMBIE-PROFILE-POOL-20261120.md](GPU-ZOMBIE-PROFILE-POOL-20261120.md) and the contract section "The profile pool held every reloaded profile twice". The measured numbers stand.* |
 | Gun Game with the generated weapon pool | **pass**: 155 weapons, no preset left out, a ladder of 24 rungs drawn from them, first promotion |
 | Ported performance collector | **pass**: smoke run, every integrity gate, frame-count ratio exactly 1 |
 
@@ -146,6 +146,12 @@ isolate it. The eager purge at the acknowledgement stays unbuilt.
   waves of 6 the pool is planned small, and the first one came after about 60 infected.
 
 ## Zombies: the profiles of the drawn difficulties run out (also on the build before)
+
+*Note of 2026-11-20, later the same day: the attribution in this section (an empty pool that the server refills about
+once a minute) was superseded. The game's backup loader had stored every reloaded profile twice, and the second copy
+could not be drawn; the pairs were not empty. The numbers below are what was measured and stand; their reading does
+not. See [GPU-ZOMBIE-PROFILE-POOL-20261120.md](GPU-ZOMBIE-PROFILE-POOL-20261120.md) and the section "The profile pool
+held every reloaded profile twice" of [ZOMBIE-ESCALATION-20261119.md](../../reviews/ZOMBIE-ESCALATION-20261119.md).*
 
 Default size on this build (Maximum, shooter share 20, waves of 50 growing by 20, 32 alive, intermission 2 s,
 watchdog 5 s, the skipper). "Draws" is the composition line (a slot that got no profile is drawn again);

@@ -2184,7 +2184,9 @@ capture (`Capture/Headless`, exports every 30 s, session `20261007-201948`).
   the dying or dead player — unrelated to released bodies (reports #1 and #2
   carry `release=no`); and `Arena burst spawn: no profiles for infectedAssault
   — request dropped` (2026-10-06: 14; 2026-10-07 wave 2: 6), the
-  `infectedAssault` profile pool running dry in wave 2 (66). Both stay open.
+  `infectedAssault` profile pool running dry in wave 2 (66). Both stay open. (Note of 2026-11-20: "running dry" was a
+  reading of that time. Reloaded profiles were pooled twice by the game, see ZOMBIE-ESCALATION-20261119.md; whether
+  that explains these drops was not checked against those logs.)
 - Tooling notes: `uibridge_hook godmode` applies to the current player body
   only (raid 2 counted five deaths after respawns, the first one before it was
   switched on); `Capture/Headless` set through `uibridge_config_set` starts

@@ -137,55 +137,94 @@ the shown text into the slider, showing it writes nothing, and the cfg keeps the
 - The F12 descriptions of `Zombie/MaxAlive`, `Zombie/ShooterPercent` and `Difficulty/Step` name the Reduced cap
   and the special waves.
 
-## The profile pool is not changed (a finding, no remedy built)
+## The profile pool held every reloaded profile twice (found and corrected on 2026-11-20)
 
-The all-shooter wave goes through the native miss path almost entirely; this is stated here so nobody counts on
-the pool. **Measured natively on 2026-11-20: a miss is not refilled at once either, and the build before the
-special waves shows the same limit** (the paragraph "Native result" below and
-[the report](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)).
+The Zombie waves did not run out of profiles. The game stored every profile that its backup loader reloaded twice,
+and the second copy could not be used. This section replaces an earlier reading of the same measurements (below).
 
-- `BotSpawner.AddToTargetBackup` is first-write-wins (`BotProfileBackuploader.cs:257-263`): a later call for the
-  same (role, difficulty) is ignored, so a pool target cannot be raised mid-raid; it is set once at match start
-  by `ZombieProfilePlan.BackupTargets`.
-- The loader's top-up collapses. `CacheSimpleProfilesChecker` computes `int num4 = 100 / num3;` after summing
-  the pending loads; with more than 100 profiles wanted that is **integer division and 0**, and every pair's
-  load is then clamped to 1. The default targets are 12 pairs x 25 = 300, so the loader adds about one profile
-  per pair per 30 s (the first check 60 s after creation, and only when the deficit exceeds 3) and never reaches
-  the 25 per pair the plan assumes. At wave 10 the Hard pool is close to empty.
-- **Assumed before the native run, and wrong in its cost and timing:** that a miss goes through
-  `BotProfileClient.CreateProfile`, requests a batch of `presetBatch` (30 for each infected role in the installed
-  `bot.json`) and costs the awaiting spawn slot about a third of a second, so that wave 10 at the default size would
-  mean about eight extra batches and nothing else.
-- **Native result (2026-11-20, GPU-2, no player kills: godmode, and the no-kill watchdog removes the living
-  infected).** In the default-size raid the server generated 12 batches of 30 infected profiles with the loading
-  (one per pair of role and difficulty), 14 more about a minute into the match, and after that 11 batches in 10
-  requests, never less than 50 s apart: 1110 profiles in 14 minutes, of which 510 `normal`, 330 `easy` and 270
-  `hard`, while the waves drew 627 times `normal`, 229 times `hard` and 152 times `easy`. A spawn request for a pair
-  whose pool is empty comes back without a profile (`Arena burst spawn: no profiles for <role> — request
-  dropped.`, a Warning that the logs of the build before hold too) and the slot is drawn again later; that no
-  fresh batch follows at once is inferred from 251 dropped requests against 10 later requests (the decompiled
-  backup loader sends at most every 50 s, which fits; no log line ties the two together). The first request was
-  dropped after about 230 arrived infected (wave 4), and waves 5, 6 and 7 filled at 0.68, 0.72 and 0.61 infected
-  per second (2.2 to 2.8 in waves 1 to 3), the Runners wave and the ordinary waves alike. Frame times stay flat: it
-  is supply, not load. Wave 10 at the default size was not reached in a reasonable time.
-- **The build before shows the same.** Waves of 40 under the same procedure, one run per build, cut by arrival
-  count: both fall from 1.5 per second to about 0.7 by wave 9. With the special waves the first dropped request
-  comes earlier (after 178 arrived infected against 248) and the themed wave itself is the slowest block (the
-  Shooters wave 10: 0.54 per second against 0.84 for the same wave on the build before), because a themed wave
-  takes all its profiles from one difficulty. The spawn, pool and loader code is the same on both builds.
-- Composition-only themes need no pool change: a Runners wave needs the `normal` pair (present whenever the
-  shooter share is below 100, which is where a Runners wave applies) and a Shooters wave the `hard` pair (present
-  whenever it is above 0, where it applies below 100); a test pins it for every shooter setting.
-- **Open, the owner's decision, nothing built:** at the default plan the first requests are dropped after about 180
-  to 250 spawned infected and the refill settles at 0.6 to 0.7 per second after about 320 to 450, in ordinary and
-  themed waves. With nothing killed the limit of 32 was still reached again and again; a player who kills faster
-  than the refill for long could not keep 32 alive (an extrapolation: no match with kills was played at that size).
-  Options read from the code, none of them tried: (a) accept it; (b) cap
-  `BackupCountForWaveStartSize` so that pairs x count is at most 100 (12 pairs x 8 = 96 is loaded in full; this
-  touches the pinned `ZombieProfilePlan` checks, and whether the loader then keeps up is unmeasured); (c) refill the
-  pools of the next wave's difficulties in the intermission; (d) ask the server for a batch ourselves when a pair
-  runs low. A larger target is not a remedy: it is ignored when a target exists and only enlarges the collapsed
-  sum. The alive-limit growth below depends on this: a higher limit asks for more profiles from the same supply.
+- **Mechanism** (decompile, `BotProfileClient` and `BotProfileBackuploader`). The client builds its loader as
+  `new BotProfileBackuploader(this, LoadProfiles, LoadedByBackup)`. `LoadProfiles` already appends the server's
+  answer to the pool (`_simpleProfiles.AddRange`), and `DoLoad` then hands the same profiles to the callback
+  `LoadedByBackup`, which appends them again. Every profile that arrives through the loader is therefore in the pool
+  twice, as the same object. The raid-start preload and the miss path of `CreateProfile` store their answer once.
+  A draw takes a random matching entry and removes one copy. When the second copy is drawn, `BotCreationData.Create`
+  finds the profile's id in the static `_generatedHash` (never cleared), logs `generate profile with same id` through
+  `Debug.LogError` and leaves the profile out. The creation data comes back with Count 0, without an exception and
+  without a request to the server. In Arena that is `Arena burst spawn: no profiles for <role> — request dropped.`
+  and, for Zombies, a failed dispatch with its pause (2.1 to 2.3 s between a drop and the next spawn in the
+  measurement). No such `generate profile with same id` line is in any saved BepInEx log; whether the game's
+  `Debug.LogError` reaches that log at all was not checked, so its absence shows nothing either way (TRAPS.md).
+- **The correction.** `ArenaMode.Client/Bots/ArenaBackupProfileDuplicatePatch.cs` is a Harmony prefix on
+  `BotProfileClient.LoadedByBackup(List<Profile>)`. In the exact active Arena raid (`ArenaSession.IsActive` first,
+  then `ArenaSession.IsExactActiveRaid` and the game's own `BotCreatorClient._creatorProfile` being this client) it
+  replaces the callback's list (`ref List<Profile> __0`) by the entries the pool does not hold yet, compared by object
+  reference (`ArenaMode.Client/Bots/BackupProfileDuplicatePolicy.cs`, `NotYetPooled`). It applies to every mode, not
+  only to Zombies. It fails open: any exception is a Warning once per raid and the native call runs unchanged. It is
+  not a loading-time exception: a reload that finishes before the raid start is confirmed runs as in the game.
+  `Plugin.cs` enables it after `Bots.ArenaTacticalFreshGearPatch.EnablePatch();` and `ArenaRespawnDriver.cs` resets
+  it after `Bots.ArenaTacticalOpening.Reset();`. Nothing else was built: no change to the `ZombieProfilePlan` targets,
+  the wave policy, the alive limit or the server.
+- **Side effect on the loader.** The loader's stock count (`CacheSimpleProfilesChecker`, every 30 s) counted entries,
+  so it counted both copies. It now sees the real stock and orders a pair again when the real stock is more than 3
+  below its target, where it used to wait until the doubled count was.
+- **Native result (SPT-GPU-2, 2026-11-20, Factory, Zombies, Maximum, Arena kits, 32 alive, no player kills, the same
+  method as the night before).** Run A, build `0.6.0+62de29e4`, waves of 50 growing by 20, shooter share 20: waves 1 to
+  12 complete in 12.7 minutes, arrivals per second per wave next to the night before (build `0.6.0+0efe818f`, dropped
+  requests in brackets):
+
+| Wave | Size | Theme | Seconds | Run A: per second (dropped) | Night before: per second (dropped) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 50 | None | 17.6 | 2.78 (0) | 2.80 (0) |
+| 2 | 70 | None | 31.3 | 2.23 (0) | 2.22 (0) |
+| 3 | 90 | None | 35.4 | 2.54 (0) | 2.50 (0) |
+| 4 | 110 | None | 44.6 | 2.47 (0) | 1.91 (6) |
+| 5 | 130 | Runners | 53.7 | 2.42 (0) | 0.68 (64) |
+| 6 | 150 | None | 57.9 | 2.59 (0) | 0.72 (70) |
+| 7 | 170 | None | 67.0 | 2.54 (0) | 0.61 (98) |
+| 8 | 190 | None | 71.3 | 2.67 (0) | not reached |
+| 9 | 210 | None | 80.2 | 2.62 (0) | not reached |
+| 10 | 230 | Shooters | 89.8 | 2.56 (0) | not reached |
+| 11 | 250 | None | 94.1 | 2.66 (0) | not reached |
+| 12 | 270 | None | 103.1 | 2.62 (0) | not reached |
+
+  Run A had 1952 arrivals, no `no profiles` line and no `burst spawn of ... failed` line. All 17 loader reloads (1530
+  profiles) read `N of N`: every profile was already in the pool, so each would have been a second copy without the
+  patch. Run B (same build, waves of 60 without growth, `Zombie/ShooterPercent` 100): 9 waves, 530 arrivals, none
+  dropped, 6 reloads all `N of N`. Run C (build `0.6.0+fb8bea72`, the reviewed code, waves of 50 growing by 20):
+  waves 1 to 5 at 2.80, 2.23, 2.54, 2.46 and 2.41 per second, 450 arrivals, none dropped, 4 reloads all `N of N`, no
+  Error line. The numbers, the frame times and the limits are in
+  [the report](../reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md).
+- **What the earlier reading got wrong, each statement superseded.** (1) "A spawn request for an empty pair comes
+  back without a profile": the request came back empty because the drawn entry was a second copy, and the pair was not
+  empty; a real miss asks the server at once and gets a batch. (2) "The server refills only about once a minute, the
+  loader sends at most every 50 s": the 50 s gate belongs to the loader's own `Update`; `AddProfileForBackup` has no
+  such gate, and a real miss asks the server at once. (3) "The loader adds about one profile per pair per
+  30 s and never reaches the target": the collapse of `100 / num3` to 0 clamps every `Limit` to 1, but SPT rounds every
+  requested pair up to `presetBatch`, so the clamp changes nothing on SPT. (4) "It is supply": the profiles were there,
+  twice. (5) "A themed wave runs dry sooner because it draws one difficulty": that explanation rested on the supply reading
+  and falls with it; the difference between the two builds in the waves of 40 (one run per build) is not explained and
+  was not examined again. (6) "A
+  higher alive limit asks more of the same supply": there is no supply limit to ask more of. The options (a) to (d)
+  that the earlier text listed answered a supply limit that does not exist, and none of them was built.
+- **What stays true.** `BotSpawner.AddToTargetBackup` is first-write-wins (`BotProfileBackuploader.cs:257-263`): a
+  later call for the same (role, difficulty) is ignored, so a pool target cannot be raised mid-raid; it is set once at
+  match start by `ZombieProfilePlan.BackupTargets`. The loader's `Limit` clamp described in (3) exists, only with no
+  effect on SPT. A real miss goes through `BotProfileClient.CreateProfile`, asks for three and awaits; the SPT server
+  generates `Math.Max(presetBatch, Limit)` per condition and returns all of them (30 for each infected role in the
+  installed `bot.json`, 15 for a PMC, 45 for assault), after which `AddProfileForBackup` queues one more load. The
+  loader allows at most two loads at a time, and `_loadsProcess` is not decremented when a load throws (two failed
+  loads would stop the loader for the raid; the miss path keeps working). Composition-only themes need no pool change:
+  a Runners wave needs the `normal` pair (present whenever the shooter share is below 100, which is where a Runners
+  wave applies) and a Shooters wave the `hard` pair (present whenever it is above 0, where it applies below 100); a
+  test pins it for every shooter setting. The measured numbers of the earlier runs stay what they were; only their
+  attribution changed.
+- **Still open.** No played match: the runs had no player kills, so the rate is bounded by the method at about 32 per
+  11.6 s. One raid per configuration. The PMC modes were not run with the patch (the mechanism is the same code
+  path; in the Tactical raids of the night before the PMC pool was fed by the miss path, not by the loader). Memory of
+  unused profiles was not measured (2130 profiles requested in raid against 1952 arrivals in run A). And the audio
+  exception seen in run A (5 of 55 mass retirements, none in runs B and C and none in the older logs) is open: the
+  patch touches no audio code, but whether it needs the throughput the correction makes possible is not known (report,
+  "Seen on the way"). For the offline harness of the prefix see `tools/BackupProfileDuplicateChecks`.
 
 ## The alive-limit growth (measured on 2026-11-19, not built)
 
@@ -195,6 +234,9 @@ is today's default; the growth is not built.** Nothing of it is in the code: no 
 per-wave limit in `ZombieWavePolicy`, no change of the native bot cap in `ArenaBotPatches.cs` (it still reads
 `ZombieMaxAlive + 2 + companions`), no hint in the menu row. The full record, with both passes, the integrity notes and
 where the raw data lies, is [GPU-ZOMBIE-CEILING-20261119.md](../reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md).
+The growth stays unbuilt because of the measured frame-time ceiling of 32. It does not depend on the profile supply:
+an earlier version of this document said a higher limit asks more of the same supply, and that was wrong (the supply
+was not limited, see the section above).
 
 **Setup.** Build `0.6.0+72273354`, Maximum step, shooter share 20 %, `WaveStartSize` 200, `WaveGrowth` 0, Arena kits,
 godmode and infinite ammunition, a fresh raid per cell. Two protocols: Dauerlast (the player stands, 150 s) and the
@@ -251,10 +293,15 @@ Run on SPT-GPU-2 with the build `0.6.0+0efe818f`; the record with every figure i
   the Reduced control (ten waves `theme None`, `max alive 24`); a shooter share of 100 (waves 5 and 10 ordinary, all
   `hard`) and of 0 (wave 5 Runners, wave 10 ordinary); the menu row `24 (setting 32, Reduced)` in a screenshot and
   the raid recipe reading it.
-- **Found:** the profile supply (above). It decides what the special waves look like at the default size; the
-  build before has the same limit, and a themed wave reaches it sooner.
-- **Not run:** wave 10 at the default size, a match with kills at the default size, the shooters' hit rate against
-  the player, PitFireTeam with a companion, the optional Crowd pass, the whole-profile comparison. The status line
+- **Found:** from wave 4 on the default-size waves dropped requests, and waves 5 to 7 filled at 0.6 to 0.7 infected per
+  second.
+  That night's attribution (a profile supply that runs out) was superseded on 2026-11-20: the cause was every reloaded
+  profile being pooled twice, see "The profile pool held every reloaded profile twice". With the correction the
+  default-size waves 1 to 12 filled at 2.2 to 2.8 per second without a dropped request (run A of that section), so
+  wave 10 at the default size was seen on that build.
+- **Not run on that night:** wave 10 at the default size (reached on 2026-11-20 with the correction), a match with
+  kills at the default size (still not played), the shooters' hit rate against the player, PitFireTeam with a
+  companion, the optional Crowd pass, the whole-profile comparison. The status line
   shows the match clock on both sides (`03:24 WAVE 10 (ALL SHOOTERS) | 6 LEFT | 03:24`, in a screenshot); the build
   before does the same (one read by the orchestrator), so the examples in the table above leave the leading clock
   out.
@@ -299,6 +346,8 @@ text, the whole-profile before/after comparison and the loaded hashes. The watch
 - `TdmMatchMenuChecks`: the row text for both steps and the settings 4, 20, 24, 25, 32, 96, the live step in both
   directions, the frozen step when armed, the cell geometry, the slider keeping the setting, no config write.
 - xunit: `ArenaDifficultyPolicyTests`, `ZombieRoleMixTests`, `ZombieProfilePlanTests`.
+- The profile pool correction: xunit `BackupProfileDuplicatePolicyTests` for the reference comparison; the prefix itself is
+  Harmony against EFT types and was checked natively (above); for an offline harness see `tools/BackupProfileDuplicateChecks`.
 - Existing expectations changed because the decided behaviour changed them: waves 5 and 10 in
   `ZombieCompositionChecks` and the `(5, 20, 10)` and `(20, 50, 40)` rows of `ArenaDifficultyPolicyTests`; on
   2026-11-19 the decider's expectation at a shooter share of 100 (xunit, `ZombieCompositionChecks`, the shooter-100 case
