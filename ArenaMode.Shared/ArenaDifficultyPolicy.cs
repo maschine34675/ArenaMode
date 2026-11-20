@@ -23,11 +23,28 @@ public enum ArenaBotLevel
 }
 
 /// <summary>
+/// What a Zombie wave is made of beyond the ordinary mix. A theme changes the per-wave slow
+/// and shooter shares and nothing else: not the wave size, the alive limit, the roles, the
+/// profile plan or the spawn path.
+/// </summary>
+public enum ZombieWaveTheme
+{
+    /// <summary>The ordinary mix of the step.</summary>
+    None = 0,
+    /// <summary>No shooters and no slow infected: everything runs at the player.</summary>
+    Runners = 1,
+    /// <summary>Every infected is a shooter.</summary>
+    Shooters = 2,
+}
+
+/// <summary>
 /// The difficulty table of docs/reviews/DIFFICULTY-MODEL-20261118.md as named members.
 ///
 /// Pure and static: client, server and tests read the same numbers, and no call site holds
 /// a level literal. Progress is 1 in every mode except Gun Game, so a fixed value holds from
-/// the first spawn request; only Gun Game ramps, over the map's configured ramp minutes.
+/// the first spawn request; only Gun Game ramps, over the map's configured ramp minutes. The one
+/// other thing that moves is the gear level of the first two rounds of solo Tactical (see
+/// <see cref="TacticalGearLevel"/>), which follows the round and not the clock.
 /// </summary>
 public static class ArenaDifficultyPolicy
 {
@@ -191,7 +208,7 @@ public static class ArenaDifficultyPolicy
 
     /// <summary>
     /// Gun Game: how many levels below the current gear level a pooled bot profile may sit before it is
-    /// discarded. The server's band is the centre +/-5 (<c>Spread</c> in ArenaBotTierScalePatch), so a
+    /// discarded. The server's band is the centre +/-5 (<see cref="GearBand"/>, which ArenaBotTierScalePatch writes), so a
     /// pooled profile below centre - 5 is below anything the server would generate now. A native Gun Game
     /// raid with a slack of 10 let profiles made shortly before the end of the ramp feed the spawns for
     /// minutes (levels 55..65 against a band of 61..71). A fresh batch is not stale on arrival as long as
@@ -238,7 +255,10 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The PMC levels worth pooling at raid start, a subset of <see cref="PmcRequestLevels"/>.
     /// The server builds a profile with the gear band of the moment it is asked, and only
-    /// Gun Game's band moves. A level pooled at second 0 would reach the field minutes later
+    /// Gun Game's band moves with the clock (solo Tactical's moves with the round: the first pool
+    /// carries the round 1 band, the round it is used in, and ArenaTacticalFreshGearPatch drops
+    /// what is left of a faction's pool when that faction is next requested after the stage
+    /// changed). A level pooled at second 0 would reach the field minutes later
     /// in start-level gear, so in Gun Game only the opening level is warmed (its AI level is
     /// requested while the band is still near the start, and later refills use the live band);
     /// the step's level is requested fresh once progress reaches its threshold. Nothing is
@@ -278,16 +298,66 @@ public static class ArenaDifficultyPolicy
         => step == ArenaDifficultyStep.Reduced ? Math.Min(configured, ZombieMaxAliveReduced) : configured;
 
     /// <summary>
+    /// Zombies at Maximum: every this-many waves (from the first multiple) is a special wave.
+    /// Five because the slow share has faded to almost nothing by then (waves 4 to 9 are
+    /// 35, 10, 15, 20, 0, 0 percent): the plateau after wave 11 needs a landmark every few
+    /// minutes, and five leaves four ordinary waves between two of them.
+    /// </summary>
+    public const int ZombieSpecialWaveInterval = 5;
+
+    /// <summary>
+    /// The calendar only, before the user's shooter setting is consulted: Maximum only (Reduced
+    /// is "somewhat less of everything" with a flat shooter share, and never fades, so the
+    /// plateau this solves does not exist there), every fifth wave from wave 5, odd multiples
+    /// of five (5, 15, 25, ...) are Runners and even ones (10, 20, ...) are Shooters. No state
+    /// and no random number, so the shares below and the announcement agree by construction.
+    /// </summary>
+    public static ZombieWaveTheme ZombieScheduledTheme(ArenaDifficultyStep step, int waveNumber)
+    {
+        if (step != ArenaDifficultyStep.Maximum || waveNumber < ZombieSpecialWaveInterval
+            || waveNumber % ZombieSpecialWaveInterval != 0)
+            return ZombieWaveTheme.None;
+        return (waveNumber / ZombieSpecialWaveInterval) % 2 == 1 ? ZombieWaveTheme.Runners : ZombieWaveTheme.Shooters;
+    }
+
+    /// <summary>
+    /// The theme that actually applies and is announced: a theme that would change nothing for
+    /// the user's setting, or take away what the user fixed, is dropped. At a shooter share of
+    /// exactly 100 every wave is already all shooters, so neither theme is announced (a "NEXT:
+    /// ALL SHOOTERS" in a match where every wave is all shooters would be a landmark that marks
+    /// nothing, and Runners would contradict the setting). At exactly 0 Shooters is dropped (the
+    /// user switched them off) and Runners stays: it still removes the slow infected of wave 5,
+    /// and from wave 12 on, when the slow share has faded to 0 anyway, it equals an ordinary
+    /// wave at that setting, which is accepted. The two share functions below return exactly
+    /// these themes' shares (their exact-0/100 returns come first), which a test checks for
+    /// every setting and wave.
+    /// </summary>
+    public static ZombieWaveTheme ZombieWaveThemeFor(ArenaDifficultyStep step, int configuredShooter, int waveNumber)
+    {
+        int share = Math.Clamp(configuredShooter, 0, 100);
+        var theme = ZombieScheduledTheme(step, waveNumber);
+        if (share == 100) return ZombieWaveTheme.None;
+        if (theme == ZombieWaveTheme.Shooters && share == 0) return ZombieWaveTheme.None;
+        return theme;
+    }
+
+    /// <summary>
     /// The melee slow share of a wave given the rhythm's value (<paramref name="baseSlowPercent"/>).
     /// Reduced keeps the rhythm. Maximum subtracts 5 points per wave from wave 4 on and never
     /// goes below 0, so the horde turns all-fast: rhythm 40, 20, 30, 40, 20, ... becomes
-    /// 35, 10, 15, 20, 0, 0, 5, 0 from wave 4.
+    /// 35, 10, 15, 20, 0, 0, 5, 0 from wave 4. A Runners wave (see <see cref="ZombieScheduledTheme"/>)
+    /// is 0.
     /// </summary>
     public static int ZombieSlowPercent(ArenaDifficultyStep step, int baseSlowPercent, int waveNumber)
     {
         int slow = Math.Clamp(baseSlowPercent, 0, 100);
         if (step == ArenaDifficultyStep.Reduced || waveNumber < ZombieSlowFadeFromWave)
             return slow;
+        // A Runners wave has no slow infected at all. Shooters leave the slow share alone: the
+        // roll is never reached when every draw is a shooter. At a shooter share of 100 this
+        // function is not consulted either, so reading the calendar without the setting is exact.
+        if (ZombieScheduledTheme(step, waveNumber) == ZombieWaveTheme.Runners)
+            return 0;
         long fade = (long)ZombieSlowFadePointsPerWave * (waveNumber - (ZombieSlowFadeFromWave - 1));
         return (int)Math.Max(0L, slow - fade);
     }
@@ -295,13 +365,23 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The shooter share of a wave given the configured share. Reduced keeps it flat.
     /// Maximum adds a tenth of the configured share per wave after the first, up to twice the
-    /// configured share and never above 100 %; exactly 0 % and 100 % stay exact.
+    /// configured share and never above 100 %; exactly 0 % and 100 % stay exact. A Runners wave
+    /// is 0 % and a Shooters wave 100 % (<see cref="ZombieScheduledTheme"/>), except at those two exact settings.
     /// </summary>
     public static int ZombieShooterPercent(ArenaDifficultyStep step, int configured, int waveNumber)
     {
         int share = Math.Clamp(configured, 0, 100);
         if (step == ArenaDifficultyStep.Reduced || waveNumber <= 1 || share == 0 || share == 100)
             return share;
+        // The special waves override the growth after the exact-0/100 return above, so a user's
+        // 0 % never meets a Shooters wave and 100 % never loses a shooter (ZombieWaveThemeFor
+        // drops the Shooters theme at 0 and both themes at 100). Step is Maximum here: Reduced has
+        // returned already.
+        switch (ZombieScheduledTheme(step, waveNumber))
+        {
+            case ZombieWaveTheme.Runners: return 0;
+            case ZombieWaveTheme.Shooters: return 100;
+        }
         // Two bounds, one enforcer each: the growth cap holds the share at twice the setting
         // (and keeps the product small at any wave number), the clamp holds it at 100 %.
         double growth = Math.Min(ZombieShooterGrowthCap - 1d, ZombieShooterGrowthPerWave * ((long)waveNumber - 1));
@@ -315,4 +395,116 @@ public static class ArenaDifficultyPolicy
     /// </summary>
     public static ArenaBotLevel BotLevel(ArenaDifficultyStep step, bool pmc, double progress)
         => pmc ? PmcLevelAt(step, progress) : ScavLevelAt(step, progress);
+
+    // ------------------------------------------------------------------------------------------
+    // Tactical opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md). The enemy
+    // squad of the first two rounds is kitted lighter than the step's full gear level, so a
+    // player on a starter budget does not meet the top of the tier table in round 1. One
+    // function decides every round; the server band, the client pool purge and the text the
+    // player reads are all defined through it and so cannot disagree.
+    // ------------------------------------------------------------------------------------------
+
+    /// <summary>Rounds that may be lighter than the step's full gear level; from the next round on the gear is full.</summary>
+    public const int TacticalOpeningRounds = 2;
+
+    /// <summary>Maximum step: the gear level (band centre) of Tactical round 1 before the clamps.</summary>
+    public const int TacticalOpeningCentreRound1 = 25;
+
+    /// <summary>Maximum step: the gear level (band centre) of Tactical round 2 before the clamps.</summary>
+    public const int TacticalOpeningCentreRound2 = 45;
+
+    /// <summary>
+    /// An opening stage counts only when its centre is at least this many levels below the full
+    /// level: one gear tier (the bot system's tiers are ten levels wide). A smaller gap would be
+    /// a lighter round in the table and an identical kit on the field, so the round is full instead
+    /// and the player is never told about a difference that is not there.
+    /// </summary>
+    public const int TacticalOpeningMinGap = 10;
+
+    /// <summary>The spread of the generated bots' level band either side of its centre; read through <see cref="GearBand"/> by the server and the client.</summary>
+    public const int GearBandSpread = 5;
+
+    /// <summary>The mode id compare, in one place for the server band and the client purge.</summary>
+    public static bool IsTacticalMode(string? mode)
+        => string.Equals(mode, TacticalModeId, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The raw opening centre of a Tactical round (1 or 2; any other round has no opening centre
+    /// and answers <see cref="int.MaxValue"/>, "full"), before the map clamps and the minimum gap.
+    /// Maximum has the two numbers above. Reduced is DERIVED from them with the same share the
+    /// full level uses (<see cref="ReducedGearShare"/>, rounded away from zero: 15 and 27), so the
+    /// two tables cannot drift apart when the share is tuned.
+    /// </summary>
+    public static int TacticalOpeningCentre(ArenaDifficultyStep step, int round)
+    {
+        int maximum = round switch
+        {
+            1 => TacticalOpeningCentreRound1,
+            2 => TacticalOpeningCentreRound2,
+            _ => int.MaxValue,
+        };
+        if (maximum == int.MaxValue || step == ArenaDifficultyStep.Maximum)
+            return maximum;
+        return (int)Math.Round(maximum * ReducedGearShare, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// The gear level (band centre) of a Tactical round, the one function that decides it.
+    /// From round 3 on, and whenever an opening centre is not at least
+    /// <see cref="TacticalOpeningMinGap"/> below it, this is the step's full level
+    /// (<see cref="GearLevel"/>). Otherwise it is the opening centre of the round, clamped into
+    /// [the map's start level, the full level] so the start level stays a floor (the clamped
+    /// start level is read through <see cref="GearLevelAt"/> at progress 0, no clamp line is
+    /// copied). A round of 0 or less counts as round 1. Never above the full level, and
+    /// non-decreasing in the round: a clamp is monotonic in the centre, the centres rise with the
+    /// round, and a gap rule that turns round 1 into "full" turns round 2 into "full" as well.
+    /// </summary>
+    public static int TacticalGearLevel(ArenaDifficultyStep step, int startLevel, int endLevel, int round)
+    {
+        int full = GearLevel(step, startLevel, endLevel);
+        if (round > TacticalOpeningRounds)
+            return full;
+        int low = GearLevelAt(step, startLevel, endLevel, 0d);
+        int centre = Math.Clamp(TacticalOpeningCentre(step, Math.Max(1, round)), low, full);
+        return full - centre < TacticalOpeningMinGap ? full : centre;
+    }
+
+    /// <summary>True when round 1 is lighter than the full level for these map numbers. Defined through <see cref="TacticalGearLevel"/>.</summary>
+    public static bool TacticalOpeningDiffers(ArenaDifficultyStep step, int startLevel, int endLevel)
+        => TacticalOpeningRoundsThatDiffer(step, startLevel, endLevel) > 0;
+
+    /// <summary>
+    /// How many of the rounds 1 to <see cref="TacticalOpeningRounds"/> are lighter than the full
+    /// level (0, 1 or 2). A round differs exactly when <see cref="TacticalGearLevel"/> is not the
+    /// full level, so the count is a prefix of the opening rounds.
+    /// </summary>
+    public static int TacticalOpeningRoundsThatDiffer(ArenaDifficultyStep step, int startLevel, int endLevel)
+    {
+        int full = GearLevel(step, startLevel, endLevel);
+        int count = 0;
+        for (int round = 1; round <= TacticalOpeningRounds; round++)
+            if (TacticalGearLevel(step, startLevel, endLevel, round) != full)
+                count++;
+        return count;
+    }
+
+    /// <summary>
+    /// The level band of generated bots around a gear level (band centre): max(1, centre - spread)
+    /// to centre + <see cref="GearBandSpread"/>. THE one source of the band edges: the server writes
+    /// it into the bot generation details (<c>ArenaBotTierScalePatch</c>) and the client purge
+    /// (<see cref="IsTacticalGearOutOfBand"/>) tests pooled profiles against it, so the two cannot
+    /// drift apart (before, the server held its own inline copy and only the spread was pinned).
+    /// </summary>
+    public static (int Min, int Max) GearBand(int centre)
+        => (Math.Max(1, centre - GearBandSpread), centre + GearBandSpread);
+
+    /// <summary>
+    /// True when a pooled profile is outside the band the server writes for this centre
+    /// (<see cref="GearBand"/>).
+    /// </summary>
+    public static bool IsTacticalGearOutOfBand(int profileLevel, int centre)
+    {
+        var (min, max) = GearBand(centre);
+        return profileLevel < min || profileLevel > max;
+    }
 }

@@ -36,6 +36,14 @@ namespace ArenaMode.Server.Services;
 /// fitted onto it, and the attachments the variant draw adds later — is asked
 /// there first, and a cartridge additionally needs a handbook entry: a round
 /// nobody can buy or find is not a round to load a rung with.
+///
+/// One preset the database cannot build costs only itself. Every preset is
+/// checked by <see cref="ArenaPresetGuard"/> before the generator picks one per
+/// weapon, and each preset, candidate and entry is built inside its own try, so
+/// a weapon mod that breaks one weapon's slots no longer drops the whole pool to
+/// the shipped ladder.json. What was left out is reported once, as a
+/// Warning, with the details at Debug. Global failures (the ammunition index,
+/// the exclusion index, an empty pool) still keep the shipped file.
 /// </summary>
 [Injectable(TypePriority = OnLoadOrder.PostLoad + 99000)]
 public class LadderGenerator(
@@ -102,6 +110,18 @@ public class LadderGenerator(
         {
             var pool = Build();
 
+            // Its own try: a fault while formatting or logging the report must not
+            // fall into the catch below and throw away a pool that was built. An
+            // empty pool reports too, it is when the reasons matter most.
+            try
+            {
+                ReportLeftOut();
+            }
+            catch (Exception ex)
+            {
+                logger.Debug($"[ArenaMode] Weapon pool: the left-out report failed ({ex.Message}); the pool itself is unaffected.");
+            }
+
             if (pool.Count == 0)
             {
                 logger.Warning("[ArenaMode] Weapon pool came out empty — keeping config/ladder.json.");
@@ -110,7 +130,8 @@ public class LadderGenerator(
 
             ArenaContext.LadderJson = pool.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
             logger.Debug($"[ArenaMode] Weapon pool generated: {pool.Count} weapons from the live item database; "
-                        + $"{_cartridgesLeftOut} cartridge(s) left out as placeholders or without a handbook entry.");
+                        + $"{_cartridgesLeftOut} cartridge(s) left out as placeholders or without a handbook entry"
+                        + (_leftOut.Count > 0 ? $", {_leftOut.Count} preset(s) left out." : "."));
         }
         catch (Exception ex)
         {
@@ -297,39 +318,118 @@ public class LadderGenerator(
 
         // One preset per weapon: several builds of the same gun would crowd a
         // power band and make a "random" ladder deal the same rifle three times.
+        _leftOut.Clear();
         var presetsByWeapon = new Dictionary<MongoId, Preset>();
         foreach (var preset in globalTable.ItemPresets.Values)
         {
-            var root = preset.Encyclopedia
-                       ?? preset.Items?.FirstOrDefault(i => i.ParentId == null)?.Template;
+            // Set once the root resolved to a weapon: only then is a failure a "weapon preset left out".
+            // An armour preset (or anything else) that trips over a malformed list is not ours to report.
+            MongoId? weapon = null;
+            try
+            {
+                // Null-safe on purpose: a null element must reach the guard (rule no-parts) and be reported
+                // as itself, not throw here as a NullReferenceException or, worse, hide the root and drop the
+                // preset unreported. The last line is for a preset that has no parentless node at all: its
+                // declared root part (Preset.Parent is that part's id) still names the weapon, so the guard
+                // can say no-root instead of the preset vanishing without a trace.
+                var root = preset.Encyclopedia
+                           ?? preset.Items?.FirstOrDefault(i => i is not null && i.ParentId == null)?.Template
+                           ?? preset.Items?.FirstOrDefault(i => i is not null && i.Id == preset.Parent)?.Template;
 
-            if (root == null || !DescendsFrom(root.Value, WeaponBase))
-                continue;
+                if (root == null || !DescendsFrom(root.Value, WeaponBase))
+                    continue;
 
-            // A preset carrying a placeholder part is not a build the game
-            // finished, whatever its root looks like.
-            if (preset.Items?.Any(i => Excluded(i.Template)) == true)
-                continue;
+                weapon = root.Value;
 
-            if (!presetsByWeapon.TryGetValue(root.Value, out var existing) || Plainer(preset, existing))
-                presetsByWeapon[root.Value] = preset;
+                // A preset carrying a placeholder part is not a build the game
+                // finished, whatever its root looks like. Expected, so silent.
+                if (preset.Items?.Any(i => i is not null && Excluded(i.Template)) == true)
+                    continue;
+
+                // BEFORE Plainer, on purpose: a broken "default" preset must not
+                // displace a good alternative of the same weapon and then be
+                // dropped, which would lose a weapon that can be built.
+                if (GuardPresets && ArenaPresetGuard.Problem(preset, _items) is { } problem)
+                {
+                    _leftOut.Add(new LeftOut(preset.Name ?? preset.Id.ToString(), preset.Id, root.Value, problem));
+                    continue;
+                }
+
+                if (!presetsByWeapon.TryGetValue(root.Value, out var existing) || Plainer(preset, existing))
+                    presetsByWeapon[root.Value] = preset;
+            }
+            catch (Exception ex)
+            {
+                // One preset the database cannot digest costs only itself. The guard names the defects it
+                // knows; this is the net for the ones it does not (and for the guard's own faults).
+                if (weapon != null)
+                    _leftOut.Add(new LeftOut(preset?.Name ?? "?", preset?.Id ?? default, weapon.Value, $"preset-threw:{ex.GetType().Name}: {ex.Message}"));
+            }
         }
 
         var candidates = new List<Candidate>();
         foreach (var (weapon, preset) in presetsByWeapon)
         {
-            var candidate = Consider(weapon, preset, ammoByCalibre);
-            if (candidate != null)
-                candidates.Add(candidate);
+            try
+            {
+                var candidate = Consider(weapon, preset, ammoByCalibre);
+                if (candidate != null)
+                    candidates.Add(candidate);
+            }
+            catch (Exception ex)
+            {
+                _leftOut.Add(new LeftOut(preset.Name ?? preset.Id.ToString(), preset.Id, weapon, $"consider-threw:{ex.GetType().Name}: {ex.Message}"));
+            }
         }
 
         candidates.Sort((a, b) => a.Score.CompareTo(b.Score));
 
+        // The rung number and `order` are the position in the pool, not in the
+        // candidate list: a candidate that could not be built must not leave a hole.
         var pool = new JsonArray();
-        for (var i = 0; i < candidates.Count; i++)
-            pool.Add(BuildEntry(i, candidates[i]));
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                pool.Add(BuildEntry(pool.Count, candidate));
+            }
+            catch (Exception ex)
+            {
+                _leftOut.Add(new LeftOut(candidate.Preset.Name ?? candidate.Preset.Id.ToString(), candidate.Preset.Id, candidate.Weapon, $"build-threw:{ex.GetType().Name}: {ex.Message}"));
+            }
+        }
 
         return pool;
+    }
+
+    /// <summary>One weapon preset that did not make it into the pool, and why (see <see cref="ArenaPresetGuard"/>).</summary>
+    private sealed record LeftOut(string PresetName, MongoId PresetId, MongoId Weapon, string Reason);
+
+    private readonly List<LeftOut> _leftOut = [];
+
+    /// <summary>
+    /// Test seam only, never configurable: switching the guard off shows the build-time net alone and lets a
+    /// test prove the guard changes nothing on a database it has nothing to say about.
+    /// </summary>
+    internal bool GuardPresets { get; init; } = true;
+
+    /// <summary>
+    /// One Warning per server start when presets were left out (a degraded pool the mod author can fix, not
+    /// gameplay), the details at Debug. Nothing is written when nothing was left out. The caller wraps this in
+    /// its own try: reporting must never discard a pool that was built.
+    /// </summary>
+    private void ReportLeftOut()
+    {
+        if (_leftOut.Count == 0)
+            return;
+
+        var shown = string.Join("; ", _leftOut.Take(3).Select(l => $"'{l.PresetName}' ({NameOf(l.Weapon)}) {l.Reason}"));
+        var more = _leftOut.Count > 3 ? $" (+{_leftOut.Count - 3} more, details at Debug)" : " (details at Debug)";
+        logger.Warning($"[ArenaMode] Weapon pool: {_leftOut.Count} weapon preset(s) left out because they do not fit the item database "
+                       + $"(a weapon mod probably changed the weapon's slots): {shown}{more}");
+
+        foreach (var left in _leftOut)
+            logger.Debug($"[ArenaMode] Weapon pool: preset '{left.PresetName}' ({left.PresetId}) of weapon {left.Weapon} left out: {left.Reason}");
     }
 
     /// <summary>The plainest build wins: a named default first, then the fewest parts.</summary>

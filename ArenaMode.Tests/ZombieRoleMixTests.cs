@@ -122,6 +122,66 @@ public sealed class ZombieRoleMixTests
             }
     }
 
+    private static Dictionary<string, int> Counts(ArenaDifficultyStep step, int shooterPercent, int wave, int seed = 99)
+    {
+        var rng = new Random(seed);
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < 20000; i++)
+        {
+            var difficulty = ZombieRoleMix.Next(rng, shooterPercent, wave, step).Difficulty;
+            counts[difficulty] = counts.GetValueOrDefault(difficulty) + 1;
+        }
+        return counts;
+    }
+
+    [Fact]
+    public void ARunnersWaveDrawsOnlyFastMeleeAndAShootersWaveOnlyShooters()
+    {
+        var runners = Counts(ArenaDifficultyStep.Maximum, 37, 5);
+        Assert.Equal(20000, runners.GetValueOrDefault(ZombieRoleMix.Normal));
+        var shooters = Counts(ArenaDifficultyStep.Maximum, 37, 10);
+        Assert.Equal(20000, shooters.GetValueOrDefault(ZombieRoleMix.Hard));
+    }
+
+    [Fact]
+    public void TheUsersExactShooterShareOverridesASpecialWave()
+    {
+        // 0 % never gets shooters (not even in a Shooters wave), 100 % always does (the Runners wave is dropped).
+        Assert.Equal(0, Counts(ArenaDifficultyStep.Maximum, 0, 10).GetValueOrDefault(ZombieRoleMix.Hard));
+        Assert.Equal(20000, Counts(ArenaDifficultyStep.Maximum, 100, 5).GetValueOrDefault(ZombieRoleMix.Hard));
+        // A Runners wave at 0 % is all fast melee: the slow infected are gone with the shooters.
+        Assert.Equal(20000, Counts(ArenaDifficultyStep.Maximum, 0, 5).GetValueOrDefault(ZombieRoleMix.Normal));
+    }
+
+    [Fact]
+    public void ReducedDrawsNoSpecialWave()
+    {
+        // Wave 5 and 10 at Reduced keep the flat 37 % shooters and the rhythm's slow share.
+        foreach (int wave in new[] { 5, 10 })
+        {
+            var counts = Counts(ArenaDifficultyStep.Reduced, 37, wave);
+            Assert.InRange(counts.GetValueOrDefault(ZombieRoleMix.Hard), 6600, 8200);
+            Assert.True(counts.GetValueOrDefault(ZombieRoleMix.Easy) > 0);
+        }
+    }
+
+    [Fact]
+    public void ASpecialWaveIsDeterministicForTheSameSeed()
+    {
+        // No state and no extra random number: the same seed gives the same themed wave (the exact roll order is pinned by ZombieCompositionChecks).
+        foreach (int wave in new[] { 4, 5, 10 })
+        {
+            var a = new Random(3); var b = new Random(3);
+            for (int i = 0; i < 500; i++)
+            {
+                var x = ZombieRoleMix.Next(a, 37, wave, ArenaDifficultyStep.Maximum);
+                var y = ZombieRoleMix.Next(b, 37, wave, ArenaDifficultyStep.Maximum);
+                Assert.Equal(x.Role, y.Role);
+                Assert.Equal(x.Difficulty, y.Difficulty);
+            }
+        }
+    }
+
     [Fact]
     public void MaximumDrawsMoreShootersInLateWavesThanReducedAndNoMoreSlowOnesThanTheRhythm()
     {

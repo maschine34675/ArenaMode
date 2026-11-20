@@ -42,6 +42,9 @@ internal sealed class TacticalBuyScreen
     private readonly ArenaKitBrowserView _browser = new();
     private GameObject _canvas;
     private TextMeshProUGUI _title, _money, _state, _plan;
+    // The enemy squad's gear line (TacticalMode.OpponentGearNote): its own label beside the state row.
+    private TextMeshProUGUI _note;
+    private string _shownNote;
     private Button _keep;
     private TextMeshProUGUI _keepLabel;
     private Action _close;
@@ -85,7 +88,8 @@ internal sealed class TacticalBuyScreen
         ReleaseEvents();
         try { _browser.Close(); }
         catch (Exception ex) { Plugin.ModLogger.LogDebug($"Tactical buy screen cleanup: {ex.Message}"); }
-        _title = _money = _state = _plan = _keepLabel = null;
+        _title = _money = _state = _plan = _note = _keepLabel = null;
+        _shownNote = null;
         _keep = null;
         _close = null;
         _shown = false;
@@ -127,6 +131,14 @@ internal sealed class TacticalBuyScreen
                 _money.text = ArenaKitCards.Purse(money);
             if (fresh || waiting != _shownWaiting || seconds != _shownSeconds)
                 _state.text = waiting ? "starting when your kit has landed" : $"starting in {seconds}s";
+            // Its own label and its own rebuild test: the acknowledgement of the round's report can arrive
+            // after the first frame, and the line then appears without the plan line being touched.
+            string note = mode.OpponentGearNote ?? string.Empty;
+            if (fresh || !string.Equals(note, _shownNote, StringComparison.Ordinal))
+            {
+                _note.text = note;
+                _shownNote = note;
+            }
             if (fresh || !ReferenceEquals(bought, _shownBought) || round != _shownRound || keeps != _shownKeeps)
             {
                 // NoPurchaseDescription follows the round, whether the player is down and the starter.
@@ -232,6 +244,10 @@ internal sealed class TacticalBuyScreen
             TextAlignmentOptions.MidlineLeft, Margin + 310f, 54f, 420f, 24f);
         _plan = ArenaKitUi.Text(rect, "Plan", style, string.Empty, 14f, ArenaUiTheme.Text,
             TextAlignmentOptions.MidlineLeft, Margin, 82f, 1000f, 22f);
+        // At most TacticalOpeningText.MaxLength characters; right-aligned on the state row, clear of the
+        // buttons above it and of the state text, so the plan line above keeps its full width.
+        _note = ArenaKitUi.Text(rect, "OpponentGear", style, string.Empty, 14f, ArenaUiTheme.Muted,
+            TextAlignmentOptions.MidlineRight, WindowWidth - Margin - 380f, 54f, 380f, 24f);
 
         float right = WindowWidth - Margin;
         GameObject owner = _canvas;

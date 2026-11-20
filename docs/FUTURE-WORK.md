@@ -90,8 +90,9 @@ are gone. Still open:
   before the Gun Game ramp). Until they are done the numbers in the table are provisional.
 - A Gun Game ramp driven by kills instead of time, as a possible later refinement. The
   decision of 2026-11-18 is time only.
-- Zombies: the escalation by composition and the Reduced population limit that the contract
-  describes are not implemented as of this entry.
+- Zombies: the escalation by composition and the Reduced population limit were built (stage Z1 of
+  [ZOMBIE-ESCALATION-20261119.md](reviews/ZOMBIE-ESCALATION-20261119.md)); the alive-limit growth from wave 12 was measured
+  and is not built, the ceiling stays 32.
 
 ## Smaller playable areas within larger maps
 

@@ -1,6 +1,7 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
 using ArenaMode.Session;
+using ArenaDifficultyStep = ArenaMode.Shared.ArenaDifficultyStep;
 using BepInEx.Configuration;
 using TMPro;
 using UnityEngine;
@@ -1160,6 +1161,55 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
             Need(slider.value == minimum && config.Saves == beforeRefreshSaves, "F12 synchronization does not write Zombie settings");
         }
     }
+    // ALIVE AT ONCE: the slider edits the setting; at Reduced the row shows the effective value first when the cap bites.
+    var savedStep = Settings.DifficultyStep.Value;
+    int savedAlive = Settings.ZombieMaxAlive.Value;
+    TMP_Text AliveText() => Label("Zombie value MaxAlive");
+    foreach (var (step, setting, expectedText) in new[]
+    {
+        (ArenaDifficultyStep.Maximum, 32, "32"), (ArenaDifficultyStep.Maximum, 4, "4"), (ArenaDifficultyStep.Maximum, 96, "96"),
+        (ArenaDifficultyStep.Reduced, 32, "24 (setting 32, Reduced)"), (ArenaDifficultyStep.Reduced, 25, "24 (setting 25, Reduced)"),
+        (ArenaDifficultyStep.Reduced, 96, "24 (setting 96, Reduced)"), (ArenaDifficultyStep.Reduced, 24, "24"),
+        (ArenaDifficultyStep.Reduced, 20, "20"), (ArenaDifficultyStep.Reduced, 4, "4")
+    })
+    {
+        Settings.DifficultyStep.Value = step; Settings.ZombieMaxAlive.Value = setting;
+        int savesBefore = config.Saves;
+        view.Synchronize("zombie", false);
+        Need(AliveText().text == expectedText && ArenaZombieRulesState.ValueText(ArenaZombieRule.MaxAlive, setting, step) == expectedText,
+            $"ALIVE AT ONCE shows the effective value first at Reduced when the cap bites ({step}, {setting}: {AliveText().text})");
+        Need(ZombieSlider(ArenaZombieRule.MaxAlive).value == setting && Settings.ZombieMaxAlive.Value == setting && config.Saves == savesBefore,
+            "the ALIVE AT ONCE slider keeps the setting and showing the effective value writes nothing");
+        bool wide = expectedText.Contains('(');
+        Need(AliveText().fontSize == (wide ? 12f : 14f) && AliveText().alignment == (wide ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.Center)
+            && AliveText().rectTransform.sizeDelta.x == (wide ? 210f : 58f) && AliveText().rectTransform.anchoredPosition.x == (wide ? 110f : 262f),
+            wide ? "the long effective-value text uses the wide cell" : "the plain value restores the original cell");
+        Need(Label("Zombie value WaveStartSize").text == Settings.ZombieWaveStartSize.Value.ToString()
+            && Label("Zombie value WaveGrowth").text == Settings.ZombieWaveGrowth.Value.ToString(),
+            "the other Zombie rows always show their plain setting");
+    }
+    // The row follows the live step through the same call the 0.2 s menu updater takes, in both directions.
+    Settings.ZombieMaxAlive.Value = 32;
+    Settings.DifficultyStep.Value = ArenaDifficultyStep.Reduced; view.Synchronize("zombie", false);
+    Need(AliveText().text == "24 (setting 32, Reduced)", "the row follows a live change of the difficulty step to Reduced");
+    Settings.DifficultyStep.Value = ArenaDifficultyStep.Maximum; view.Synchronize("zombie", false);
+    Need(AliveText().text == "32" && AliveText().rectTransform.sizeDelta.x == 58f, "the row follows a live change of the difficulty step back to Maximum");
+    // A raid that is armed freezes its step: a later live edit does not change what the row says.
+    ArenaSession.ArmedForNextRaid = true; ArenaSession.Difficulty = ArenaDifficultyStep.Maximum;
+    Settings.DifficultyStep.Value = ArenaDifficultyStep.Reduced; view.Synchronize("zombie", false);
+    Need(AliveText().text == "32", "armed: the row follows the frozen step, not F12");
+    ArenaSession.Difficulty = ArenaDifficultyStep.Reduced; view.Synchronize("zombie", false);
+    Need(AliveText().text == "24 (setting 32, Reduced)", "armed: the row follows the frozen step at Reduced");
+    ArenaSession.ArmedForNextRaid = false; ArenaSession.Difficulty = null;
+    // Editing at Reduced writes the setting, not the shown effective value.
+    Settings.DifficultyStep.Value = ArenaDifficultyStep.Reduced; view.Synchronize("zombie", false);
+    ZombieSlider(ArenaZombieRule.MaxAlive).value = 40;
+    Need(Settings.ZombieMaxAlive.Value == 40 && AliveText().text == "24 (setting 40, Reduced)"
+        && zombieState.TrySelect(ArenaZombieRule.MaxAlive, 30) && Settings.ZombieMaxAlive.Value == 30,
+        "editing at Reduced writes the slider value to the setting");
+    Settings.DifficultyStep.Value = savedStep; Settings.ZombieMaxAlive.Value = savedAlive;
+    view.Synchronize("zombie", false);
+
     foreach (string mode in new[] { "gungame", "deathmatch", "teamdeathmatch", "tactical" })
     {
         view.Synchronize(mode, false);

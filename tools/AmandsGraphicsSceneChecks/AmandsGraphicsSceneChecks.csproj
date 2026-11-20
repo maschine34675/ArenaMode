@@ -4,9 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <SPTPath Condition="'$(SPTPath)'==''">$(MSBuildProjectDirectory)/../../../..</SPTPath>
+    <AmandsSceneSource Condition="'$(AmandsSceneSource)'==''">../../ArenaMode.Client/Compat/ArenaAmandsGraphicsScene.cs</AmandsSceneSource>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../ArenaMode.Client/Compat/ArenaAmandsGraphicsScene.cs" Link="Production/ArenaAmandsGraphicsScene.cs" />
+    <Compile Include="$(AmandsSceneSource)" Link="Production/ArenaAmandsGraphicsScene.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Reference Include="$(SPTPath)/BepInEx/core/Mono.Cecil.dll" />
   </ItemGroup>
 </Project>

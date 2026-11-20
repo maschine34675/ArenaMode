@@ -23,8 +23,78 @@ internal static class Program
         }
     }
 
+    // The special waves: every fifth wave at Maximum, Runners on odd multiples of five and Shooters on even ones.
+    // The calendar first (it runs before every older check: none of their faults touches it), written out and
+    // not asked of the policy.
+    private static void CheckSpecialWaveCalendar()
+    {
+        const ArenaDifficultyStep Max = ArenaDifficultyStep.Maximum, Red = ArenaDifficultyStep.Reduced;
+        var table = new (int Wave, ZombieWaveTheme Theme)[]
+        {
+            (1, ZombieWaveTheme.None), (4, ZombieWaveTheme.None), (5, ZombieWaveTheme.Runners), (6, ZombieWaveTheme.None),
+            (9, ZombieWaveTheme.None), (10, ZombieWaveTheme.Shooters), (11, ZombieWaveTheme.None), (15, ZombieWaveTheme.Runners),
+            (20, ZombieWaveTheme.Shooters), (25, ZombieWaveTheme.Runners), (100, ZombieWaveTheme.Shooters),
+            (0, ZombieWaveTheme.None), (-5, ZombieWaveTheme.None), (int.MinValue, ZombieWaveTheme.None), (int.MaxValue, ZombieWaveTheme.None)
+        };
+        foreach (var (wave, theme) in table)
+        {
+            Check(ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave) == theme,
+                "special waves fall on every fifth wave from wave five, Runners first");
+            Check(ArenaDifficultyPolicy.ZombieScheduledTheme(Red, wave) == ZombieWaveTheme.None,
+                "Reduced has no special waves");
+        }
+        Check(ArenaDifficultyPolicy.ZombieSpecialWaveInterval == 5, "special waves are every fifth wave");
+        for (int wave = 1; wave <= 200; wave++)
+        {
+            bool special = wave % 5 == 0;
+            Check((ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave) != ZombieWaveTheme.None) == special,
+                "special waves fall on every fifth wave from wave five, Runners first");
+            if (special)
+                Check(ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave) == (wave / 5 % 2 == 1 ? ZombieWaveTheme.Runners : ZombieWaveTheme.Shooters),
+                    "special waves alternate Runners then Shooters");
+        }
+    }
+
+    // The decider and the two share functions the draw reads, checked against each other for every shooter setting
+    // and wave. It runs after the older share checks, whose faults would otherwise end here first.
+    private static void CheckSpecialWaveShares()
+    {
+        const ArenaDifficultyStep Max = ArenaDifficultyStep.Maximum, Red = ArenaDifficultyStep.Reduced;
+        for (int shooter = -3; shooter <= 103; shooter++)
+        for (int wave = 1; wave <= 60; wave++)
+        {
+            int setting = Math.Clamp(shooter, 0, 100);
+            var scheduled = ArenaDifficultyPolicy.ZombieScheduledTheme(Max, wave);
+            var applied = ArenaDifficultyPolicy.ZombieWaveThemeFor(Max, shooter, wave);
+            int shooterShare = ArenaDifficultyPolicy.ZombieShooterPercent(Max, shooter, wave);
+            int slowShare = ZombieCompositionPolicy.SlowPercent(wave, Max);
+
+            Check(applied == ZombieWaveTheme.None || applied == scheduled, "an applied theme is always the scheduled one");
+            Check(!(setting == 0 && applied == ZombieWaveTheme.Shooters), "a shooter share of 0 never gets a shooters wave");
+            Check(!(setting == 100 && applied != ZombieWaveTheme.None), "a shooter share of 100 announces no special wave");
+            Check(applied == (setting == 100 || scheduled == ZombieWaveTheme.Shooters && setting == 0
+                ? ZombieWaveTheme.None : scheduled), "the theme is dropped only at 100 (both themes) and for shooters at 0");
+            // The decider and the draw agree: a Runners wave has no shooter and no slow share, a Shooters wave is all shooters,
+            // and the exact settings stay exact on every wave.
+            if (applied == ZombieWaveTheme.Runners)
+                Check(shooterShare == 0 && slowShare == 0, "a runners wave draws neither shooters nor slow infected");
+            if (applied == ZombieWaveTheme.Shooters)
+                Check(shooterShare == 100, "a shooters wave draws only shooters");
+            if (setting == 0 || setting == 100)
+                Check(shooterShare == setting, "exact 0 and 100 percent shooters stay exact at every wave");
+            if (scheduled == ZombieWaveTheme.None)
+                Check(slowShare == ArenaDifficultyPolicy.ZombieSlowPercent(Max, ZombieCompositionPolicy.SlowPercent(wave), wave),
+                    "an ordinary wave keeps the faded slow share");
+            Check(ArenaDifficultyPolicy.ZombieShooterPercent(Red, shooter, wave) == setting
+                && ZombieCompositionPolicy.SlowPercent(wave, Red) == ZombieCompositionPolicy.SlowPercent(wave)
+                && ArenaDifficultyPolicy.ZombieWaveThemeFor(Red, shooter, wave) == ZombieWaveTheme.None,
+                "Reduced keeps the flat mix and has no theme");
+        }
+    }
+
     private static void Main()
     {
+        CheckSpecialWaveCalendar();
         int[] expected = {75,50,25,40,20,30,40,20,30};
         Check(ZombieCompositionPolicy.SlowPercent(int.MinValue) == 75,
             "pre-wave sentinel stays in opening composition");
@@ -63,14 +133,16 @@ internal static class Program
         }
         // Maximum: the slow share of every wave fades per the policy and the shooter share grows;
         // the role / shooter / melee roll order stays the same, so the buckets are enumerable.
-        int[] faded = {75,50,25,35,10,15,20,0,0,5,0};
+        // Wave 5 is a Runners wave (no slow infected) and wave 10 a Shooters wave (see the schedule below).
+        int[] faded = {75,50,25,35,0,15,20,0,0,5,0};
         // Written out, not asked of the policy: configured share -> share in waves 1..11
-        // (a tenth of the setting more per wave, rounded half up, twice the setting at wave 11).
+        // (a tenth of the setting more per wave, rounded half up, twice the setting at wave 11);
+        // wave 5 is 0 (Runners) and wave 10 is 100 (Shooters) except at the exact settings 0 and 100.
         var grownShares = new (int Percent, int[] Share)[]
         {
             (0,   new[]{0,0,0,0,0,0,0,0,0,0,0}),
-            (20,  new[]{20,22,24,26,28,30,32,34,36,38,40}),
-            (37,  new[]{37,41,44,48,52,56,59,63,67,70,74}),
+            (20,  new[]{20,22,24,26,0,30,32,34,36,100,40}),
+            (37,  new[]{37,41,44,48,0,56,59,63,67,100,74}),
             (100, new[]{100,100,100,100,100,100,100,100,100,100,100})
         };
         for (int wave=1; wave<=faded.Length; wave++)
@@ -159,6 +231,7 @@ internal static class Program
             "fast and shooting native mappings stay distinct");
         Check(!ZombieSpawnService.TryMapDifficulty("impossible",out _) && !ZombieSpawnService.TryMapDifficulty(null,out _)
             && !ZombieSpawnService.TryMapRole("infectedTagilla",out _), "unsupported brain and boss remain excluded");
+        CheckSpecialWaveShares();
         Console.WriteLine($"ZOMBIE_COMPOSITION_CHECKS_PASSED {_checks} checks");
     }
 }

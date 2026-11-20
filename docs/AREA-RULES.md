@@ -287,10 +287,18 @@ docs/reviews/ITEMS-HUD-COMPAT-20261025.md and docs/reviews/REMAINING-MOD-COMPAT-
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
 and camera lifetimes remain in Redeploy.Core (development build minimum 1.0.22).
-Amand's Graphics 1.8.0 is reviewed for Arena. On Labyrinth only, Arena corrects
-its unsuccessful `!settings` lookup for the local FPS camera using EFT's active
-scene `LevelSettings`. This requires the exact active raid or its still-loading,
-server-armed local game and map. Core owns the subsequent camera handoff.
+Amand's Graphics 1.8.0 is reviewed for Arena. On every Arena map Arena repairs
+Graphics' startup lookup of the level settings for the local FPS camera, but only
+when Graphics' own lookup finds no `LevelSettings` (missing object, or an object
+without the component); a lookup that works is never replaced, and ordinary raids
+are untouched. The substitute is the live `Singleton<LevelSettings>` of the exact
+active raid or of its still-loading, server-armed local game and map; nothing is
+written into Graphics' scene table. Core owns the subsequent camera handoff. Only
+Factory and Labyrinth were run natively with Graphics; the six ArenaMapPort
+maps are covered by code and offline checks only (`tools/AmandsGraphicsSceneChecks`,
+with mutants) and have not been run natively. Open point: Graphics treats an unknown
+scene like the hideout and writes its own sky, equator and ground colours into the
+`LevelSettings` fields that ArenaMapPort's lighting repairs also write.
 
 Reviewed-version differences are advisory in direct play and new private sessions
 (user decision, 2026-10-27; docs/reviews/MOD-VERSION-FOLLOWUP-20261027.md). Attempt recognized
@@ -390,6 +398,13 @@ They never apply to an ordinary/unarmed map; server rejection after that seam
 shares the documented preload exception's limits. Individual native groups must
 remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See docs/reviews/DEATHMATCH-GROUPS-REVIEW.md.
+
+The Gun Game weapon pool is generated at server load from the item database's weapon presets. One preset
+the database cannot build must never fail the whole pool: `ArenaPresetGuard` runs on the raw preset before
+`Plainer`, each preset/candidate/entry has its own try, and the left-out presets are reported once at
+Warning. Read docs/reviews/WEAPON-VARIANTS-REVIEW.md ("Preset guard") before changing `LadderGenerator`; keep
+`Consider`'s name and signature unique (the BEAQO add-on patches it by reflection) and `ArenaWeaponVariants.CreateCatalog`
+keeping `base-invalid` entries.
 
 Damage assists add proportional base points without changing the killer reward,
 kill limits or Tactical money. Read docs/reviews/ASSIST-SCORING-REVIEW.md before changing HP
@@ -537,6 +552,25 @@ since 2026-11-13, through the existing layout rows with the formation's Destinat
 In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no
 hold was run (the test timing ends each round when the point appears).
 
+Solo Tactical's opening rounds (2026-11-19, docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md; read it before
+touching any of this): the enemy squad of rounds 1 and 2 has lighter gear, from round 3 the step's full level. ONE
+function decides it (`ArenaDifficultyPolicy.TacticalGearLevel`); the server band, the client pool purge and the
+buy-screen line are all defined through it, so never copy a number or a round compare. The client reports the
+round (`TacticalOpeningBandGate`, route `/arenamode/tactical-round`) at the match start and right after
+`RoundNumber++` in `EndRound`; the server writes the band of the last accepted round and is role-blind. The squad
+request of a round waits for the acknowledgement only when that round's gear level differs from the acknowledged
+round's, never past 3 s, and **`TickLive` must return while the request is held BEFORE
+`SoloTacticalSpawnPolicy.Evaluate`**, which would answer `Retry` and send the request ahead of the ack. The client
+expects the last ACKNOWLEDGED round (never `RoundNumber`): a lost report leaves both sides at the previous stage, a
+lost ack leaves the server one stage ahead; the invariant is that the band never exceeds the step's full level. Any
+refusal or `applies:false` ends the feature for the raid (no warning for an opted-out map), except the transient
+"raid is ending" (`Protocol.TacticalRoundRaidEndingRefusal`); the server resets round and seq only where a raid
+starts, never where an aborted native end resumes it. Protected PitFireTeam Tactical stays native. The pool purge
+`ArenaTacticalFreshGearPatch` is a SIBLING of the Gun Game one (never merge them: that file and its 53 mutants stay
+as they are); its budget is two purges per (role, difficulty, centre), cleared per world and by `Reset()`. The buy
+line is its own label (never part of the plan line), at most 45 characters, shown only for an applying feature, a
+PMC squad and an acknowledged current round.
+
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
@@ -544,7 +578,13 @@ selected replay; only the PFT squad restores fallen members between cleared wave
 See docs/reviews/ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.
 Individual recovery, fair native planning admission and slow/fast/shooting wave
-composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. Preserve exact
+composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. At Maximum every fifth wave
+from wave 5 is a special wave (ALL RUNNERS or ALL SHOOTERS, composition only, announced as
+text; none at a shooter share of exactly 100) and the menu row ALIVE AT ONCE shows the
+effective value at Reduced; a growth of the alive limit after wave 11 was measured on
+2026-11-19 and is not built (the ceiling stays 32), see
+docs/reviews/ZOMBIE-ESCALATION-20261119.md (read it before changing the wave callouts, the
+status line or the profile pool). Preserve exact
 arrival ownership, confirmed administrative-death accounting and pending-spawn
 barriers. The navigation limit counts whole jobs, not nested NavMesh calls.
 The opening wave now waits for player/kit/team readiness and then the configured
@@ -916,6 +956,11 @@ for every bot of an armed or exact active Arena raid. SAIN asks it only while it
 and keep the postfix last. BSG's own PMC Exfiltration layer is not guarded (see
 docs/reviews/EXTRACTION-HARDENING-20261113.md for why and what a native test needs).
 
+Pooled PMC profiles keep the gear of their generation time (Gun Game since 2026-11-19, solo Tactical since the
+opening rounds, same day): whatever moves the server's gear band during a raid needs a client purge of the pool, a
+sibling patch of `ArenaGunGameFreshGearPatch` / `ArenaTacticalFreshGearPatch` keyed on its own mode; never a
+server-side change and never an edit of the other mode's patch.
+
 ### From the handoff (snapshot of 2026-10-29)
 
 Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerpts, or restatements where marked Quoted:/Rule:/Durable form:. Line numbers refer to `handoff-archive/HANDOFF-2026-10-29.md`.
@@ -939,7 +984,9 @@ Participant admission: a counted Labyrinth boss slot needs the native boss initi
 Difficulty (model of 2026-11-18, [DIFFICULTY-MODEL-20261118.md](reviews/DIFFICULTY-MODEL-20261118.md)):
 one frozen `[Difficulty] Step` (Maximum default, Reduced) read once on the arm path and echoed by
 the server. Outside Gun Game every level, the gear band, the PMC bonus, the speed surplus and
-the position-report interval are fixed from the first spawn request; no reader may use the
+the position-report interval are fixed from the first spawn request (the one exception is the
+gear band of the first two rounds of solo Tactical, which follows the acknowledged round and
+has the start level as its floor); no reader may use the
 elapsed time, the kill streak or a match clock. Every reader takes the frozen value
 (`ArenaDifficulty.Step`), never `Settings.DifficultyStep`; the only exceptions are the single
 arm-path read in `ArenaLocalRaidStartedPatch` and the outside-raid fallback inside

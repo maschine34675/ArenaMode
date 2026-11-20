@@ -20,13 +20,55 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
   disagreed with its chamber shipped once and threw nothing.
 
+- **`AddToTargetBackup` is first-write-wins, and the backup loader's top-up collapses (2026-11-19)** —
+  `BotSpawner.AddToTargetBackup` adds a (role, difficulty) target only when none exists
+  (`BotProfileBackuploader.cs:257-263`), so a pool cannot be raised mid-raid and a second call is
+  ignored without a sign; the target is whatever the match start registered. And
+  `CacheSimpleProfilesChecker` computes `int num4 = 100 / num3;` after summing the pending loads: with
+  more than 100 profiles wanted that is integer division and 0, and every pair's load is clamped to 1.
+  Arena's default Zombie targets are 12 pairs x 25 = 300, so the loader adds about one profile per pair
+  per 30 s (and only when the deficit exceeds 3) and never reaches 25. A wave that draws a pair in bulk
+  (the all-shooter wave) goes through the native miss path (`BotProfileClient.CreateProfile`, batches of
+  `presetBatch` 30). Do not plan on a pool being full, and a bigger target is no remedy; 12 pairs x 8 would
+  be loaded in full. Argued in docs/reviews/ZOMBIE-ESCALATION-20261119.md.
+- **A test double or seam that replaces a Config-derived value turns an anchored mutant equivalent
+  (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
+  `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A
+  per-wave delegate that recomputed the base limit from the step would make that mutant equivalent: it
+  would survive and the harness would fail with "not killed". If an alive-limit growth is ever built (stage
+  Z2 of the Zombie escalation was measured on 2026-11-19 and not built, the ceiling stays 32), grow on top of
+  the existing config value instead, and re-anchor the two mode mutants that read the frozen step and the
+  limit when a line near them moves.
+- **Shooting infected do not stop at 15 m (2026-11-19)** — `InfectedAttackLayer.GetSlowShootingZombieDecision`
+  shoots from place when the enemy is visible and closer than 15 m, but shoots **while moving** (`attackMoving`)
+  at any other distance with a line of fire; 15 m is not an engagement limit. An earlier design leaned on it
+  to soften an all-shooter wave; the walking speed is the only real mitigation.
+
 - **Pooled bot profiles keep the gear of their generation time (2026-11-19)** — SPT rounds
   every requested (role, difficulty) pair up to `presetBatch` and the client serves spawns
   from `BotProfileClient._simpleProfiles` before it asks the server, so a ramping gear band
   (Gun Game) only reaches bots whose profile is generated late. Measured: PMCs of the first
   nine minutes had level 2..7 where the ramp stood at 41. `ArenaGunGameFreshGearPatch` drops
   stale unused PMC entries; anything else that ramps with time needs the same, not a
-  server-side change.
+  server-side change. Solo Tactical's opening rounds move the band by ROUND and have the same
+  problem (the pool made at the raid start is the round 1 band): `ArenaTacticalFreshGearPatch`,
+  a sibling in its own file, drops pooled profiles outside the acknowledged round's band on both
+  sides with a budget of two purges per centre; Gun Game's 30 second interval would skip round
+  3's purge after a short round 2. Do not merge the two patches.
+
+- **A hold in Solo Tactical's `TickLive` must return before `SoloTacticalSpawnPolicy.Evaluate`
+  (2026-11-19)** — once the dispatch gate has released, `Waiting()` is false, nothing is requested
+  (`StartRound` zeroed the count) and the deadline is the previous round's, so
+  `Evaluate(0, 0, ...)` answers `Retry` and `RequestSoloSquad(retry: true)` sends the request
+  ahead of whatever the hold waits for, and again after it. The opening rounds' band hold
+  (`_bandHeldRound`) is pinned before `Evaluate` by a source assertion and a mutant; any new hold
+  between the dispatch and the request has the same trap.
+
+- **The Tactical round is not monotonic and the report is not the ack (2026-11-19)** — the server
+  orders reports by `seq`, never by round (a restart reports round 1 again), the client's `seq`
+  is a process-wide counter, and the client expects the last ACKNOWLEDGED round: a lost ack leaves
+  the server one stage ahead of the client. The server must reset round and seq where a raid
+  STARTS and not where an aborted native end resumes the same raid.
 
 - **Location mutation** — raid time, bot cap, boss handling, and that every generated
   wave names exactly ONE real zone. The engine matches a zone by exact string, so a

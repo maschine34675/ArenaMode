@@ -15,6 +15,7 @@ internal sealed class ArenaZombieRulesView
         internal ArenaZombieRule Rule;
         internal Slider Slider;
         internal TMP_Text Value;
+        internal bool Wide;
     }
     private readonly ArenaZombieRulesState _state = new();
     private readonly List<Row> _rows = new();
@@ -96,10 +97,30 @@ internal sealed class ArenaZombieRulesView
                 if (range != null) { row.Slider.maxValue = range.MaxValue; row.Slider.minValue = range.MinValue; }
                 int value = ArenaZombieRulesState.Value(row.Rule);
                 row.Slider.SetValueWithoutNotify(value);
-                row.Value.text = value.ToString();
+                // The row follows the difficulty step live (the menu refreshes every 0.2 s), so assign only a
+                // changed text: no per-tick text rebuild. The slider keeps the setting, never the shown value.
+                string shown = ArenaZombieRulesState.ValueText(row.Rule, value, ArenaZombieRulesState.CurrentStep);
+                if (!string.Equals(row.Value.text, shown, StringComparison.Ordinal)) row.Value.text = shown;
+                SetWide(row, shown.IndexOf('(') >= 0);
             }
             finally { _dispatching = dispatching; }
         }
+    }
+
+    /// <summary>
+    /// The plain value sits in a 58 px centred cell. The longer effective-value text switches that one cell to
+    /// 12 pt, right aligned, and widens it to the left so it still ends at the slider's right edge; the name
+    /// (<c>Zombie value ...</c>) and the row geometry are unchanged. Restored when the text is plain again.
+    /// </summary>
+    private static void SetWide(Row row, bool wide)
+    {
+        if (row.Wide == wide) return;
+        row.Wide = wide;
+        row.Value.fontSize = wide ? 12f : 14f;
+        row.Value.alignment = wide ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.Center;
+        var rect = row.Value.rectTransform;
+        rect.anchoredPosition = new Vector2(wide ? 110f : 262f, rect.anchoredPosition.y);
+        rect.sizeDelta = new Vector2(wide ? 210f : 58f, rect.sizeDelta.y);
     }
 
     private void Select(GameObject generation, Row row, float requested)

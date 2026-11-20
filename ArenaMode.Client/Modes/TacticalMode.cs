@@ -139,9 +139,37 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     /// </summary>
     private readonly SoloTacticalSquadDispatch _squadDispatch;
 
+    /// <summary>
+    /// Solo opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md): reports each round to
+    /// the server and decides how long a round's squad request waits for the answer. The clock is
+    /// unscaled time, so the hold cap and the resend timers keep running while the game is paused
+    /// (the HTTP call does not pause either, so a scaled clock would hold a request for a longer
+    /// real time than the cap says).
+    /// </summary>
+    private readonly TacticalOpeningBandGate _openingBand;
+
+    /// <summary>
+    /// The round whose squad request <see cref="DispatchOpeningSquad"/> is holding for the band
+    /// acknowledgement, 0 when none. <see cref="TickLive"/> sends it when the gate lets it go.
+    /// </summary>
+    private int _bandHeldRound;
+
+    /// <summary>Why the held request of <see cref="_bandHeldRound"/> was released by the dispatch gate, kept for the re-entry from <see cref="TickLive"/> (its log line and body-move warning describe THAT release, not the band's).</summary>
+    private SoloTacticalSquadRelease _bandHeldRelease;
+
+    /// <summary>The seconds the dispatch gate reported with that release.</summary>
+    private float _bandHeldSeconds;
+
     public TacticalMode()
     {
         _squadDispatch = new SoloTacticalSquadDispatch(() => Time.time, DispatchOpeningSquad);
+        _openingBand = new TacticalOpeningBandGate(
+            () => Time.unscaledTime,
+            ArenaTacticalRoundClient.SendAsync,
+            () => ArenaServerClient.RewardArmToken,
+            ArenaTacticalOpening.ReadGearContext,
+            message => Plugin.ModLogger.LogDebug(message),
+            message => Plugin.ModLogger.LogWarning(message));
     }
 
     private KitDefinition _bought;
@@ -212,6 +240,13 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         : KeepsCurrentGear
             ? "No purchase: keep and resupply your previous round's loadout."
             : "No purchase: automatically buy the best affordable kit; cheapest kit is free if you cannot afford any.";
+
+    /// <summary>
+    /// The buy screens' own line about the enemy squad's gear (<see cref="TacticalOpeningText"/>): empty
+    /// unless the opening rounds apply, the squad is PMC and this round's report is acknowledged. It is
+    /// a separate label in both windows, never part of <see cref="NoPurchaseDescription"/>.
+    /// </summary>
+    internal string OpponentGearNote => _openingBand.OpponentGearNote(RoundNumber);
 
     /// <summary>
     /// The buy phase is over but the round waits for a body swap to land (the
@@ -537,12 +572,40 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         KitCatalog.KitProvider = IssueSoloKit;
         EnterBuy();
         Plugin.ModLogger.LogDebug($"Tactical: match started with {Money:N0} roubles.");
+        BeginOpeningReports();
+    }
+
+    /// <summary>
+    /// Solo only: starts the gate over for this match, publishes it for the pool purge and the buy
+    /// line, and reports round 1, which is also the handshake that tells the client whether the
+    /// server applies opening rounds at all. Nothing here may fail the match start (a failed start
+    /// aborts the raid), so every failure is swallowed into one warning; the gate itself never throws.
+    /// </summary>
+    private void BeginOpeningReports()
+    {
+        try
+        {
+            _bandHeldRound = 0;
+            _openingBand.Reset();
+            ArenaTacticalOpening.BindToCurrentWorld(_openingBand);
+            _openingBand.Report(1);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogWarning($"Tactical opening rounds could not start; the squad gear is not staged: {ex.Message}");
+        }
     }
 
     public void Tick(float deltaTime)
     {
         if (_match == null)
             return;
+
+        // The answer to the round report and its resend are polled every frame, BEFORE the early
+        // return of the native menu below: the countdown menu can stay open through the whole buy
+        // phase and the aftermath, which is exactly when the report is in flight.
+        if (!_teamArena)
+            _openingBand.Tick();
 
         // A menu opened during shopping/results must not have its exact player
         // owner torn out by the next round's body swap while selecting Leave.
@@ -742,6 +805,26 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             // sends the request itself once its cap has run out.
             if (_squadDispatch.Waiting(RoundNumber))
                 return;
+
+            // The round's request is held for the band acknowledgement (DispatchOpeningSquad). This
+            // MUST return before SoloTacticalSpawnPolicy.Evaluate below: once the dispatch gate has
+            // released, Waiting() is false, nothing has been requested (StartRound zeroed the count)
+            // and the deadline is the previous round's, so Evaluate(0, 0, ...) answers Retry and
+            // RequestSoloSquad(retry: true) would send the request ahead of the acknowledgement and
+            // then a second time when the hold lets go.
+            if (_bandHeldRound == RoundNumber)
+            {
+                var band = _openingBand.Evaluate(RoundNumber);
+                if (band == TacticalBandRelease.Hold)
+                    return;
+
+                Plugin.ModLogger.LogDebug(
+                    $"Tactical round {RoundNumber}: the squad request was held {_openingBand.HeldSeconds(RoundNumber):0.000}s "
+                    + $"for the opening-round gear band ({band}; released by the cap: {band == TacticalBandRelease.CapExpired}).");
+                _bandHeldRound = 0;
+                DispatchOpeningSquad(RoundNumber, _bandHeldRelease, _bandHeldSeconds);
+                return;
+            }
 
             // An arrival callback can still describe a native PreActive body.
             // Resolve the round from physical Active opponents (or bodies the
@@ -984,6 +1067,11 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _phase = Phase.Ended;
         _soloCombatReady = false;
         _squadDispatch.Cancel();
+        // The match end drops the gate's state (a late answer of this match is then ignored); a round
+        // end must not, it has just made the report the next round's request waits for.
+        _bandHeldRound = 0;
+        _openingBand.Reset();
+        ArenaTacticalOpening.Unbind(_openingBand);
         PitFireTeamRoundLifecycle.CancelFollowerSpawnLease("Tactical match ended");
         KitCatalog.KitProvider = null;
         ArenaSpectatorService.Stop("Tactical match ended");
@@ -2938,6 +3026,19 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         if (_teamArena || _phase != Phase.Live || round != RoundNumber)
             return;
 
+        // Opening rounds: a profile generated for this round must be generated with this round's
+        // band, so the request waits for the server to acknowledge the round report, but only
+        // when the acknowledgement could change the band, and never longer than the gate's cap.
+        // TickLive sends the held request.
+        _openingBand.MarkHeld(round);
+        if (!_openingBand.ShouldRelease(round))
+        {
+            _bandHeldRound = round;
+            _bandHeldRelease = release;
+            _bandHeldSeconds = heldSeconds;
+            return;
+        }
+
         if (release == SoloTacticalSquadRelease.CapExpired)
         {
             Plugin.ModLogger.LogWarning(
@@ -3074,6 +3175,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // still held for the body move dies with the round as well.
         _squadEpoch++;
         _squadDispatch.Cancel();
+        _bandHeldRound = 0;
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
         // Close the combat phase before retiring surviving enemies. Their
@@ -3102,5 +3204,11 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             $"Tactical round {RoundNumber} {(won ? "won" : "lost")} — {RoundsWon}-{RoundsLost}, {Money:N0} roubles.");
 
         RoundNumber++;
+
+        // The next round's gear band is the server's to set before that round's squad request: report
+        // the new round now. The aftermath alone (6 s, a ready-up skips only the buy phase) is far
+        // longer than a loopback request, and the request of a round whose stage differs waits for
+        // the answer (DispatchOpeningSquad). Solo only: EndRound is never reached in a team raid.
+        _openingBand.Report(RoundNumber);
     }
 }

@@ -2,6 +2,7 @@
 // methods under test are copied byte-for-byte from the production class by Verify.ps1.
 using ArenaMode.Kits;
 using ArenaMode.Combat;
+using ArenaMode.Shared;
 using EFT;
 namespace ArenaMode.Modes;
 public enum ArenaAnnouncerCue { RoundStart, RoundWon, RoundLost, MatchWon, MatchLost, Draw, Clutch, NoContest }
@@ -37,7 +38,22 @@ public partial class TacticalMode
     private int _squadRequested,_squadEpoch;
     // Wired as the production constructor wires it; SoloTacticalSpawnChecks pins that wiring.
     private readonly SoloTacticalSquadDispatch _squadDispatch;
-    public TacticalMode(){_squadDispatch=new SoloTacticalSquadDispatch(()=>UnityEngine.Time.time,DispatchOpeningSquad);}
+    // Solo opening rounds: built as the production constructor builds it (unscaled time), against a sender the
+    // checks script (BandSender; null leaves every report unanswered) and fixed gear numbers. With no report made
+    // nothing is outstanding, so the older checks run exactly as before; TacticalOpeningChecks owns the gate itself.
+    internal Func<int,int,Task<TacticalRoundReply>> BandSender;
+    private readonly TacticalOpeningBandGate _openingBand;
+    private int _bandHeldRound;
+    private SoloTacticalSquadRelease _bandHeldRelease;
+    private float _bandHeldSeconds;
+    internal TacticalOpeningBandGate BandForTest=>_openingBand;
+    public TacticalMode()
+    {
+        _squadDispatch=new SoloTacticalSquadDispatch(()=>UnityEngine.Time.time,DispatchOpeningSquad);
+        _openingBand=new TacticalOpeningBandGate(()=>UnityEngine.Time.unscaledTime,
+            (token,round,seq)=>BandSender?.Invoke(round,seq)??new TaskCompletionSource<TacticalRoundReply>().Task,
+            ()=>"arm",()=>new TacticalGearContext(ArenaDifficultyStep.Maximum,1,66,true));
+    }
     private const float TeamOpponentActivationSeconds=5f;
     private readonly List<BotOwner> _squad=[];
     private TeamArenaRoundContinuation _teamContinuation;

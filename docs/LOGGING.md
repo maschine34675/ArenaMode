@@ -16,6 +16,11 @@ optional grenades or spare magazines that did not fit are Debug. A no-contest
 round and a kit without any reserve stay Warning: there the round has no valid
 result or the player fights on the loaded magazine alone.
 
+The Gun Game weapon-pool generator is the same kind of case: when weapon presets of the item database
+do not fit it (a weapon mod changed a weapon's slots) it logs ONE Warning per server start with the count,
+the first three presets and their reasons, details at Debug, and nothing when nothing was left out. Left out
+silently, a lost weapon would be as invisible as the old `base-invalid` Debug line.
+
 A start whose rewards are paused is not gameplay either: it is one Warning per start that
 names the reason code ("Arena rewards are paused for this start: ...", see
 [Rewards paused at start](REWARDS-RUNTIME.md#rewards-paused-at-start)), never Debug. A
@@ -198,6 +203,29 @@ reactions unavailable:` (`ReactionKinds` or `ClaimReactions` threw; no further a
 `ArenaMapPort crowd reactions stopped:` (`React` threw; the claim is released), `ArenaMapPort
 crowd reactions release failed:`, and `Arena crowd reaction event failed:` (the first exception
 in a crowd event handler; it is contained and never reaches the match).
+
+## Tactical opening rounds (solo)
+
+The round report and the squad hold (`TacticalOpeningBandGate`, `ArenaTacticalRoundClient`) log
+at Debug: the server refusing or not applying the feature, a failed report attempt, a held squad
+request with its seconds and release reason. Warnings: `Tactical opening rounds: the server did
+not answer the round report (...)`, at most once per raid, when a report never got through
+within its four sends; `Tactical opening rounds failed while <doing> (...)`, at most once per
+raid, when the gate itself threw (the squad is then not held); and `Tactical opening rounds could
+not start; ...` when the match-start wiring threw. Nothing is written at Info. The SPT HTTP
+client logs at Error on its own for each failed attempt (up to 16 lines for the first report
+against a server that lacks the route); that comes from SPT, not from this feature.
+
+The pool purge (`ArenaTacticalFreshGearPatch`) logs at Debug: `Arena Tactical: dropped N pooled
+<role>/<difficulty> profile(s), levels a to b, gear level now c; the next one is generated fresh.`
+per purge, and `Arena Tactical: N pooled <role>/<difficulty> profile(s) are outside gear level c but
+2 purges for this level are spent; they are served as they are.` once per pair and level. Warnings,
+each at most once per raid: `Arena Tactical: the server's gear band does not match the round; bot
+profiles of the pool are served as they are.` (the purge budget ran out: the bot system's range
+adapter is off, or a round report is behind), `Arena Tactical fresh gear skipped; native generation
+retained: ...` (an exception while reading the pool) and, at plugin load, `Arena Tactical fresh gear
+unavailable; ...`. The server's `Tactical round N reported (seq S); gear level L ...` and the
+`round=N` suffix of the `Bot gear band` line are Debug too. The buy-screen line is not logged.
 
 ## Map-screen refresh probe (DeveloperMode)
 

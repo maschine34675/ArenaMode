@@ -1,176 +1,165 @@
-// Reconstruct UiBridge's 300-frame float ring without invoking or changing game code.
-// Each collection page is copied on Unity's main thread, but the two pages need not
-// describe the same frame. Cursor/engine-frame brackets prove which slots stayed intact.
+// Reconstruct UiBridge's frame-time ring (plugin 0.9.4 and later, read on 0.10.1) without invoking or changing game code.
 //
-// API:
-//   const ring = new FrameRingReconstructor();
-//   const mark = ring.push({ f0, n0, page0, page1, n1, f1, wallMs });
-//   const { segments, discontinuities, invalidSnapshots } = ring.result();
-//   analyzeSegment(segments[0], { endSequence: mark.afterSequence, targetFps: 60 });
-// Read order: frameCount, _next, slots 0..199, slots 200..299, _next, frameCount.
-// n0/n1 are the next WRITE slot; f0/f1 are Time.frameCount. wallMs is metadata.
-// A segment's sequence 0 is the first frame written AFTER its first n0 read.
-// Pre-existing ring data is excluded. Keep sampling briefly after an end marker
-// to recover touched slots, then analyze with that marker's endSequence.
+// WHAT THE RING IS (UiBridge.Client/Core/FrameStats.cs, read 2026-11-19):
+//   `_ms` is a float[4096] of frame durations (Time.unscaledDeltaTime * 1000), `_at` the stopwatch time of each.
+//   One slot is ONE frame, written once per Unity frame from Plugin.Update on the main thread.
+//   `_head` is the index of the OLDEST kept frame and `_count` how many are kept; the next write goes to
+//   (_head + _count) % 4096. Frames also fall out by AGE: Evict() moves `_head` forward (and `_count` down) for every frame
+//   older than 30 s, and when the ring is full the oldest is overwritten the same way.
+//   So `_head` is NOT a write cursor. It advances as old frames are evicted, i.e. with the frame rate of ~30 s earlier,
+//   and it stands still while no old frame is due (the first poll after a hitch 30 s ago). The write cursor is
+//   w = (_head + _count) % 4096: every Add moves head+count by exactly one (an eviction moves head up and count down),
+//   so w advances by exactly one slot per recorded frame whatever the age eviction does.
+//   A collector that treats `_head` as the cursor (the 2026-11-19 stand-in did) reads the frames that were evicted since
+//   its last poll: complete, but about 30 s old, and a 8 s stall shows up as a head that stands still for 8 s followed by
+//   one 8000 ms entry. See README "What the ring is".
+//
+// A poll record (written by ring-poll.mjs, kind 'ring'):
+//   { phase, wallMs0, wallMs, f0, h0, c0, from, n, vals, f1, h1, c1, skipped? }
+//   f = Time.frameCount, h = _head, c = _count, read in ONE main-thread call before (0) and after (1) the slot reads.
+//   from = the write cursor of the previous successful poll (null for the first one), n = (w0 - from) mod 4096, vals = the n
+//   slots from..w0-1 in write order. h0/c0 give w0 = (h0 + c0) % 4096, h1/c1 give w1.
+//
+// What the reconstruction can prove:
+//   * the slots read were not overwritten while reading: n + (w1 - w0) <= 4096, otherwise the poll is rejected
+//   * the cursor advance between two polls equals the Time.frameCount advance (FRAME_COUNT_TOLERANCE, 0): a poll whose
+//     advance differs breaks the claim "one slot per frame", is recorded as an integrity error and blocks a pass
+//   * no wrap is guessed: two polls 4096 or more engine frames apart cannot be joined (a new segment starts)
+// What it cannot prove: that every frame is a "real" one (a hitch is a frame like any other, see README).
 
-export const FRAME_RING_CAPACITY = 300;
-const PAGE_SPLIT = 200;
-const modulo = (value) => ((value % FRAME_RING_CAPACITY) + FRAME_RING_CAPACITY) % FRAME_RING_CAPACITY;
+export const FRAME_RING_CAPACITY = 4096;
+export const PAGE_SIZE = 200;
+/**
+ * No tolerance, argued from the UiBridge source (Plugin.Update, read 2026-11-19): `_frameStats.Add` runs first in Update and
+ * `_dispatcher.Drain` last, in the same call on the main thread, and the inspector multi-read executes inside Drain. The
+ * cursor (`_head`, `_count`) and `Time.frameCount` of one read therefore belong to the same frame, and between two polls the
+ * cursor advance must equal the engine counter advance exactly. A frame added "just before or after the read" cannot happen:
+ * that earlier reasoning was wrong. A tolerance of one frame would also let a recording error of one frame per poll (about
+ * 2 percent of a 0.7 s poll at 85 fps) through both this gate and the 3 percent wall-clock gate. The only way the source lets
+ * a frame go unrecorded is `Add` dropping a NaN, negative or infinite duration, which does not occur in a running game; if a
+ * smoke run shows deltas other than 0, read the poll records and argue the cause, do not widen this.
+ */
+export const FRAME_COUNT_TOLERANCE = 0;
+
+const modulo = (value, m = FRAME_RING_CAPACITY) => ((value % m) + m) % m;
 const integer = (value) => Number.isSafeInteger(value) && value >= 0;
 const frameMs = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
 
-function validateSnapshot(snapshot) {
-  if (!snapshot || typeof snapshot !== "object") return "snapshot must be an object";
-  if (!integer(snapshot.f0) || !integer(snapshot.f1)) return "engine frame counters must be nonnegative safe integers";
-  if (!integer(snapshot.n0) || !integer(snapshot.n1)
-      || snapshot.n0 >= FRAME_RING_CAPACITY || snapshot.n1 >= FRAME_RING_CAPACITY) {
-    return "ring cursors must be integers from 0 to 299";
+/** The next write slot, from the two fields the inspector reads. */
+export function ringWriteSlot(head, count) {
+  return modulo(head + count);
+}
+
+/** The page reads (offset, limit) that cover `n` slots from slot `from`, in write order, never crossing the array end. */
+export function planPageReads(from, n, capacity = FRAME_RING_CAPACITY, pageSize = PAGE_SIZE) {
+  const reads = [];
+  let offset = modulo(from, capacity), left = n;
+  while (left > 0) {
+    const limit = Math.min(pageSize, left, capacity - offset);
+    reads.push({ offset, limit });
+    offset = (offset + limit) % capacity;
+    left -= limit;
   }
-  if (!Number.isFinite(snapshot.wallMs)) return "wallMs must be finite";
-  if (!Array.isArray(snapshot.page0) || snapshot.page0.length !== PAGE_SPLIT
-      || !Array.isArray(snapshot.page1) || snapshot.page1.length !== FRAME_RING_CAPACITY - PAGE_SPLIT) {
-    return "collection pages must contain exactly 200 and 100 values";
-  }
-  if (snapshot.f1 < snapshot.f0) return "engine counter reversed within snapshot";
-  if (snapshot.f1 - snapshot.f0 >= FRAME_RING_CAPACITY) return "snapshot can contain a complete ring wrap";
-  if (modulo(snapshot.n1 - snapshot.n0) > snapshot.f1 - snapshot.f0) {
-    return "cursor advancement exceeds the snapshot engine-frame bracket";
-  }
+  return reads;
+}
+
+function validateRecord(record) {
+  if (!record || typeof record !== "object") return "record must be an object";
+  for (const key of ["f0", "f1", "h0", "h1", "c0", "c1", "n"]) if (!integer(record[key])) return `${key} must be a nonnegative safe integer`;
+  if (record.h0 >= FRAME_RING_CAPACITY || record.h1 >= FRAME_RING_CAPACITY) return "ring head must be an integer from 0 to 4095";
+  if (record.c0 > FRAME_RING_CAPACITY || record.c1 > FRAME_RING_CAPACITY) return "ring count must be an integer from 0 to 4096";
+  if (!Number.isFinite(record.wallMs0) || !Number.isFinite(record.wallMs)) return "wall clock must be finite";
+  if (record.from !== null && !(integer(record.from) && record.from < FRAME_RING_CAPACITY)) return "from must be null or a slot index";
+  if (!Array.isArray(record.vals)) return "vals must be an array";
+  if (record.f1 < record.f0) return "engine counter reversed within the record";
+  if (record.f1 - record.f0 >= FRAME_RING_CAPACITY) return "the record spans a complete ring wrap";
   return null;
 }
 
-/** Stateful, deterministic collector. No I/O, polling, timers or GPU operations. */
-export class FrameRingReconstructor {
+/** Stateful, deterministic reconstruction. No I/O, polling, timers or GPU operations. */
+export class FrameRingReader {
   constructor() {
     this._segments = [];
     this._discontinuities = [];
-    this._invalidSnapshots = [];
+    this._invalidRecords = [];
     this._previous = null;
-    this._snapshotCount = 0;
+    this._count = 0;
   }
 
-  /**
-   * Add one ordered bracket. Invalid brackets break continuity; no wrap count is guessed.
-   * A duplicate sequence with a different value is quarantined and fails that segment's
-   * integrity gate. This exposes torn reads/restarts instead of accepting whichever won.
-   */
-  push(snapshot) {
-    const snapshotIndex = this._snapshotCount++;
-    const invalidReason = validateSnapshot(snapshot);
-    if (invalidReason) {
-      const event = { snapshotIndex, reason: invalidReason, wallMs: snapshot?.wallMs ?? null };
-      this._invalidSnapshots.push(event);
+  /** Add one poll record in order. Anything unprovable breaks continuity; no wrap count is guessed. */
+  push(record) {
+    const index = this._count++;
+    const invalid = validateRecord(record);
+    if (invalid) {
+      const event = { index, reason: invalid, wallMs: record?.wallMs ?? null };
+      this._invalidRecords.push(event);
       this._discontinuities.push(event);
       this._previous = null;
       return { accepted: false, ...event };
     }
-
-    const ownAdvance = modulo(snapshot.n1 - snapshot.n0);
-    let reason = null;
-    let beforeSequence = 0;
+    const w0 = ringWriteSlot(record.h0, record.c0), w1 = ringWriteSlot(record.h1, record.c1);
+    const k = modulo(w1 - w0);
+    let reason = null, beforeSequence = 0, expectedN = 0;
     if (this._previous) {
       const previous = this._previous;
-      // Outer bounds also cover the unobserved interval between the two n reads.
-      const outerSpan = snapshot.f1 - previous.f0;
-      const gapAdvance = modulo(snapshot.n0 - previous.n1);
-      if (snapshot.f0 < previous.f1) reason = "engine brackets overlap or counter restarted";
-      else if (outerSpan >= FRAME_RING_CAPACITY) reason = "between-snapshot wrap count is unproven";
-      else if (gapAdvance + ownAdvance > outerSpan) reason = "cursor advancement exceeds adjacent engine-frame brackets";
-      else if (snapshot.wallMs < previous.wallMs) reason = "snapshot wall clock reversed";
-      else beforeSequence = previous.afterSequence + gapAdvance;
+      expectedN = modulo(w0 - previous.w0);
+      if (record.skipped) reason = "the poll skipped its slot reads";
+      else if (record.f0 < previous.f0) reason = "engine counter restarted";
+      else if (record.f0 - previous.f0 >= FRAME_RING_CAPACITY) reason = "between-poll wrap count is unproven";
+      else if (record.wallMs0 < previous.wallMs0) reason = "wall clock reversed";
+      else if (record.from !== previous.w0) reason = "a poll is missing between these two records";
+      else if (record.n !== expectedN || record.vals.length !== expectedN) reason = "the record's slot count does not follow from the cursors";
+      else if (record.n + k > FRAME_RING_CAPACITY) reason = "slots may have been overwritten while they were read";
+      else beforeSequence = previous.afterSequence;
     }
-
     if (reason) {
-      this._discontinuities.push({ snapshotIndex, reason, wallMs: snapshot.wallMs });
+      this._discontinuities.push({ index, reason, wallMs: record.wallMs });
       this._previous = null;
     }
-    if (!this._previous) {
+    const first = !this._previous;
+    if (first) {
       this._segments.push({
-        id: this._segments.length,
-        startSequence: 0,
-        endSequence: 0,
-        firstWallMs: snapshot.wallMs,
-        lastWallMs: snapshot.wallMs,
-        initialEngineFrame: snapshot.f0,
-        finalEngineFrame: snapshot.f1,
-        snapshots: 0,
-        touchedSlotsDiscarded: 0,
-        invalidValuesDiscarded: 0,
-        duplicateObservations: 0,
-        integrityErrors: [],
-        frames: new Map(),
-        conflicted: new Set(),
+        id: this._segments.length, startSequence: 0, endSequence: 0, firstWallMs: record.wallMs, lastWallMs: record.wallMs,
+        polls: 0, invalidValuesDiscarded: 0, frameCountMismatches: 0, integrityErrors: [], frames: new Map(),
       });
     }
     const segment = this._segments.at(-1);
-    const afterSequence = beforeSequence + ownAdvance;
-    if (!Number.isSafeInteger(afterSequence)) throw new RangeError("frame sequence exceeded the safe integer range");
-    const pages = [...snapshot.page0, ...snapshot.page1];
-    let added = 0;
-    let touched = 0;
-    let invalidValues = 0;
-    let duplicates = 0;
-    for (let slot = 0; slot < FRAME_RING_CAPACITY; slot++) {
-      // [n0,n1) may have been overwritten before, between or after the page reads.
-      // Even when that slot looks plausible its epoch is ambiguous, so discard it.
-      if (modulo(slot - snapshot.n0) < ownAdvance) {
-        touched++;
-        continue;
+    let added = 0, invalidValues = 0, frameCountDelta = 0;
+    if (!first) {
+      // The reader's claim "one slot per frame" is checked against the engine's own counter on every poll.
+      frameCountDelta = record.n - (record.f0 - this._previous.f0);
+      if (Math.abs(frameCountDelta) > FRAME_COUNT_TOLERANCE) {
+        segment.frameCountMismatches++;
+        segment.integrityErrors.push({ sequence: beforeSequence, kind: "frame-count", cursorAdvance: record.n, engineFrames: record.f0 - this._previous.f0 });
       }
-      const sequence = beforeSequence - 1 - modulo(snapshot.n0 - 1 - slot);
-      if (sequence < segment.startSequence || segment.conflicted.has(sequence)) continue;
-      const ms = pages[slot];
-      if (!frameMs(ms)) {
-        invalidValues++;
-        continue;
-      }
-      const old = segment.frames.get(sequence);
-      if (old) {
-        duplicates++;
-        if (old.ms !== ms) {
-          segment.frames.delete(sequence);
-          segment.conflicted.add(sequence);
-          segment.integrityErrors.push({ sequence, firstMs: old.ms, secondMs: ms, snapshotIndex });
-        }
-      } else {
-        segment.frames.set(sequence, { sequence, ms, wallMs: snapshot.wallMs });
+      for (let i = 0; i < record.n; i++) {
+        const ms = record.vals[i];
+        if (!frameMs(ms)) { invalidValues++; continue; }
+        segment.frames.set(beforeSequence + i, { sequence: beforeSequence + i, ms, wallMs: record.wallMs });
         added++;
       }
     }
+    const afterSequence = beforeSequence + (first ? 0 : record.n);
     segment.endSequence = afterSequence;
-    segment.lastWallMs = snapshot.wallMs;
-    segment.finalEngineFrame = snapshot.f1;
-    segment.snapshots++;
-    segment.touchedSlotsDiscarded += touched;
+    segment.lastWallMs = record.wallMs;
+    segment.polls++;
     segment.invalidValuesDiscarded += invalidValues;
-    segment.duplicateObservations += duplicates;
-    this._previous = { ...snapshot, page0: undefined, page1: undefined, afterSequence };
-    return {
-      accepted: true,
-      snapshotIndex,
-      segmentId: segment.id,
-      beforeSequence,
-      afterSequence,
-      added,
-      touched,
-      invalidValues,
-      duplicates,
-      discontinuity: reason,
-    };
+    this._previous = { w0, f0: record.f0, wallMs0: record.wallMs0, afterSequence };
+    return { accepted: true, index, segmentId: segment.id, beforeSequence, afterSequence, added, invalidValues, frameCountDelta, discontinuity: reason };
   }
 
-  /** A detached, JSON-serializable result; callers cannot mutate collector state. */
+  /** A detached, JSON-serializable result; callers cannot mutate reader state. */
   result() {
     return {
       capacity: FRAME_RING_CAPACITY,
-      snapshotCount: this._snapshotCount,
-      segments: this._segments.map(({ frames, conflicted, integrityErrors, ...metadata }) => ({
+      recordCount: this._count,
+      segments: this._segments.map(({ frames, integrityErrors, ...metadata }) => ({
         ...metadata,
         integrityErrors: integrityErrors.map((error) => ({ ...error })),
         frames: [...frames.values()].sort((a, b) => a.sequence - b.sequence).map((frame) => ({ ...frame })),
       })),
       discontinuities: this._discontinuities.map((event) => ({ ...event })),
-      invalidSnapshots: this._invalidSnapshots.map((event) => ({ ...event })),
+      invalidRecords: this._invalidRecords.map((event) => ({ ...event })),
     };
   }
 }
@@ -249,16 +238,39 @@ export function analyzeSegment(segment, { startSequence = segment.startSequence,
   };
 }
 
+/** Plain statistics of an array of frame times (ms): the per-window rows of a report. */
+export function describeFrames(values) {
+  if (!values.length) return null;
+  const total = values.reduce((sum, ms) => sum + ms, 0);
+  const round = (x, d = 2) => Number(x.toFixed(d));
+  return {
+    frames: values.length, seconds: round(total / 1000), fps: round(values.length / (total / 1000), 1), meanMs: round(total / values.length),
+    p50Ms: round(nearestRank(values, 0.5)), p95Ms: round(nearestRank(values, 0.95)), p99Ms: round(nearestRank(values, 0.99)), maxMs: round(Math.max(...values), 1),
+  };
+}
+
+/** Consecutive windows of `windowMs` of accumulated frame time (the last, shorter one is dropped). Never an average of percentiles. */
+export function windowsByFrameTime(values, windowMs = 30000) {
+  const windows = [];
+  let current = [], accumulated = 0;
+  for (const ms of values) {
+    current.push(ms);
+    accumulated += ms;
+    if (accumulated >= windowMs) { windows.push(describeFrames(current)); current = []; accumulated = 0; }
+  }
+  return windows;
+}
+
 /** Full-record convenience. Multiple segments cannot certify the unobserved gaps. */
-export function analyzeSnapshots(snapshots, options = {}) {
-  const collector = new FrameRingReconstructor();
-  for (const snapshot of snapshots) collector.push(snapshot);
-  const result = collector.result();
+export function analyzeRecords(records, options = {}) {
+  const reader = new FrameRingReader();
+  for (const record of records) reader.push(record);
+  const result = reader.result();
   const analyses = result.segments.map((segment) => analyzeSegment(segment, options));
   return {
     ...result,
     analyses,
     passesP95: result.segments.length === 1 && result.discontinuities.length === 0
-      && result.invalidSnapshots.length === 0 && analyses[0].passesP95,
+      && result.invalidRecords.length === 0 && analyses[0].passesP95,
   };
 }

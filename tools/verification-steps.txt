@@ -91,6 +91,7 @@ NativeSideViewChecks
 NativeStopChecks
 OfflineSessionChecks
 OfflineStartupChecks
+AmandsGraphicsSceneChecks
 OptionalModAdmissionChecks
 ParticipantCountChecks
 ParticipantMenuChecks
@@ -117,6 +118,8 @@ SpawnGateChecks
 SpawnShieldScopeChecks
 TacticalCorpseChecks
 TacticalObjectiveChecks
+TacticalOpeningChecks
+TacticalFreshGearChecks
 TacticalPolishChecks
 TdmMatchMenuChecks
 TdmMonitorChecks
@@ -164,3 +167,6 @@ GunGameFreshGearChecks
 PmcVoiceChecks
 PoolPrewarmChecks
 SainExtractGuardChecks
+WeaponVariantChecks
+WeaponPoolGuardChecks
+tools/ZombiePerformanceChecks/Verify-Collector.ps1

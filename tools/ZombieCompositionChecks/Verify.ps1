@@ -30,6 +30,25 @@ $faults+=@(
     @{Name='step-ignored-by-draw'; File='Modes/ZombieRoleMix.cs'; Property='RoleSource'; Find='ZombieCompositionPolicy.SlowPercent(waveNumber, step)'; Replace='ZombieCompositionPolicy.SlowPercent(waveNumber)'; Failure='Maximum draws the faded slow share of the wave'},
     @{Name='growth-ignored-by-draw'; File='Modes/ZombieRoleMix.cs'; Property='RoleSource'; Find='ArenaDifficultyPolicy.ZombieShooterPercent(step, shooterPercent, waveNumber)'; Replace='Math.Clamp(shooterPercent, 0, 100)'; Failure='Maximum draws the grown shooter share of the wave'}
 )
+# Special waves (docs/reviews/ZOMBIE-ESCALATION-20261119.md): the calendar, the two share functions and the decider.
+$faults+=@(
+    @{Name='special-wave-interval-4'; Path=$policyPath; Property='PolicySource'; Find='waveNumber % ZombieSpecialWaveInterval != 0'; Replace='waveNumber % 4 != 0'; Failure='special waves fall on every fifth wave from wave five, Runners first'},
+    @{Name='special-wave-at-zero'; Path=$policyPath; Property='PolicySource'; Find='waveNumber < ZombieSpecialWaveInterval'; Replace='waveNumber < 0'; Failure='special waves fall on every fifth wave from wave five, Runners first'},
+    @{Name='special-waves-at-reduced'; Path=$policyPath; Property='PolicySource'; Find='step != ArenaDifficultyStep.Maximum || waveNumber < ZombieSpecialWaveInterval'; Replace='waveNumber < ZombieSpecialWaveInterval'; Failure='Reduced has no special waves'},
+    @{Name='theme-order-swapped'; Path=$policyPath; Property='PolicySource'; Find='(waveNumber / ZombieSpecialWaveInterval) % 2 == 1'; Replace='(waveNumber / ZombieSpecialWaveInterval) % 2 == 0'; Failure='special waves fall on every fifth wave from wave five, Runners first'},
+    @{Name='runners-keep-slow'; Path=$policyPath; Property='PolicySource'; Find='ZombieScheduledTheme(step, waveNumber) == ZombieWaveTheme.Runners'; Replace='false'; Failure='Maximum fades the slow share from wave four'},
+    @{Name='runners-keep-shooters'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Runners: return 0;'; Replace='case ZombieWaveTheme.Runners: return share;'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
+    @{Name='shooters-wave-not-all-hard'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Shooters: return 100;'; Replace='case ZombieWaveTheme.Shooters: return share;'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
+    @{Name='shooters-wave-at-zero'; Path=$policyPath; Property='PolicySource'; Find='waveNumber <= 1 || share == 0 || share == 100)'; Replace='waveNumber <= 1 || share == 100)'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
+    @{Name='runners-at-hundred'; Path=$policyPath; Property='PolicySource'; Find='waveNumber <= 1 || share == 0 || share == 100)'; Replace='waveNumber <= 1 || share == 0)'; Failure='Maximum grows the shooter share by a tenth of the setting per wave'},
+    @{Name='theme-keeps-runners-at-hundred'; Path=$policyPath; Property='PolicySource'; Find='if (share == 100) return ZombieWaveTheme.None;'; Replace='if (theme == ZombieWaveTheme.Shooters && share == 100) return ZombieWaveTheme.None;'; Failure='a shooter share of 100 announces no special wave'},
+    @{Name='theme-keeps-shooters-at-hundred'; Path=$policyPath; Property='PolicySource'; Find='if (share == 100) return ZombieWaveTheme.None;'; Replace='if (theme == ZombieWaveTheme.Runners && share == 100) return ZombieWaveTheme.None;'; Failure='a shooter share of 100 announces no special wave'},
+    @{Name='theme-keeps-shooters-at-zero'; Path=$policyPath; Property='PolicySource'; Find='theme == ZombieWaveTheme.Shooters && share == 0'; Replace='false'; Failure='a shooter share of 0 never gets a shooters wave'},
+    # Faults that are right at waves 5 and 10 and wrong later: only the waves 1 to 60 cross-check sees them. (The Runners return in
+    # ZombieSlowPercent has no such fault: the faded slow share is already 0 from wave 11, so it cannot differ at a later wave.)
+    @{Name='runners-shooter-override-ends-early'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Runners: return 0;'; Replace='case ZombieWaveTheme.Runners: if (waveNumber < 12) return 0; break;'; Failure='a runners wave draws neither shooters nor slow infected'},
+    @{Name='shooters-override-ends-early'; Path=$policyPath; Property='PolicySource'; Find='case ZombieWaveTheme.Shooters: return 100;'; Replace='case ZombieWaveTheme.Shooters: if (waveNumber < 12) return 100; break;'; Failure='a shooters wave draws only shooters'}
+)
 foreach($fault in $faults) { if(-not $fault.Path){ $fault.Path=Join-Path $repo ('ArenaMode.Client/'+$fault.File) } }
 Test-ArenaSourceFaults $project 'ZOMBIE_COMPOSITION_CHECKS_PASSED' @() $faults -RequireSingleSite
 

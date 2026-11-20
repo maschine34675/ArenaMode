@@ -81,7 +81,8 @@ is an original Harmony integration against the installed API. Reference sources:
 
 `ArenaBotTierScalePatch` still chooses the existing Arena anchor and +/-5 level range.
 Since 2026-11-18 the anchor is the difficulty step's gear level, fixed from the first request
-(Maximum: the map's end level, default 66; Reduced: 60 % of it); only Gun Game ramps from
+(Maximum: the map's end level, default 66; Reduced: 60 % of it; the first two rounds of solo
+Tactical are lighter, see TACTICAL-OPENING-ROUNDS-20261119.md, with the start level as their floor); only Gun Game ramps from
 the start level over the map's ramp minutes on the server raid time, and Team DM no longer
 sends a match clock. See [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md). Protected PFT teams and maps with tier scaling disabled remain excluded.
 

@@ -131,6 +131,62 @@ static class Program
         BurstSpawnService.Throw=false;Check(BurstSpawnService.Requests.Count==0&&!Assembling(),"a request that threw announces nothing");
         Time.time=3.9f;mode.Tick(2.9f);Check(BurstSpawnService.Requests.Count==0,"a request that threw is not retried every frame");
         Time.time=4;mode.Tick(.1f);Check(BurstSpawnService.Requests.Count==1,"a request that threw is retried after the three-second plan-failure delay");
+
+        // Opening rounds (docs/reviews/TACTICAL-OPENING-ROUNDS-20261119.md): a round whose gear stage differs from
+        // the acknowledged round's waits for the server to acknowledge the round report, never past the gate's cap.
+        TacticalRoundReply Ack(int round,int seq)=>new(){Accepted=true,Applies=true,Round=round,Seq=seq};
+        TaskCompletionSource<TacticalRoundReply> answer=null;int answerRound=0,answerSeq=0;
+        TacticalMode AtRoundTwoUnanswered()
+        {
+            var m=Fresh();
+            m.BandSender=(r,s)=>Task.FromResult(Ack(r,s));m.BandForTest.Report(1);m.BandForTest.Tick();
+            answer=new();m.BandSender=(r,s)=>{answerRound=r;answerSeq=s;return answer.Task;};
+            m.SurvivedForTest();m.BandForTest.Report(m.RoundNumber);
+            return m;
+        }
+        mode=AtRoundTwoUnanswered();mode.Start();
+        Check(BurstSpawnService.Requests.Count==0&&!Assembling(),"round 2's request waits for the server to acknowledge the round report");
+        Time.time=Time.unscaledTime=1;mode.Tick(1);
+        Check(BurstSpawnService.Requests.Count==0,"the assembly check waits for the band hold instead of retrying the request");
+        answer.SetResult(Ack(answerRound,answerSeq));mode.Tick(.1f);
+        Check(BurstSpawnService.Requests.Count==1&&Assembling(),"the acknowledgement releases the held request");
+        mode.Tick(.1f);Check(BurstSpawnService.Requests.Count==1,"a released request is not sent again");
+
+        mode=AtRoundTwoUnanswered();mode.Start();
+        Time.time=Time.unscaledTime=2.9f;mode.Tick(2.9f);Check(BurstSpawnService.Requests.Count==0,"the band hold lasts the full 3 seconds");
+        Time.time=Time.unscaledTime=3;mode.Tick(.1f);
+        Check(BurstSpawnService.Requests.Count==1&&Assembling(),"the cap sends the request at whatever stage the server holds");
+
+        // READY pressed at once: the aftermath is the whole gap between the report and the request.
+        mode=AtRoundTwoUnanswered();mode.ReadyUp();Time.time=Time.unscaledTime=.1f;mode.Tick(.1f);
+        Check(BurstSpawnService.Requests.Count==0,"READY pressed at once with the report still unanswered: the request waits");
+        Time.time=Time.unscaledTime=3;mode.Tick(2.9f);Check(BurstSpawnService.Requests.Count==0,"the cap runs from the held request, not from the report");
+        Time.time=Time.unscaledTime=3.2f;mode.Tick(.2f);Check(BurstSpawnService.Requests.Count==1,"the cap releases the request 3 seconds after it was held");
+        mode=Fresh();mode.BandSender=(r,s)=>Task.FromResult(Ack(r,s));mode.BandForTest.Report(1);mode.BandForTest.Tick();
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();
+        mode.ReadyUp();Time.time=Time.unscaledTime=.1f;mode.Tick(.1f);
+        Check(BurstSpawnService.Requests.Count==1&&Assembling(),"READY pressed at once with the report answered: nothing is held");
+
+        // From round 4 on the stage cannot change: a dead route must not hold the request.
+        mode=Fresh();mode.BandSender=(r,s)=>Task.FromResult(Ack(r,s));
+        for(int round=1;round<=3;round++){if(round>1)mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();}
+        mode.BandSender=(r,s)=>Task.FromException<TacticalRoundReply>(new HttpRequestException("dead route"));
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.Start();
+        Check(mode.RoundNumber==4&&BurstSpawnService.Requests.Count==1&&Assembling(),"round 4 with a dead route sends its request at once");
+
+        // The buy screens' own line (TacticalMode.OpponentGearNote): empty until the CURRENT round's report is
+        // acknowledged, each opening round in its own words, nothing from round 4 on.
+        mode=Fresh();mode.BandSender=(r,s)=>Task.FromResult(Ack(r,s));
+        Check(mode.OpponentGearNote=="","no line before the first report is made");
+        mode.BandForTest.Report(1);Check(mode.OpponentGearNote=="","no line while round 1's report is unanswered");
+        mode.BandForTest.Tick();Check(mode.OpponentGearNote==TacticalOpeningText.Light,"round 1 says light gear once its report is acknowledged");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);
+        Check(mode.OpponentGearNote=="","round 2 says nothing until its own report is acknowledged, not even round 1's line");
+        mode.BandForTest.Tick();Check(mode.OpponentGearNote==TacticalOpeningText.Medium,"round 2 says medium gear once acknowledged");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();
+        Check(mode.OpponentGearNote==TacticalOpeningText.FullFromNowOn,"round 3 says full gear from now on");
+        mode.SurvivedForTest();mode.BandForTest.Report(mode.RoundNumber);mode.BandForTest.Tick();
+        Check(mode.OpponentGearNote=="","round 4 says nothing");
     }
     static void Kit()
     {

@@ -57,6 +57,12 @@ in [the access-check sources](tools/ArenaLabyrinthAccessChecks/EnableLabyrinth-L
 copyright (c) 2025 acidphantasm. See the
 [implementation boundary](tools/ArenaLabyrinthAccessChecks/README.md).
 
+ArenaMode-WeaponPoolFix, part of the BEAQO add-on by Sankese (MIT, copyright (c) 2026 maschine and
+Sankese), was a behavioral reference: it showed that one broken weapon preset fails the whole Gun Game
+pool and which defects to look for. Arena's `ArenaPresetGuard` is an independent implementation (it works on
+the raw preset before one preset per weapon is chosen, with its own rule set and reasons); no source code
+of the add-on is included.
+
 Smoothie (CC BY-NC-SA 4.0) was read as a technique reference for building a
 server batch of bot profiles under a per-frame time budget
 (`ArenaMode.Client/Performance/ProfileBuildBudget*.cs`); no code or text was

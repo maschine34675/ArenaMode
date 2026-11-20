@@ -75,6 +75,15 @@ public class ArenaSessionService
         public string? LadderJson;
         public string? LadderPoolJson;
         public int LadderRungs;
+        /// <summary>
+        /// Solo Tactical: the round the client last reported, 1 until a report arrives. Round 1 is
+        /// the default on purpose: the raid-start bot preload and the pool prewarm run before the
+        /// first report and exist to feed round 1. Reset where a raid STARTS
+        /// (<see cref="ProcessLocalRaidStart"/>), never where a running raid resumes.
+        /// </summary>
+        public int TacticalRound = 1;
+        /// <summary>Order of the Tactical reports: a report is applied only with a higher number than this one.</summary>
+        public int TacticalReportSeq;
     }
 
     private readonly Dictionary<string, SessionEntry> _sessions = new();
@@ -493,6 +502,12 @@ public class ArenaSessionService
 
             entry.State = ArenaSessionState.InRaid;
             entry.InRaidAtUtc = DateTime.UtcNow;
+            // A raid STARTS here, so the round counter starts over with it. The same entry
+            // returns to InRaid in AbortNativeEndFinalization (a native end that failed and
+            // is retried): that is the SAME raid resuming, whose reports must survive, so
+            // the reset lives only at this transition and not at the resume.
+            entry.TacticalRound = 1;
+            entry.TacticalReportSeq = 0;
             entry.ClientRaidStarted = false;
             entry.NativeStartIdentity = nativeStartIdentity;
             entry.NativeStartTaskSettled = false;
@@ -1528,6 +1543,139 @@ public class ArenaSessionService
             if (!string.IsNullOrEmpty(entry.ArmToken))
                 identity = new(entry, sessionId.ToString(), entry.Map!, entry.ArmToken, entry.InRaidAtUtc);
             return true;
+        }
+    }
+
+    /// <summary>
+    /// The Tactical round the client last reported for exactly this live raid; 1 until a report
+    /// arrived, and 1 for a null or stale identity and for a protected raid. A sibling of
+    /// <see cref="TryGetBotTierContext"/> on purpose: that method keeps its seven parameters (its one
+    /// production caller, two tests and a third-party add-on's reflection all depend on them) and gets
+    /// no overload. The entry is matched by reference, so a replacement raid with the same
+    /// arm string never inherits the round; a report that lands between the context read and this
+    /// call only moves the answer to the newer report, which is what the band should follow.
+    /// </summary>
+    internal int GetTacticalRound(BotTierIdentity? identity)
+    {
+        if (identity == null)
+            return 1;
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(identity.Session, out var entry)
+                && ReferenceEquals(entry, identity.Entry)
+                && IsLiveRaid(entry)
+                && !entry.ProtectPitFireTeam
+                ? entry.TacticalRound
+                : 1;
+        }
+    }
+
+    /// <summary>The stored Tactical report state of a live raid for /status; (1, 0) when there is none.</summary>
+    internal (int round, int seq) GetTacticalReportState(MongoId sessionId)
+    {
+        lock (_lock)
+        {
+            return _sessions.TryGetValue(sessionId.ToString(), out var entry) && IsLiveRaid(entry)
+                ? (entry.TacticalRound, entry.TacticalReportSeq)
+                : (1, 0);
+        }
+    }
+
+    internal enum TacticalRoundReportResult { Accepted, Duplicate, Refused }
+
+    /// <summary>Highest round number a client may report; the real raid never gets near it.</summary>
+    internal const int MaxTacticalRound = 999;
+
+    /// <summary>
+    /// Highest seq a client may report. The seq only ever rises, so one report carrying a huge value
+    /// (a bug or a replay; it still needs the arm token) would make every later, honest report a
+    /// Duplicate and freeze the stored round for the rest of the raid. A real raid reports a few
+    /// hundred times at most.
+    /// </summary>
+    internal const int MaxTacticalSeq = Protocol.TacticalMaxSeq;
+
+    /// <summary>
+    /// Stores the round a solo Tactical client reports, so the gear band of the next generation
+    /// requests follows it. Bound to the exact live raid: the entry of the request's session
+    /// must be InRaid within the live deadline, carry exactly this arm token (non-empty), run
+    /// Tactical and not be a protected PitFireTeam raid; the round must be 1..999 and the seq
+    /// 1..<see cref="MaxTacticalSeq"/>. Anything else is <see cref="TacticalRoundReportResult.Refused"/> and changes nothing.
+    ///
+    /// <paramref name="seq"/> is the order. A seq that is not above the stored one is a
+    /// <see cref="TacticalRoundReportResult.Duplicate"/> (a resend, or a late older request) and
+    /// changes nothing; the round itself is NOT monotonic, so a report of round 1 with a higher seq
+    /// is applied. <paramref name="applies"/> says whether the server writes a Tactical stage band
+    /// for this raid at all (the map's tier scaling is on); a raid whose map opted out is accepted
+    /// and not applying, so the client can stop expecting a band without any warning. The stored
+    /// round and seq are echoed whichever way the call ends: the client trusts them over its own.
+    /// </summary>
+    internal TacticalRoundReportResult TryReportTacticalRound(
+        MongoId sessionId,
+        string? armToken,
+        int round,
+        int seq,
+        out int storedRound,
+        out int storedSeq,
+        out bool applies,
+        out string? refusal)
+    {
+        storedRound = 1;
+        storedSeq = 0;
+        applies = false;
+        refusal = null;
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry) || !IsLiveRaid(entry))
+            {
+                // FinalizingEnd gets its own reason: AbortNativeEndFinalization returns the same entry
+                // to InRaid with its round kept, so a client may treat this refusal as transient
+                // instead of as "no raid" (which ends reporting for the rest of the raid).
+                refusal = entry?.State == ArenaSessionState.FinalizingEnd
+                    ? Protocol.TacticalRoundRaidEndingRefusal
+                    : "no live Arena raid";
+                return TacticalRoundReportResult.Refused;
+            }
+
+            storedRound = entry.TacticalRound;
+            storedSeq = entry.TacticalReportSeq;
+            if (string.IsNullOrEmpty(armToken)
+                || !string.Equals(entry.ArmToken, armToken, StringComparison.Ordinal))
+            {
+                refusal = "arm token did not match";
+                return TacticalRoundReportResult.Refused;
+            }
+
+            if (!ArenaDifficultyPolicy.IsTacticalMode(entry.Mode) || entry.ProtectPitFireTeam)
+            {
+                refusal = "not a solo Tactical raid";
+                return TacticalRoundReportResult.Refused;
+            }
+
+            if (round < 1 || round > MaxTacticalRound || seq < 1 || seq > MaxTacticalSeq)
+            {
+                refusal = "round or seq out of range";
+                return TacticalRoundReportResult.Refused;
+            }
+
+            ArenaMapConfig? map = null;
+            applies = entry.Map != null
+                && ArenaContext.Config.Maps.TryGetValue(entry.Map, out map)
+                && map.ScaleBotTier;
+            if (seq <= entry.TacticalReportSeq)
+                return TacticalRoundReportResult.Duplicate;
+
+            entry.TacticalRound = round;
+            entry.TacticalReportSeq = seq;
+            storedRound = round;
+            storedSeq = seq;
+            if (applies && map != null)
+            {
+                logger.Debug(
+                    $"[ArenaMode] Tactical round {round} reported (seq {seq}); gear level "
+                    + $"{ArenaDifficultyPolicy.TacticalGearLevel(entry.Difficulty, map.BotTierStartLevel, map.BotTierEndLevel, round)} "
+                    + $"on {entry.Map}, step={ArenaDifficultyPolicy.ToWire(entry.Difficulty)}.");
+            }
+            return TacticalRoundReportResult.Accepted;
         }
     }
 

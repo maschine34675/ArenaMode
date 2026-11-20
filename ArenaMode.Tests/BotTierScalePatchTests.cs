@@ -83,6 +83,37 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         Assert.Equal(17, details.LocationSpecificPmcLevelOverride.Max);
     }
 
+    /// <summary>
+    /// The client's Tactical pool purge tests pooled profiles against the band the server writes
+    /// (ArenaDifficultyPolicy.IsTacticalGearOutOfBand). This drives the real server prefix and compares the
+    /// range it writes, level by level, with that predicate: a server that went back to its own inline
+    /// formula (a different floor or shape) fails here instead of showing up as a purge budget warning.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(6)]
+    [InlineData(12)]
+    [InlineData(40)]
+    public void TheBandTheServerWritesIsTheBandTheClientPurgeTests(int gearLevel)
+    {
+        var map = ArenaContext.Config.Maps["factory4_day"];
+        map.BotTierStartLevel = gearLevel;
+        map.BotTierEndLevel = gearLevel;
+        var sessionId = new MongoId(ArenaSession);
+        ArenaContext.Sessions = StartArena(sessionId, "factory4_day", protectedTeam: false);
+        var details = Details("factory4_day", playerLevel: 47, min: 33, max: 61);
+
+        ArenaBotTierScalePatch.Prefix(sessionId, details);
+
+        int centre = details.PlayerLevel!.Value;
+        var written = details.LocationSpecificPmcLevelOverride!;
+        for (int level = 0; level <= 120; level++)
+            Assert.Equal(
+                level < written.Min || level > written.Max,
+                ArenaDifficultyPolicy.IsTacticalGearOutOfBand(level, centre));
+    }
+
     [Fact]
     public void OrdinarySessionOnSameMapIsNotCapturedByLiveArenaSession()
     {

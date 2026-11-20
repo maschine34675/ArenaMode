@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runIntegrity } from './run-integrity.mjs';
 const status = { bridge: { instanceId: 'same' }, raid: { location: 'factory' } };
-const valid = { requestedSeconds: 240, activityStart: 1000, activityEnd: 241000, firstSample: 1400, lastSample: 240600, initialStatus: status, finalStatus: status };
+const valid = { requestedSeconds: 240, activityStart: 1000, activityEnd: 241000, firstSample: 1400, lastSample: 240600, initialStatus: status, finalStatus: status,
+  frameSeconds: 238.9, wallSeconds: 239.2, frameCountMismatches: 0 };
 test('complete declared workload passes; an early short segment never substitutes for it', () => {
   assert.equal(runIntegrity(valid).passed, true);
   assert.equal(runIntegrity({ ...valid, activityEnd: 4500, lastSample: 4400 }).passed, false);
@@ -13,5 +14,18 @@ test('missing or invalid metadata, changed process/map, late capture and capture
     { finalStatus: undefined }, { finalStatus: { ...status, bridge: { instanceId: 'other' } } },
     { finalStatus: { ...status, raid: { location: 'labs' } } }, { captureErrors: 1 }]) {
     assert.equal(runIntegrity({ ...valid, ...change }).passed, false, JSON.stringify(change));
+  }
+});
+test('recorded frame time must equal the wall time of the interval within 3 %, and the cursor must follow the engine frame counter', () => {
+  assert.equal(runIntegrity({ ...valid, frameSeconds: 239.2 * 0.971, wallSeconds: 239.2 }).frameTimeMatchesWall, true);
+  for (const change of [{ frameSeconds: 239.2 * 0.96 }, { frameSeconds: 239.2 * 1.04 }, { frameSeconds: undefined }, { wallSeconds: 0 }, { wallSeconds: undefined }]) {
+    const result = runIntegrity({ ...valid, ...change });
+    assert.equal(result.frameTimeMatchesWall, false, JSON.stringify(change));
+    assert.equal(result.passed, false);
+  }
+  for (const change of [{ frameCountMismatches: 1 }, { frameCountMismatches: undefined }, { frameCountMismatches: 0.5 }]) {
+    const result = runIntegrity({ ...valid, ...change });
+    assert.equal(result.frameCountMatches, false, JSON.stringify(change));
+    assert.equal(result.passed, false);
   }
 });

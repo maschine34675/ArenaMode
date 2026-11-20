@@ -6,7 +6,8 @@ New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 $boundPaths=@('ArenaMode.Client/Modes/TacticalMode.cs','ArenaMode.Client/Modes/ArenaMatch.cs',
     'ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs','ArenaMode.Client/Hud/TacticalBuyPanel.cs',
     'ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs','ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs',
-    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs',
+    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs','ArenaMode.Client/Modes/TacticalOpeningBandGate.cs','ArenaMode.Client/Modes/TacticalRoundReply.cs','ArenaMode.Client/Modes/TacticalOpeningText.cs',
+    'ArenaMode.Shared/ArenaDifficultyPolicy.cs','ArenaMode.Shared/Protocol.cs',
     'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs',
     'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs')
 $boundPaths+=Get-ChildItem -LiteralPath $PSScriptRoot -File|ForEach-Object {'tools/TacticalPolishChecks/'+$_.Name}
@@ -22,7 +23,7 @@ function Extract-Method([string]$source,[string]$name){
 }
 $methodNames=@('Tick','TickLive','StartRound','StartSoloBodyMove','DispatchOpeningSquad','OnSoloLocalRespawn','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','ClearPurchase','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
 $methods=@{};foreach($name in $methodNames){$methods[$name]=Extract-Method $tactical $name}
-$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','Worn')|ForEach-Object {
+$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','OpponentGearNote','Worn')|ForEach-Object {
     $match=[regex]::Match($tactical,'(?ms)^    (?:public|internal) \w+ '+$_+'\s*=>.*?;[ \t]*\r?$')
     if(!$match.Success){throw "Production property $_ not found"};$match.Value
 }
@@ -32,11 +33,12 @@ function Write-Slice([hashtable]$parts,[string]$file){
     $header="using System; using System.Collections.Generic; using System.Linq; using ArenaMode.Kits; using ArenaMode.Bots; using ArenaMode.Combat; using ArenaMode.Config; using EFT; using UnityEngine;`nnamespace ArenaMode.Modes; public partial class TacticalMode {`n"
     [IO.File]::WriteAllText($file,$header+($properties -join "`n")+"`n"+(($methodNames|ForEach-Object {$parts[$_]}) -join "`n")+"`n}"+$matchSlice)
 }
-function Run-Probe([string]$name,[hashtable]$parts,[string]$panelText,[string]$part,[string]$failure){
+function Run-Probe([string]$name,[hashtable]$parts,[string]$panelText,[string]$part,[string]$failure,[string]$gateText){
     $dir=Join-Path $scratch $name;New-Item -ItemType Directory -Path $dir -Force | Out-Null
     $slice=Join-Path $dir 'TacticalSlice.cs';$panelFile=Join-Path $dir 'TacticalBuyPanel.cs'
     Write-Slice $parts $slice;[IO.File]::WriteAllText($panelFile,$panelText)
-    $output=& dotnet build (Join-Path $PSScriptRoot 'TacticalPolishChecks.csproj') -c Release "-p:TacticalSlice=$slice" "-p:PanelSource=$panelFile" "-p:BaseIntermediateOutputPath=$dir/obj/" "-p:OutputPath=$dir/out/" --nologo 2>&1
+    $gateArgs=@();if($gateText){$gateFile=Join-Path $dir 'TacticalOpeningBandGate.cs';[IO.File]::WriteAllText($gateFile,$gateText);$gateArgs=@("-p:GateSource=$gateFile")}
+    $output=& dotnet build (Join-Path $PSScriptRoot 'TacticalPolishChecks.csproj') -c Release "-p:TacticalSlice=$slice" "-p:PanelSource=$panelFile" $gateArgs "-p:BaseIntermediateOutputPath=$dir/obj/" "-p:OutputPath=$dir/out/" --nologo 2>&1
     if($LASTEXITCODE -ne 0){$output|Out-String|Write-Host;throw "$name did not compile"}
     $run=& dotnet (Join-Path $dir 'out/TacticalPolishChecks.dll') $part 2>&1
     $code=$LASTEXITCODE;$text=$run|Out-String
@@ -90,6 +92,19 @@ if(!$SkipNegativeProbes){
     $order=$methods.Clone();$order['StartRound']=Extract-Method $preFix 'StartRound'
     Run-Probe 'pre-fix-dispatch-order' $order $panel 'order' "a survivor's squad is not requested, counted or announced before the round-break swap lands"
     Run-Probe 'fault-tick-ignores-held-request' (Mutate 'TickLive' 'if (_squadDispatch.Waiting(RoundNumber))' 'if (false)') $panel 'order' 'the assembly check waits for the held request instead of retrying it'
+    # Opening rounds: the band hold between the dispatch guard and the request, and its early return before Evaluate.
+    Run-Probe 'fault-dispatch-ignores-band-gate' (Mutate 'DispatchOpeningSquad' 'if (!_openingBand.ShouldRelease(round))' 'if (false)') $panel 'order' "round 2's request waits for the server to acknowledge the round report"
+    Run-Probe 'fault-tick-band-hold-skipped' (Mutate 'TickLive' 'if (_bandHeldRound == RoundNumber)' 'if (false)') $panel 'order' 'the assembly check waits for the band hold instead of retrying the request'
+    # Removing the stamp leaves the cap without a start, and a gate that holds every round (no stage bound,
+    # no level compare) holds round 4 on a dead route. ("READY pressed at once with the report answered" has
+    # no mutant of its own: every plausible fault of the hold breaks an earlier assertion first.)
+    Run-Probe 'fault-dispatch-no-hold-stamp' (Mutate 'DispatchOpeningSquad' '_openingBand.MarkHeld(round);' '') $panel 'order' 'the cap sends the request at whatever stage the server holds'
+    $gateText=([IO.File]::ReadAllText((Join-Path $root 'ArenaMode.Client/Modes/TacticalOpeningBandGate.cs'))).Replace("`r`n","`n")
+    foreach($pair in @(@('if (round > ArenaDifficultyPolicy.TacticalOpeningRounds + 1)','if (false)'),@('return ackedLevel != roundLevel;','return true;'))){
+        if(([regex]::Matches($gateText,[regex]::Escape($pair[0]))).Count -ne 1){throw "Gate mutant anchor missing or ambiguous: $($pair[0])"}
+        $gateText=$gateText.Replace($pair[0],$pair[1])
+    }
+    Run-Probe 'fault-gate-holds-every-round' $methods $panel 'order' 'round 4 with a dead route sends its request at once' $gateText
     Run-Probe 'fault-respawn-landing-unreported' (Mutate 'OnSoloLocalRespawn' '_squadDispatch.Report(RoundNumber, landed: true);' '') $panel 'order' "the held respawn's landing sends the request"
     # Own kits (docs/reviews/CUSTOM-KITS-20261110.md): the plain window warms what it sold, and only that.
     function Mutate-Panel([string]$find,[string]$replace){

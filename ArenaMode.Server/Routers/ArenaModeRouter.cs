@@ -65,6 +65,22 @@ public record ArenaRaidLifecycleRequest : IRequestData
     public string? NativeEndIdentity { get; set; }
 }
 
+/// <summary>
+/// Solo Tactical: the round the client is in. <c>seq</c> orders the reports (a higher one wins,
+/// the round itself is not monotonic); the arm token binds it to the exact live raid.
+/// </summary>
+public record ArenaTacticalRoundRequest : IRequestData
+{
+    [JsonPropertyName("armToken")]
+    public string? ArmToken { get; set; }
+
+    [JsonPropertyName("round")]
+    public int Round { get; set; }
+
+    [JsonPropertyName("seq")]
+    public int Seq { get; set; }
+}
+
 public record OrdinaryRaidLifecycleRequest : IRequestData
 {
     [JsonPropertyName("processId")]
@@ -203,6 +219,13 @@ public sealed class ArenaModeRouter : StaticRouter
                     ? await Instance.HandleOrdinaryRecovery(info, sessionId, ct)
                     : Json(new { recovered = false })),
 
+        // Synchronous and outside the raid-start gate: it touches only the session entry, under
+        // the session service's own lock, and is called every round of a running raid.
+        new RouteAction<ArenaTacticalRoundRequest>(
+            Protocol.TacticalRoundRoute,
+            (url, info, sessionId, output, _) =>
+                new ValueTask<string>(HandleTacticalRound(info, sessionId))),
+
         new RouteAction<EmptyRequestData>(
             Protocol.StatusRoute,
             async (url, info, sessionId, output, ct) =>
@@ -239,6 +262,29 @@ public sealed class ArenaModeRouter : StaticRouter
         }
     }
 
+    /// <summary>
+    /// The reply of the Tactical round route: <c>accepted</c> (false only when the report was
+    /// refused), <c>applies</c> (the server writes a Tactical stage band for this raid), and the
+    /// STORED <c>round</c> and <c>seq</c>, which the client trusts over its own request.
+    /// </summary>
+    internal static string HandleTacticalRound(ArenaTacticalRoundRequest request, MongoId sessionId)
+    {
+        if (Sessions == null)
+            return Json(new { accepted = false, applies = false, round = 1, seq = 0, duplicate = false, reason = "unavailable" });
+        var result = Sessions.TryReportTacticalRound(
+            sessionId, request?.ArmToken, request?.Round ?? 0, request?.Seq ?? 0,
+            out int round, out int seq, out bool applies, out string? refusal);
+        return Json(new
+        {
+            accepted = result != ArenaSessionService.TacticalRoundReportResult.Refused,
+            applies,
+            round,
+            seq,
+            duplicate = result == ArenaSessionService.TacticalRoundReportResult.Duplicate,
+            reason = refusal,
+        });
+    }
+
     private async ValueTask<string> HandleStatus(
         MongoId sessionId,
         CancellationToken ct)
@@ -252,6 +298,9 @@ public sealed class ArenaModeRouter : StaticRouter
                 ?? (false, false, null);
             var ordinary = ArenaContext.OrdinaryRaids?.GetRecoveryStatus(sessionId)
                 ?? (false, null, null, null, null, false);
+            // One read: round and seq are a pair, and two accessor calls would take the lock twice,
+            // so a report landing between them could hand a resyncing client a torn pair.
+            var tactical = Sessions?.GetTacticalReportState(sessionId) ?? (1, 0);
             return Json(new
             {
                 state = state.ToString(),
@@ -263,6 +312,8 @@ public sealed class ArenaModeRouter : StaticRouter
                 participants = Sessions?.GetParticipants(sessionId),
                 difficulty = ArenaDifficultyPolicy.ToWire(Sessions?.GetDifficulty(sessionId) ?? ArenaDifficultyStep.Maximum),
                 participantBosses = Sessions?.GetParticipantBosses(sessionId) == true,
+                tacticalRound = tactical.Item1,
+                tacticalSeq = tactical.Item2,
                 armToken = Sessions?.GetArmToken(sessionId),
                 clientRaidStarted = Sessions?.IsClientRaidStarted(sessionId) == true,
                 pitFireTeamTeam = protectedTeam,

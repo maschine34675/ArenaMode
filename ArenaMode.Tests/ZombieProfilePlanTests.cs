@@ -91,6 +91,26 @@ public sealed class ZombieProfilePlanTests
     }
 
     [Fact]
+    public void EverySpecialWaveDrawIsBackedByAProfilePoolPair()
+    {
+        // A Runners wave draws only Normal and a Shooters wave only Hard; the pools exist exactly when the user's
+        // shooter share lets that theme apply (the decider drops the others), so no themed draw lacks a pair.
+        for (int shooter = 0; shooter <= 100; shooter++)
+        {
+            var targets = ZombieProfilePlan.BackupTargets(shooterPercent: shooter);
+            foreach (var (role, _) in ZombieRoleMix.Weights)
+            foreach (int wave in new[] { 5, 10, 15, 20 })
+            {
+                var theme = ArenaMode.Shared.ArenaDifficultyPolicy.ZombieWaveThemeFor(ArenaMode.Shared.ArenaDifficultyStep.Maximum, shooter, wave);
+                if (theme == ArenaMode.Shared.ZombieWaveTheme.Runners)
+                    Assert.Contains(targets, e => e.Role == role && e.Difficulty == ZombieRoleMix.Normal);
+                if (theme == ArenaMode.Shared.ZombieWaveTheme.Shooters)
+                    Assert.Contains(targets, e => e.Role == role && e.Difficulty == ZombieRoleMix.Hard);
+            }
+        }
+    }
+
+    [Fact]
     public void BackupCountScalesWithTheHeaviestRoleShareOfWaveStartSize()
     {
         // infectedAssault is 50/100 of ZombieRoleMix.Weights (the heaviest
