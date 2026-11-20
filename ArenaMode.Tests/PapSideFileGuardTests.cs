@@ -328,6 +328,25 @@ public sealed class PapSideFileGuardTests : IDisposable
         Assert.Equal("{\"side\":true}", File.ReadAllText(side));
     }
 
+    // The carry comes before the move: when the move fails (the profile is locked), the side file already carries the
+    // staged file's time, which is newer than the untouched old profile and so fresh to PaP. A carry after the move
+    // would leave the side file as it was.
+    [Fact]
+    public void SideFileIsAlreadyCarriedWhenTheMoveFails()
+    {
+        var (id, profileTime) = Seed(TimeSpan.FromSeconds(90));
+        var sideBefore = File.GetLastWriteTimeUtc(SidePath(id));
+        using (new FileStream(ProfilePath(id), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.ThrowsAny<Exception>(() => Write(id)); // IOException or UnauthorizedAccessException, by platform
+        }
+        Assert.Equal("{\"old\":true}", File.ReadAllText(ProfilePath(id)));
+        Assert.Equal(profileTime, File.GetLastWriteTimeUtc(ProfilePath(id)));
+        Assert.True(File.GetLastWriteTimeUtc(SidePath(id)) > sideBefore.AddMinutes(5));
+        Assert.True(PapWouldKeep(ProfilePath(id), SidePath(id)));
+        Assert.Equal("{\"side\":true}", File.ReadAllText(SidePath(id)));
+    }
+
     // The mtime is the only thing the carry changes; the source order (Carry before the move) is pinned here so a
     // reordering cannot slip through unnoticed.
     [Fact]

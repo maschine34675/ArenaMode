@@ -1,3 +1,4 @@
+param([string[]]$Only = @())
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $run = Join-Path $repo ('artifacts/offline-startup-mutations/' + [Guid]::NewGuid().ToString('N'))
@@ -44,8 +45,55 @@ $mutations = @(
     @{ Name = 'unverifiable-process-treated-as-gone'; File = 'RewardOfflineSession.cs';
        Old = '{ throw new RewardLiveOwnerException("offline-private-process-unverifiable", e); }';
        New = '{ alive = false; }';
-       Test = 'APrivateProcessWhoseLivenessCannotBeReadStillStopsStartup' }
+       Test = 'APrivateProcessWhoseLivenessCannotBeReadStillStopsStartup' },
+    # Profile write pipeline (docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md): the proof accepts a transformed save
+    # only as input == RAM, output == disk, subtractive projection and unchanged protected subtrees.
+    @{ Name = 'pipeline-output-not-compared-with-disk'; File = 'ProfileWriteProof.cs';
+       Old = 'if (!outputMatchesDisk) return ProfileProof.Strict(diskText, "transformed", "false", input, output);';
+       New = '// mutation: the captured output is not compared with the disk';
+       Test = 'StaleMd5PlusExternalWriterIsRejected' },
+    @{ Name = 'pipeline-ram-not-compared-with-input'; File = 'ProfileWriteProof.cs';
+       Old = '|| proof.Mode == ProfileProofMode.Pipeline && RewardRuntimeFiles.ExactSameProfile(ram, proof.Comparable);';
+       New = '|| proof.Mode == ProfileProofMode.Pipeline;';
+       Test = 'RamChangedAfterWriteIsRejected' },
+    @{ Name = 'pipeline-projection-check-removed'; File = 'ProfileWriteProof.cs';
+       Old = 'if (!IsSubtractive(before, after)) return false;';
+       New = '// mutation: a changed value passes as a projection';
+       Test = 'ValueChangingTransformIsNotAccepted' },
+    @{ Name = 'pipeline-protected-subtrees-unchecked'; File = 'ProfileWriteProof.cs';
+       Old = 'if (!ProtectedUnchanged(before, after)) return false;';
+       New = '// mutation: the ledger and the identity may be dropped';
+       Test = 'DroppingProtectedSubtreeIsUnsafe' },
+    @{ Name = 'pipeline-unpaired-begin-keeps-old-record'; File = 'ProfileWriteProof.cs';
+       Old = 'InstallOpaque(t_id);';
+       New = '// mutation: the finalizer leaves an unpaired capture as it was';
+       Test = 'SkippedStringWriteTurnsRecordOpaqueAndDoesNotLeakSlot' },
+    @{ Name = 'pipeline-nested-write-not-poisoned'; File = 'ProfileWriteProof.cs';
+       Old = 'if (t_id is not null) { t_poisoned = true; return; }';
+       New = 'if (t_id is not null) { return; }';
+       Test = 'NestedProfileWriteIsPoisoned' },
+    @{ Name = 'pipeline-ram-compared-with-patchable-equality'; File = 'ProfileWriteProof.cs';
+       Old = '=> RewardRuntimeFiles.ExactSameProfile(ram, disk)';
+       New = '=> RewardRuntimeFiles.SameProfile(ram, disk)';
+       Test = 'ForeignSameProfilePostfixDoesNotAffectConfirms' },
+    # Pack A Punch side file: a stale one must not be revived, and the carry sets the staged file's time before the move.
+    @{ Name = 'pap-freshness-inverted'; File = 'PapSideFileGuard.cs';
+       Old = 'return previous - sideTime > FreshWindow ? null : side;';
+       New = 'return previous - sideTime > FreshWindow ? side : null;';
+       Test = 'AlreadyStaleSideFileIsNotRevived' },
+    @{ Name = 'pap-carry-after-move'; File = 'RewardStartupFiles.cs';
+       Old = 'if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(temporary));';
+       New = '// mutation: no carry before the move';
+       Old2 = 'File.Move(temporary, path, overwrite: true);';
+       New2 = 'File.Move(temporary, path, overwrite: true); if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(path));';
+       Test = 'SideFileIsAlreadyCarriedWhenTheMoveFails' },
+    @{ Name = 'pap-carry-uses-now'; File = 'PapSideFileGuard.cs';
+       Old = 'SetWriteTime(sidePath, tempWriteUtc);';
+       New = 'SetWriteTime(sidePath, DateTime.UtcNow);';
+       Test = 'CarriedSideTimeEqualsNewProfileTime' }
 )
+$Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+if ($Only.Count -gt 0) { $mutations = @($mutations | Where-Object { $_.Name -in $Only }) }
 $originals = @{}
 $restoreRequired = $false
 Push-Location $repo
@@ -55,8 +103,14 @@ try {
         $originals[$source] = (Get-FileHash -LiteralPath $source).Hash
         $text = [IO.File]::ReadAllText($source)
         if (($text.Split([string[]]@($case.Old), [StringSplitOptions]::None)).Length -ne 2) { throw "Mutation anchor mismatch: $($case.Name)" }
+        $mutated = $text.Replace($case.Old, $case.New)
+        # An optional second edit of the same file (a move of a statement is two edits).
+        if ($case.Old2) {
+            if (($mutated.Split([string[]]@($case.Old2), [StringSplitOptions]::None)).Length -ne 2) { throw "Mutation anchor mismatch (second edit): $($case.Name)" }
+            $mutated = $mutated.Replace($case.Old2, $case.New2)
+        }
         $copy = Join-Path $run ($case.Name + '.cs')
-        [IO.File]::WriteAllText($copy, $text.Replace($case.Old, $case.New))
+        [IO.File]::WriteAllText($copy, $mutated)
         $targets = Join-Path $run ($case.Name + '.targets')
         $noDeploy = [Security.SecurityElement]::Escape((Join-Path $repo 'tools/AirPitChecks/NoDeploy.targets'))
         $include = [Security.SecurityElement]::Escape($copy)
