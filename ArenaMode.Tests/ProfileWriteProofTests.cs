@@ -538,6 +538,116 @@ public sealed class ProfileWriteProofTests : IDisposable
         Assert.Contains("RequireSavedProfile(expected, actualDisk, readAfter(), diagnostics, id, selectedProfileId, proof)", verifyBody);
     }
 
+    // ---- limits and isolation
+
+    private void Capture(string id, string input, string output)
+    {
+        string path = PathOf(id);
+        ProfileWriteProof.Begin(path, input);
+        ProfileWriteProof.Seal(path, Encoding.UTF8.GetBytes(output));
+        ProfileWriteProof.End();
+    }
+
+    [Fact]
+    public async Task RetainedCostCountsTheCachedDecodedOutput()
+    {
+        Enable();
+        PatchPap();
+        string id = NewId(), ram = Profile(id);
+        await Write(id, ram);
+        string disk = File.ReadAllText(PathOf(id));
+        long output = Encoding.UTF8.GetByteCount(disk);
+        // Input text (2 bytes per char), output bytes, and the decoded output text Resolve caches (2 bytes per char at most).
+        Assert.Equal(2L * ram.Length + 3L * output, ProfileWriteProof.RetainedBytesForTests);
+        Assert.Equal("transformed", ProfileWriteProof.Resolve(id, disk).Pipeline);
+        Assert.True(2L * disk.Length <= 2L * output);
+    }
+
+    [Fact]
+    public async Task ExhaustedVisitBudgetFailsClosed()
+    {
+        Enable();
+        PatchPap();
+        ProfileWriteProof.VisitBudget = 3;
+        string id = NewId(), ram = Profile(id);
+        await Write(id, ram);
+        string disk = File.ReadAllText(PathOf(id));
+        var proof = ProfileWriteProof.Resolve(id, disk);
+        Assert.Equal(ProfileProofMode.Strict, proof.Mode);
+        Assert.Equal("unsafe", proof.Pipeline);
+        AssertRefused(ram, disk, proof);
+
+        // The same kind of write inside the default budget is accepted: the budget is what refused it.
+        ProfileWriteProof.VisitBudget = 20_000_000;
+        string other = NewId(), otherRam = Profile(other);
+        await Write(other, otherRam);
+        Assert.Equal(ProfileProofMode.Pipeline, ProfileWriteProof.Resolve(other, File.ReadAllText(PathOf(other))).Mode);
+    }
+
+    [Fact]
+    public void RecordTableStopsAtTheIdCap()
+    {
+        ProfileWriteProof.MarkReady(true);
+        string Id(int n) => n.ToString("x24");
+        for (int n = 1; n <= 1024; n++) Capture(Id(n), "{\"a\":1,\"b\":2}", "{\"a\":1}");
+        Assert.True(ProfileWriteProof.HasTransformedRecordForTests(Id(1024)));
+
+        // The 1025th id is not recorded, so it resolves as opaque (strict), never as a stale neighbour.
+        Capture(Id(1025), "{\"a\":1,\"b\":2}", "{\"a\":1}");
+        Assert.False(ProfileWriteProof.HasTransformedRecordForTests(Id(1025)));
+        var proof = ProfileWriteProof.Resolve(Id(1025), "{\"a\":1}");
+        Assert.Equal(ProfileProofMode.Strict, proof.Mode);
+        Assert.Equal("opaque", proof.Pipeline);
+        // An id that already has a record is still updated at the cap.
+        Capture(Id(7), "{\"a\":1,\"b\":2,\"c\":3}", "{\"a\":1,\"b\":2}");
+        Assert.True(ProfileWriteProof.HasTransformedRecordForTests(Id(7)));
+        long small = 2L * "{\"a\":1,\"b\":2}".Length + 3L * "{\"a\":1}".Length;
+        long updated = 2L * "{\"a\":1,\"b\":2,\"c\":3}".Length + 3L * "{\"a\":1,\"b\":2}".Length;
+        Assert.Equal(1023L * small + updated, ProfileWriteProof.RetainedBytesForTests);
+    }
+
+    [Fact]
+    public void WritesOnTwoThreadsKeepTheirOwnInputAndOutput()
+    {
+        ProfileWriteProof.MarkReady(true);
+        string a = NewId(), b = NewId();
+        string inputA = Profile(a), inputB = Profile(b).Replace("\"tester\"", "\"other\"");
+        string outputA = PapLike.Strip(inputA), outputB = PapLike.Strip(inputB);
+        using var barrier = new Barrier(2);
+        void Run(string id, string input, string output)
+        {
+            string path = PathOf(id);
+            ProfileWriteProof.Begin(path, input);
+            barrier.SignalAndWait(); // both threads have begun before either seals
+            ProfileWriteProof.Seal(path, Encoding.UTF8.GetBytes(output));
+            barrier.SignalAndWait();
+            ProfileWriteProof.End();
+        }
+        var first = Task.Factory.StartNew(() => Run(a, inputA, outputA), TaskCreationOptions.LongRunning);
+        var second = Task.Factory.StartNew(() => Run(b, inputB, outputB), TaskCreationOptions.LongRunning);
+        Task.WaitAll(first, second);
+
+        var proofA = ProfileWriteProof.Resolve(a, outputA);
+        var proofB = ProfileWriteProof.Resolve(b, outputB);
+        Assert.Equal(ProfileProofMode.Pipeline, proofA.Mode);
+        Assert.Equal(inputA, proofA.Comparable);
+        Assert.Equal(ProfileProofMode.Pipeline, proofB.Mode);
+        Assert.Equal(inputB, proofB.Comparable);
+    }
+
+    [Fact]
+    public async Task UnparsableDiskTextLeavesTheOutputDiskMatchUnknown()
+    {
+        Enable();
+        PatchPap();
+        string id = NewId();
+        await Write(id, Profile(id));
+        var proof = ProfileWriteProof.Resolve(id, "{\"a\":1,\"a\":2}"); // a duplicate key cannot be compared
+        Assert.Equal(ProfileProofMode.Strict, proof.Mode);
+        Assert.Equal("transformed", proof.Pipeline);
+        Assert.Equal("unknown", proof.OutputDiskMatch);
+    }
+
     // ---- test patches
 
     internal static class PapLike

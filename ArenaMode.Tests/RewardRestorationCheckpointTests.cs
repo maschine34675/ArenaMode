@@ -5,6 +5,7 @@ using ArenaMode.Shared;
 
 namespace ArenaMode.Tests;
 
+[Collection(ArenaContextSerialCollection.Name)]
 public sealed class RewardRestorationCheckpointTests
 {
     [Fact]
@@ -569,6 +570,106 @@ public sealed class RewardRestorationCheckpointTests
         File.Delete(f.CheckpointFile("final.json"));
         Assert.False(RewardRestorationCheckpoint.HasDurableProof(f.Root, Fixture.Id, f.Generation));
         Assert.Throws<RewardDataException>(f.RestartRecovery);
+    }
+
+    // ---- ArenaRewardLifecycle.Persisted: the wiring from the captured pipeline to the checkpoint
+
+    private static void CaptureStrippedWrite(Fixture f, out string restored, out string stripped)
+    {
+        restored = f.Profile;
+        ProfileWriteProof.ResetForTests();
+        ProfileWriteProof.ProfilesDirectory = () => Path.Combine(f.Root, "user", "profiles");
+        ProfileWriteProof.MarkReady(true);
+        ProfileWriteProof.Begin(f.ProfilePath, restored);
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        stripped = f.Profile;
+        ProfileWriteProof.Seal(f.ProfilePath, System.Text.Encoding.UTF8.GetBytes(stripped));
+        ProfileWriteProof.End();
+    }
+
+    [Fact]
+    public void LifecycleBindsTheResolvedPipelineToTheCheckpointAtRaidEnd()
+    {
+        try
+        {
+            using var f = new Fixture();
+            f.Capture();
+            f.Observe();
+            CaptureStrippedWrite(f, out string restored, out string stripped);
+
+            ArenaMode.Server.Services.ArenaRewardLifecycle.Persisted(new(Fixture.Id), f.Report!.NativeEndIdentity,
+                recoveryOnly: false, f.Coordinator, f.Root);
+
+            var proof = RewardStartupFiles.Read<RewardCheckpointProof>(f.CheckpointFile("persisted.json"));
+            Assert.Equal(RewardIdentity.Hash(stripped), proof.PersistedRevision);
+            Assert.Equal(RewardRestorationCheckpoint.Fingerprint(restored), proof.ProfileFingerprint);
+            Assert.True(File.Exists(f.CheckpointFile("complete.json")));
+            Assert.Single(Directory.GetFiles(f.Inbox, "*.json"));
+            Assert.False(f.Coordinator.HasCapture(Fixture.Id));
+        }
+        finally { ProfileWriteProof.ResetForTests(); }
+    }
+
+    [Fact]
+    public void LifecycleBindsTheResolvedPipelineToTheCheckpointAtFailedStart()
+    {
+        try
+        {
+            using var f = new Fixture();
+            f.TakeSnapshot();
+            f.Observe();
+            CaptureStrippedWrite(f, out string restored, out string stripped);
+
+            ArenaMode.Server.Services.ArenaRewardLifecycle.Persisted(new(Fixture.Id), string.Empty,
+                recoveryOnly: true, f.Coordinator, f.Root);
+
+            var proof = RewardStartupFiles.Read<RewardCheckpointProof>(f.CheckpointFile("persisted.json"));
+            Assert.Equal(RewardIdentity.Hash(stripped), proof.PersistedRevision);
+            Assert.Equal(RewardRestorationCheckpoint.Fingerprint(restored), proof.ProfileFingerprint);
+            Assert.False(f.Coordinator.HasCapture(Fixture.Id));
+            Assert.Equal("restored", f.GuardState);
+        }
+        finally { ProfileWriteProof.ResetForTests(); }
+    }
+
+    // Without a captured pipeline the stripped file is refused exactly as before: the lifecycle never invents one.
+    [Fact]
+    public void LifecycleWithoutACapturedPipelineStaysStrict()
+    {
+        try
+        {
+            using var f = new Fixture();
+            f.Capture();
+            f.Observe();
+            ProfileWriteProof.ResetForTests();
+            ProfileWriteProof.ProfilesDirectory = () => Path.Combine(f.Root, "user", "profiles");
+            ProfileWriteProof.MarkReady(true);
+            f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+
+            ArenaMode.Server.Services.ArenaRewardLifecycle.Persisted(new(Fixture.Id), f.Report!.NativeEndIdentity,
+                recoveryOnly: false, f.Coordinator, f.Root);
+
+            Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
+            Assert.False(Directory.Exists(f.Inbox));
+        }
+        finally { ProfileWriteProof.ResetForTests(); }
+    }
+
+    // RecoverPersisted with no run (the failed-start shape) forwards the pipeline input to both of its comparisons.
+    [Fact]
+    public void RecoverPersistedWithoutARunAcceptsThePipelineInput()
+    {
+        using var f = new Fixture();
+        f.TakeSnapshot();
+        f.Observe();
+        string restored = f.Profile;
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        string stripped = f.Profile;
+
+        f.Coordinator.RecoverPersisted(Fixture.Id, stripped, restored);
+
+        Assert.True(File.Exists(f.CheckpointFile("complete.json")));
+        Assert.False(f.Coordinator.HasCapture(Fixture.Id));
     }
 
     private sealed class Fixture : IDisposable

@@ -29,11 +29,16 @@ internal static class ArenaRewardLifecycle
     }
 
     internal static void Persisted(MongoId sessionId, string nativeEndIdentity, bool recoveryOnly = false)
+        => Persisted(sessionId, nativeEndIdentity, recoveryOnly, RewardRuntimeCoordinator.Current,
+            RewardStartupFiles.Canonical(Directory.GetCurrentDirectory()));
+
+    // Tests: the coordinator and the runtime root this observes.
+    internal static void Persisted(MongoId sessionId, string nativeEndIdentity, bool recoveryOnly,
+        RewardRuntimeCoordinator coordinator, string root)
     {
         try
         {
-            if (!RewardRuntimeCoordinator.Current.HasCapture(sessionId.ToString())) return;
-            string root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
+            if (!coordinator.HasCapture(sessionId.ToString())) return;
             string id = sessionId.ToString();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-id");
             string path = Path.Combine(root, "user", "profiles", id + ".json");
@@ -50,8 +55,8 @@ internal static class ArenaRewardLifecycle
             // transformation it is Strict and the checkpoint compares the disk exactly as before.
             var proof = ProfileWriteProof.Resolve(id, persisted);
             string? pipelineInput = proof.Mode == ProfileProofMode.Pipeline ? proof.Comparable : null;
-            if (recoveryOnly) RewardRuntimeCoordinator.Current.RecoverPersisted(id, persisted, pipelineInput);
-            else RewardRuntimeCoordinator.Current.FinalizePersisted(id, nativeEndIdentity, persisted, pipelineInput);
+            if (recoveryOnly) coordinator.RecoverPersisted(id, persisted, pipelineInput);
+            else coordinator.FinalizePersisted(id, nativeEndIdentity, persisted, pipelineInput);
         }
         catch (Exception e)
         {

@@ -42,7 +42,7 @@ internal static class ProfileWriteProof
 {
     internal const int MaxProfileBytes = 64 << 20;
     private const int MaxIds = 1024;
-    private const int VisitBudget = 20_000_000;
+    private const int DefaultVisitBudget = 20_000_000;
     private const long DefaultMaxRetainedBytes = 192L << 20;
 
     private static volatile bool _ready;
@@ -57,6 +57,8 @@ internal static class ProfileWriteProof
     // Evaluated per call, never cached: the working directory is part of the answer.
     internal static Func<string> ProfilesDirectory = DefaultProfilesDirectory;
     internal static long MaxRetainedBytes = DefaultMaxRetainedBytes;
+    // Tests: the node-visit budget of the subtractive check.
+    internal static int VisitBudget = DefaultVisitBudget;
 
     [ThreadStatic] private static int t_depth;
     [ThreadStatic] private static string? t_id;
@@ -164,6 +166,7 @@ internal static class ProfileWriteProof
         _loggedTransform = 0;
         ProfilesDirectory = DefaultProfilesDirectory;
         MaxRetainedBytes = DefaultMaxRetainedBytes;
+        VisitBudget = DefaultVisitBudget;
         ResetSlot();
     }
 
@@ -216,14 +219,15 @@ internal static class ProfileWriteProof
             Put(id, new Capture { Sequence = sequence });
             return;
         }
-        // Existing references, no copies.
+        // Existing references, no copies. The cost also covers the decoded output text that Resolve caches on the
+        // record (at most one UTF-16 char, 2 bytes, per output byte), so MaxRetainedBytes bounds what is really held.
         Put(id, new Capture
         {
             Sequence = sequence,
             Transformed = true,
             Input = input,
             OutputBytes = bytes,
-            Cost = 2L * input.Length + bytes.Length,
+            Cost = 2L * input.Length + 3L * bytes.Length,
         });
         if (Interlocked.Exchange(ref _loggedTransform, 1) == 0)
             ArenaContext.Logger?.Debug($"[ArenaMode] A profile write is transformed before it reaches the disk by another mod (profile {Alias(id)}); "
