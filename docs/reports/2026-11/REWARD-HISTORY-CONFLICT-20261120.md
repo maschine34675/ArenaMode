@@ -79,4 +79,10 @@ sequence was the count of `*.json` files, so a foreign `.json` would have shifte
   `.JSON`, upper-case id, a directory), the allocation that must not be written, and the Warning text. Each fails when its
   part of the fix is reverted (no foreign check: 8 failures; file count for the sequence: 1; card left at "temporarily": 1).
 
+Offline verification on `da490c56` (code) plus the docs commit, rebased on master `e57c85fe`:
+`tools/Run-ArenaVerification.ps1 -ChangedSince master` 51 of 53 steps passed. ChopShopChecks and IcebergChecks failed in
+PortedCoverChecks because the fresh worktree has no decompiled PitFireTeam source (`artifacts/pft-installed`, gitignored);
+with `ARENA_PFT_INSTALLED_SOURCE` pointing at the main checkout's copy both passed, and xunit ran once more: 4,415 tests,
+4,412 passed, 3 environment-gated skips. The live install was unchanged throughout (runner guard).
+
 Not deployed: the hosts keep release 0.6.0 until the next deliberate deploy.

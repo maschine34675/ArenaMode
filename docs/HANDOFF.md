@@ -506,7 +506,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Reward history conflict copies, 2026-11-20 (branch `fix/reward-history-foreign-entry`, based on master `c4c1fcc7`, local
+**Reward history conflict copies, 2026-11-20 (branch `fix/reward-history-foreign-entry`, based on master `e57c85fe`, local
 commits only, not pushed, not deployed; [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)):** the GPU-2 test
 profile paid nothing from 2026-11-13 because GPU-1 and GPU-2 both settled its queue while Syncthing had not reconciled them,
 and Syncthing's conflict copies in `decisions/` failed `ReadDecisions` (`invalid-result-history`, Debug only). Recovered on
