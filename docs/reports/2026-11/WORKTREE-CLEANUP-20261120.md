@@ -61,6 +61,10 @@ them. The tips stay reachable from `master`.
   and the worktree `Redeploy-visualassist` still exist. Until Redeploy is
   pushed, the published Redeploy `main` builds Core 1.0.24, so the published
   ArenaMode `master` describes a Core that is not published yet.
+  Added later the same day: at the user's request Redeploy was collected and
+  pushed on its own (`main` `32336f4`, branch and worktree removed; its
+  `docs/REPOSITORY-STATUS.md` has the record), and so was UiBridge (`main`
+  `84a2a1c`), so this gap is closed.
 
 ## Preserved local evidence
 

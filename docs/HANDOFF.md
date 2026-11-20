@@ -23,8 +23,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   then passed: 111 steps, xunit 4,425 tests with 4,422 passed and 3 known environment skips. `master` was
   pushed to `dev` (GitHub) with the record commit; `dev/master` stood at `0d596980` before. No release, no
   version bump, nothing deployed: the installed files are those of the optional-mod refresh below
-  (`0.6.0+e57c85fe` stamps), which do not contain the reward-history fix. Redeploy was not part of it: its
-  `main` with Core 1.0.25 is three commits ahead of `origin/main`.
+  (`0.6.0+e57c85fe` stamps), which do not contain the reward-history fix. Redeploy and UiBridge were collected
+  and pushed on their own later that day, at the user's request: Redeploy `main` with Core 1.0.25 is
+  published (`32336f4`, see its `docs/REPOSITORY-STATUS.md`), UiBridge `main` is pushed to its own
+  remote (`84a2a1c`); both have `main` only.
   [Record](reports/2026-11/WORKTREE-CLEANUP-20261120.md).
 
 - **Development, 2026-11-20: optional-mod refresh.** PitFireTeam 1.1.2,
