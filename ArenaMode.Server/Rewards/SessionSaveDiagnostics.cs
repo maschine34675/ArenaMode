@@ -23,37 +23,56 @@ internal sealed class SessionSaveDiagnostics
     private string _diskMatch = "unknown";
     private string _ramStable = "unknown";
     private string _status = "unavailable";
+    private string _pipeline = "none";
+    private string _ramInput = "n/a";
+    private string _outputDisk = "n/a";
     private readonly List<string> _fields = [];
     private bool _reported;
 
-    internal void Capture(string profileId, string selectedProfileId, string before, string disk, string after)
+    internal void Capture(string profileId, string selectedProfileId, string before, string disk, string after,
+        ProfileProof? proof = null)
     {
         // Diagnostics must not replace the original refusal (including its short-circuit semantics).
         try
         {
             _profile = RewardIdentity.Hash(profileId)[..8];
             _role = profileId == selectedProfileId ? "selected" : "other-loaded";
+            // Fixed vocabulary only: the proof contributes its pipeline word and comparison results.
+            if (proof is not null) { _pipeline = proof.Pipeline; _outputDisk = proof.OutputDiskMatch; }
+            string? input = proof?.Pipeline == "transformed" ? proof.Input : null;
+            string? output = input is null ? null : proof!.Output;
             if (before.Length > MaxSnapshotCharacters || disk.Length > MaxSnapshotCharacters
-                || after.Length > MaxSnapshotCharacters)
+                || after.Length > MaxSnapshotCharacters || input?.Length > MaxSnapshotCharacters
+                || output?.Length > MaxSnapshotCharacters)
             {
                 _status = "size-limit";
                 return;
             }
             var expected = Parse(before);
-            _diskMatch = Compare(expected, disk, "disk");
+            // A transformed write: the disk delta against RAM is the other mod's expected edit and would only
+            // list its sections, so the samples name the two real questions instead (input, then output).
+            bool transformed = input is not null && output is not null;
+            if (transformed)
+            {
+                _ramInput = Compare(expected, input!, "input");
+                try { _outputDisk = Compare(Parse(output!), disk, "output"); }
+                catch { _outputDisk = "unknown"; }
+            }
+            _diskMatch = Compare(expected, disk, "disk", sample: !transformed);
             _ramStable = Compare(expected, after, "ram");
-            _status = _diskMatch == "unknown" || _ramStable == "unknown" ? "partial" : "sample";
+            _status = _diskMatch == "unknown" || _ramStable == "unknown"
+                || transformed && (_ramInput == "unknown" || _outputDisk == "unknown") ? "partial" : "sample";
         }
         catch { } // Invalid/too-deep JSON or a diagnostic failure is not a different save outcome.
     }
 
-    private string Compare(JsonNode? expected, string json, string direction)
+    private string Compare(JsonNode? expected, string json, string direction, bool sample = true)
     {
         try
         {
             var actual = Parse(json);
             bool equal = JsonNode.DeepEquals(expected, actual);
-            if (!equal) SampleFields(expected, actual, direction);
+            if (!equal && sample) SampleFields(expected, actual, direction);
             return equal ? "true" : "false";
         }
         catch { return "unknown"; }
@@ -97,6 +116,26 @@ internal sealed class SessionSaveDiagnostics
         return true; // An explicit null differs from an absent property.
     }
 
+    // Absent when no pipeline matters, so the lines of a setup without a transforming mod stay what they were.
+    private string PipelineFacts() => _pipeline == "none" ? ""
+        : $" pipeline={_pipeline}; ramInputMatch={_ramInput}; outputDiskMatch={_outputDisk};";
+
+    // The same facts for a restored-profile readback that failed outside a session switch (raid end, failed start).
+    // `warning` is the logger's Warning; operation is raid-end or failed-start, nothing else is printed.
+    internal void WarnNotConfirmed(Action<string> warning, string operation)
+    {
+        if (_reported) return;
+        _reported = true;
+        try
+        {
+            string op = operation is "raid-end" or "failed-start" ? operation : "unknown";
+            warning($"[ArenaMode] Restored profile not confirmed after saving: operation={op};"
+                + $" profile={_profile} ({_role}); ramDiskMatch={_diskMatch}; ramStableDuringReadback={_ramStable};"
+                + $" fieldSample=[{string.Join(",", _fields)}]; diagnostics={_status};" + PipelineFacts());
+        }
+        catch { } // A logging sink must not change the failure it reports.
+    }
+
     internal void WarnRefusal(bool entering, RewardReturnReply? reply, bool resumeDecisionConfirmed,
         Action<string> warning)
     {
@@ -106,7 +145,7 @@ internal sealed class SessionSaveDiagnostics
         {
             string readback = reply.Detail == "return-profile-save-not-confirmed"
                 ? $" profile={_profile} ({_role}); ramDiskMatch={_diskMatch}; ramStableDuringReadback={_ramStable};"
-                    + $" fieldSample=[{string.Join(",", _fields)}]; diagnostics={_status};"
+                    + $" fieldSample=[{string.Join(",", _fields)}]; diagnostics={_status};" + PipelineFacts()
                 : "";
             string resume = resumeDecisionConfirmed ? (reply.CanResumeNormal ? "true" : "false") : "unconfirmed";
             warning($"[ArenaMode] Session switch refused: {reply.Stage}/{reply.Detail}; operation={(entering ? "enter" : "return")};"

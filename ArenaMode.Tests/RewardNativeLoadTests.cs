@@ -222,7 +222,7 @@ public sealed class RewardNativeLoadTests
         Assert.Equal(100_000 + fixture.Claim.Experience, saved["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
     }
 
-    private sealed class SyntheticMigration : IProfileMigration
+    internal sealed class SyntheticMigration : IProfileMigration
     {
         internal const string Name = "reward-fixture-native-migration";
         internal int RawRuns { get; private set; }
@@ -246,7 +246,7 @@ public sealed class RewardNativeLoadTests
         }
     }
 
-    private sealed class NativeFixture : IDisposable
+    internal sealed class NativeFixture : IDisposable
     {
         private const string Owner = "ArenaMode native reward load fixture only";
         private const string StashTemplate = "566abbc34bdc2d92178b4576";
