@@ -289,12 +289,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (306)
+## Reports (307)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Branch and worktree collection, 2026-11-20: the reward-history branch merged, fourteen branches and four worktrees removed (Fika left out), their ignored files archived, one stale installed-PitFireTeam test repaired, offline run and read-only review of the merged master, push](reports/2026-11/WORKTREE-CLEANUP-20261120.md)
 - [PitFireTeam 1.1.2, TarkovaCola 3.0.1 and VisualAssist 1.2.0: scoped native tests, regular installation and restoration](reports/2026-11/GPU-MOD-REFRESH-20261120.md)
 - [Reward history conflict copies on the GPU-2 test profile, 2026-11-20: GPU-1 and GPU-2 settled the same queue, Syncthing conflict copies in decisions/ stopped every reward from 2026-11-13; recovery with backup and hash checks, 100 queued receipts settled and 24 paid once; the fix that names a foreign history file](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)
 - [Pack A Punch on GPU-2, 2026-11-20: Forge issue 3 reproduced on 0.6.0; with the fix the private entry and return and the normal-session match end pass with PaP loaded; on a copied install a startup profile write sets PaP's side file aside without the carry and keeps it with the carry](reports/2026-11/PAP-NATIVE-20261120.md)

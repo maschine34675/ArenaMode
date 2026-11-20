@@ -12,6 +12,21 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-20: branch collection and push.** At the user's request ("merge every branch and
+  worktree that still exists except the Fika one, delete them, push `master`"):
+  `fix/reward-history-foreign-entry` was merged (`bc1d912f`); every other branch was already contained in
+  `master`. Fourteen branches and four worktrees were removed, their ignored files archived under
+  `artifacts/archived-worktrees/{mod-refresh,opening,rewardhistory,verifyspeed}-20261120/`;
+  `feature/fika-admission` stays out as before, and the runner's worker checkouts `ArenaMode-vw1` to `-vw6`
+  stay. The offline run over everything changed since the pushed state found one stale test (the
+  installed-PitFireTeam contract test did not know the 1.1.2 layout; repaired in `02511f69`, test only) and
+  then passed: 111 steps, xunit 4,425 tests with 4,422 passed and 3 known environment skips. `master` was
+  pushed to `dev` (GitHub) with the record commit; `dev/master` stood at `0d596980` before. No release, no
+  version bump, nothing deployed: the installed files are those of the optional-mod refresh below
+  (`0.6.0+e57c85fe` stamps), which do not contain the reward-history fix. Redeploy was not part of it: its
+  `main` with Core 1.0.25 is three commits ahead of `origin/main`.
+  [Record](reports/2026-11/WORKTREE-CLEANUP-20261120.md).
+
 - **Development, 2026-11-20: optional-mod refresh.** PitFireTeam 1.1.2,
   TarkovaCola 3.0.1 and VisualAssist 1.2.0 are reviewed and whitelisted, and their
   official packages remain installed by user request. Source changes are on
@@ -27,7 +42,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   run for this refresh. All 74 selected Arena verification steps and 637 Core
   unit tests passed; scenario limits and restoration are recorded in the
   [native report](reports/2026-11/GPU-MOD-REFRESH-20261120.md).
-  No push, release or Arena version bump was performed.
+  No release or Arena version bump was performed; `master` was pushed later that day with the branch
+  collection above.
 
 - **Development, 2026-11-16: Factory Translocator collision fix**, same
   `codex/translocator-20261115` branch, based on `c37ee3e5`. Collision candidate A
@@ -523,8 +539,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Reward history conflict copies, 2026-11-20 (branch `fix/reward-history-foreign-entry`, based on master `e57c85fe`, local
-commits only, not pushed, not deployed; [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)):** the GPU-2 test
+**Reward history conflict copies, 2026-11-20 (on `master` since the merge `bc1d912f` of `fix/reward-history-foreign-entry`,
+pushed the same day, not deployed; [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)):** the GPU-2 test
 profile paid nothing from 2026-11-13 because GPU-1 and GPU-2 both settled its queue while Syncthing had not reconciled them,
 and Syncthing's conflict copies in `decisions/` failed `ReadDecisions` (`invalid-result-history`, Debug only). Recovered on
 2026-11-20 with the owner's approval: 24 copies moved to `D:\SPT41-Backups\reward-history-recovery-20261120`, one start on
@@ -534,8 +550,8 @@ one Warning per start for the history codes and stops calling them "temporarily 
 [TRAPS.md](TRAPS.md#rewards-on-the-synchronized-gpu-hosts-2026-11-20). Not examined: the seven conflict copies of the profile
 file itself (2026-11-13 to 2026-11-15).
 
-**Pack A Punch save pipeline, 2026-11-20 (branch `feature/pap-save-pipeline-v070`, based on master `0d596980`, local commits
-only, not pushed; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
+**Pack A Punch save pipeline, 2026-11-20 (on `master` since the merge `c4c1fcc7` of `feature/pap-save-pipeline-v070`,
+pushed 2026-11-20; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
 raid end failing in a normal session) is fixed in two parts. Part 1: `ProfileWriteProof` captures SPT's profile write
 (`ArenaProfileWriteCapturePatches`) and the readback at entry/return, raid end/failed start and the checkpoint accepts RAM
 equal to the write's input and the write's output equal to the file, with a subtractive projection and unchanged protected
@@ -545,12 +561,12 @@ keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. O
 ([report](reports/2026-11/PAP-NATIVE-20261120.md)): issue 3 reproduced on 0.6.0, entry/return and the normal-session match
 end pass with the fix; Part 2 shown on a copied install against a control build without the carry. Not native: a payout at
 the return (the GPU-2 test profile reported `invalid-result-history` at every start from 2026-11-13, before PaP; cleared
-2026-11-20, see the next entry).
+2026-11-20, see the entry above).
 [User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
 retired (the owner's decision; the Forge reply is the owner's too). The Forge description line about Pack A Punch belongs to the 0.7.0 description (it is not in the 0.6.0 draft in `FORGE-DESCRIPTION.md`, since 0.6.0 does not contain the fix).
 
-**Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
-commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
+**Tactical opening rounds, 2026-11-19 (built in three stages on `feature/opening-rounds-zombie-waves`, on `master` since the
+merge `0d596980`, pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
 decision of 2026-11-19 reverses "Tactical gets no build-up" of the difficulty model: the enemy squad of solo Tactical
 rounds 1 and 2 is kitted lighter (Maximum, default map: gear level about 25 and 45, then 66; Reduced 15 and 27, then
 40), by what the player can afford, not by a measured gear equivalence. In: `ArenaDifficultyPolicy.TacticalGearLevel`
@@ -570,7 +586,7 @@ purge and no line (their batch of 45 can serve many rounds); the BEAQO add-on's 
 passes 5 arguments to a 7-parameter method today). The Tactical start money text said 180k to 590k and "the bottom
 third"; the shipped kits cost 180k to 669k and 250k buys the five cheapest (text corrected).
 
-**Zombie follow-up, 2026-11-19 (same branch, local commits only):** the alive-limit ceiling was measured on SPT-GPU-2 and
+**Zombie follow-up, 2026-11-19 (same branch and merge):** the alive-limit ceiling was measured on SPT-GPU-2 and
 stays 32, the growth is not built ([report](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)); the performance collector in
 `tools/ZombiePerformanceChecks` was ported to the UiBridge 0.10.1 frame ring and the 100 % shooter share no longer takes a
 theme. Open: (1) the owner's decision whether a softer frame-time criterion is acceptable (40 alive is about 71 to 74 fps
@@ -587,24 +603,25 @@ minute) was wrong and is superseded, see the next entry.** The numbers stand; wa
 reached that night.
 
 **Zombie profile pool, 2026-11-20 (branch `feature/zombie-profile-supply`, on `master` `0d596980`, the merge of
-`feature/opening-rounds-zombie-waves`; merged into local `master` on 2026-11-20 together with
-`feature/zombie-audio-container-guard`, not pushed; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
+`feature/opening-rounds-zombie-waves`; merged into `master` on 2026-11-20 together with
+`feature/zombie-audio-container-guard`, pushed the same day, both branches deleted; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
 profile pool held every reloaded profile twice", [native report](reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md)):**
 the game's backup loader stored every reloaded bot profile twice, and the second copy is rejected when drawn, which
-Arena logged as `Arena burst spawn: no profiles for <role> — request dropped.` The branch holds the correction
+Arena logged as `Arena burst spawn: no profiles for <role> — request dropped.` `master` holds the correction
 (`ArenaBackupProfileDuplicatePatch`, commits `62de29e4` and `fb8bea72`: in the exact active Arena raid, in every mode,
-it leaves out of a reload what the pool already holds; fails open). Checked natively on SPT-GPU-2 on 2026-11-20, not
-pushed: at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
+it leaves out of a reload what the pool already holds; fails open). Checked natively on SPT-GPU-2 on 2026-11-20:
+at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
 request in run A; two more raids (all shooters in waves of 60, and the reviewed build up to wave 5) dropped none
-either. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT-GPU-2 (hashes in the
-report); the branch builds are not installed. EFT and the SPT server on the host are not running. Open: (1) the
+either. Installed state after these runs: the build `0.6.0+72273354` was put back on the VM and on SPT-GPU-2 (hashes in the
+report) and the test builds removed; the optional-mod refresh of the same afternoon replaced it (see "Released and
+installed"). Open: (1) the
 owner's decision whether the alive limit should grow at all, given the measured frame-time ceiling of 32 (the earlier
 point that it depends on the supply is void); (2) the audio exception `Can't handle not proposed occlusion test :
 Combined` that appeared in five bursts in one raid: a game bug, the audio pool handing one container out twice, with
 the double return seen natively the same day
 ([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); the Arena-only guard
-`ArenaAudioContainerReturnGuardPatch` is built on the branch `feature/zombie-audio-container-guard` (stacked on this
-one, merged into local `master` with it, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)) and accepted natively on
+`ArenaAudioContainerReturnGuardPatch` came from the branch `feature/zombie-audio-container-guard` (stacked on this
+one, merged into `master` with it, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)) and accepted natively on
 SPT-GPU-2 the same afternoon (13 returns skipped, no duplicate, no exception; release `0.6.0+72273354` installed again);
 (3) a played match
 with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline
@@ -612,8 +629,8 @@ harness for the prefix is `tools/BackupProfileDuplicateChecks` (commit `5a0863aa
 `tools/verification-steps.txt`). The owner's open decisions from the entries above
 stay as they are.
 
-**Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
-pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
+**Difficulty model, 2026-11-18/19 (on `master` since the merge `779290bf` of `feature/difficulty-model` on 2026-11-19,
+pushed since; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
 [native report](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md)):** done and accepted natively on GPU-2 (dev
 build `72273354`, client and server DLL only, still installed). In: one frozen `[Difficulty] Step` (Maximum default,
 Reduced) sent on the arm path and echoed by the server; `ArenaDifficultyPolicy` as the single table; fixed AI level,

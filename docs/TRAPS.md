@@ -886,7 +886,7 @@ Traps met while building it:
   profile, the GPU-2 test profile included. If both settle while Syncthing has not reconciled them, both write the same
   receipts with their own sequence numbers, and Syncthing keeps one side and renames the other to
   `*.sync-conflict-*-<device>.json` (the device of the WINNING change, not of the copy). The profile then stops paying:
-  since 2026-11-13 with `invalid-result-history` at Debug only, from the fix on `fix/reward-history-foreign-entry` with
+  since 2026-11-13 with `invalid-result-history` at Debug only, from the fix `da490c56` (on `master` since the merge `bc1d912f`) with
   `result-history-foreign-entry` and a Warning. Before a reward test, check that no normal server ran on the other host
   since the last reconcile (`gpu-run server status`, Syncthing completion 100 %), and run normal servers on one host at a
   time. The profile file gets conflict copies the same way (seven on `6ab7db1c` from 2026-11-13 to 2026-11-15).
