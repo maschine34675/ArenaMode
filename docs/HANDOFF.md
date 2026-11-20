@@ -506,6 +506,18 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Pack A Punch save pipeline, 2026-11-20 (branch `feature/pap-save-pipeline-v070`, based on master `0d596980`, local commits
+only, not pushed; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
+raid end failing in a normal session) is fixed in two parts. Part 1: `ProfileWriteProof` captures SPT's profile write
+(`ArenaProfileWriteCapturePatches`) and the readback at entry/return, raid end/failed start and the checkpoint accepts RAM
+equal to the write's input and the write's output equal to the file, with a subtractive projection and unchanged protected
+subtrees; startup recovery stays strict; all profile comparisons use `ExactSameProfile`. Part 2: `PapSideFileGuard`
+keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. Offline: xunit and ten mutants in
+`tools/OfflineStartupChecks/Mutations.ps1`. Native test (GPU host 2, throwaway profile, scenarios A, B and the first-start
+enrollment control run) and its report under `docs/reports/2026-11/` are the orchestrator's and may still be open: check the
+branch log. [User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
+retired (the owner's decision; the Forge reply is the owner's too).
+
 **Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
 commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
 decision of 2026-11-19 reverses "Tactical gets no build-up" of the difficulty model: the enemy squad of solo Tactical

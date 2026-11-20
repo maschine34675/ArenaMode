@@ -40,6 +40,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
 - [Tarkova Cola: protected gameplay, Zombie progression and achievement payout](TARKOVA-COLA-COMPAT.md)
+- [Pack A Punch: profile writes that transform the save, side file, log tokens and recovery](PACK-A-PUNCH-COMPAT.md)
 
 ### Rewards
 
@@ -63,7 +64,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (211)
+## Feature reviews and contracts (217)
 
 Sorted by file name.
 
@@ -227,6 +228,7 @@ Sorted by file name.
 - [Bot Shield and Double Damage indicators](reviews/POWERUP-INDICATORS-20261018.md) *(superseded)*
 - [Preset description regression: VestTemplate null plate array in KitSummary](reviews/PRESET-DESCRIPTION-REVIEW.md)
 - [Bot-profile batches built under a per-frame budget (ProfileBuildBudgetMs)](reviews/PROFILE-BUILD-BUDGET-20261017.md)
+- [Profile write pipeline: save proof under transforming mods (Pack A Punch) and side-file carry](reviews/PROFILE-WRITE-PIPELINE-20261120.md)
 - [Arena raid-end persistence: update hold through restore, save and verify](reviews/RAID-END-PERSISTENCE-20261027.md)
 - [Raid info panels: weapon, status and grenade HUD absorbed into ArenaMode](reviews/RAID-INFO-PANELS-REVIEW.md)
 - [Arena visibility, notifications and Labyrinth access (markers, banner, popups)](reviews/RAID-POLISH-REVIEW.md)

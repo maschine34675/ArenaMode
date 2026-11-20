@@ -20,6 +20,22 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
   disagreed with its chamber shipped once and threw nothing.
 
+- **A profile save is not what SPT was asked to save, and a prefix on an `async` method runs early (2026-11-20)** —
+  symptom: Arena entry declined with `preflight-save/save-not-confirmed` (Forge issue 3), or the raid end never
+  completing, with Pack A Punch loaded. Cause: PaP strips its data in a Harmony prefix on
+  `FileUtil.WriteFileAsync(string, string, ...)`, so disk never equals RAM. Four facts to keep when touching the capture
+  (`ProfileWriteProof`, `ArenaProfileWriteCapturePatches`): (1) the string overload is `async` but encodes the text and calls
+  the `byte[]` overload before its first `await`, so the inner call's prefix runs in the same synchronous segment on the same
+  thread; the input is taken at the string overload with `Priority.First` and the output at the `byte[]` overload with
+  `Priority.Last`, and anything else (a direct `byte[]` writer, a mod at First or Last) makes the pair differ and fails
+  closed; (2) cleanup must be a Harmony **finalizer**, not a postfix: a postfix does not run when an earlier prefix skips
+  the original or throws, which would leak the thread slot into the next write; (3) bind parameters by position
+  (`__0`, `__1`), the installed SPT may name them differently from the reference source; (4) PaP's side file survives a
+  restart only while it is at most two minutes older than the profile (strictly `>` 2:00 is stale), and every direct
+  profile write by Arena moves the profile mtime, so `RewardStartupFiles.WriteAtomic` carries a fresh side file to the
+  staged file's time just before the move (`PapSideFileGuard`; not `UtcNow`, not after the move, never backwards, never
+  creating or reviving). Also: compare profiles with `ExactSameProfile`, never the patchable `SameProfile`. Argued in
+  docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md.
 - **`AddToTargetBackup` is first-write-wins, and the backup loader's top-up collapses (2026-11-19)** —
   `BotSpawner.AddToTargetBackup` adds a (role, difficulty) target only when none exists
   (`BotProfileBackuploader.cs:257-263`), so a pool cannot be raised mid-raid and a second call is

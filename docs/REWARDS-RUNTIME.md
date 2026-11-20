@@ -518,6 +518,19 @@ fields are discarded from the comparison. The installed SPT 4.1.6 save method
 does not modify profile fields while serializing. Save completion alone is not
 proof: native saves can skip invalid profiles or reuse a hash cache.
 
+When another mod transforms the write (Pack A Punch strips its data out of the text), the disk
+cannot equal the clone, and the rule is: the disk equals the captured pipeline output (exact
+comparison), the clone equals the captured pipeline input, and the output is a pure removal from the
+input that leaves the reward ledger block, root `info` and both character `Info` blocks identical.
+Without such a mod, input equals output and the rule is the one above. The same acceptance applies
+at the entry/return readback, the raid-end restoration and the durable-readback checkpoint
+(`RewardRestorationCheckpoint.Persisted` accepts the pipeline input as the text to fingerprint, while the
+revision stays the hash of the disk text). Startup recovery (`Recover`, `RecoverAtStartup`) stays strict: nothing was captured
+by the previous process, so an unprovable result is discarded, never paid. All profile-versus-profile comparisons
+use the unpatched `ExactSameProfile`. Arena's startup writes of a profile (`RewardStartupFiles.WriteAtomic`)
+carry a fresh Pack A Punch side file to the new profile time through `PapSideFileGuard`.
+See docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md and docs/PACK-A-PUNCH-COMPAT.md.
+
 Only this positive chain creates an immutable signed earned-result receipt.
 Finalization retains the exact session ownership until proof publication finishes.
 Reward errors never cancel or weaken the existing protected profile restoration.
