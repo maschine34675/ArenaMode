@@ -1,4 +1,4 @@
-# PitFireTeam 1.0.0 protection checks
+# PitFireTeam release protection checks
 
 Run from the repository root:
 
@@ -20,6 +20,26 @@ Extract them under `artifacts/pft-100-contracts/release`, `legacy-0.10.3` and
 `legacy-0.10.0`, respectively. These third-party binaries are not committed.
 `-ReleaseRoot` overrides the modern extracted archive; `-LegacyServer` checks
 one specified old server DLL instead of the modern execution fixtures.
+
+The same executable also accepts the exact 1.1.1 and 1.1.2 archives. Run the
+updated release separately, retaining the default 1.0.0 and legacy controls:
+
+```powershell
+dotnet run --project tools/PitFireTeam100Checks -c Release -- <extracted-1.1.2-archive>
+```
+
+For 1.1.2 it additionally checks the internal local-leader property, the exact
+account/task tuple cache, private asynchronous initial dispatch and explicit
+roster method signatures. Real production Harmony guards execute against the
+released companion-protection cache: normal registration/release/raid clearing,
+protected suppression returning an empty accepted-ID array, and normal behavior
+after protection ends. Mutated release metadata must reject a missing cache
+registration method, changed inventory parameter, instance/static drift, and the
+old dropped-item result signature. No foreign implementation is bundled.
+
+Reviewed 1.1.2 SHA-256: client
+`F0C01D472379ECD3F79D8F799400992093187162E75FB3716A2B6E133891B05D`, server
+`D8E1EC74FD5EC85BF599BBE2886F46F73487623FDA10BE97983E328BC93B5BDC`.
 
 The reviewed 1.0.0 archive contains these SHA-256 values:
 

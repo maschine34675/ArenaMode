@@ -100,6 +100,7 @@ internal static class PitFireTeamRoundLifecycle
     private static FieldInfo _botsPatchInstanceField;
     private static FieldInfo _botsControllerField;
     private static FieldInfo _spawnedPlayersField;
+    private static PropertyInfo _localRaidLeaderProperty;
     private static FieldInfo _followerCreationTasksField;
     private static MethodInfo _createFollowerProfilesMethod;
     private static MethodInfo _spawnGroupBotsMethod;
@@ -803,10 +804,9 @@ internal static class PitFireTeamRoundLifecycle
 
                 IDictionary profileTasks = ReadProfileTaskCacheUnsafe();
                 bool cachedProfileTaskPresent = profileTasks.Contains(currentLeader.ProfileId);
-                object cachedProfileTaskValue = cachedProfileTaskPresent
-                    ? profileTasks[currentLeader.ProfileId]
+                Task cachedProfileTask = cachedProfileTaskPresent
+                    ? ReadCachedProfileTaskUnsafe(profileTasks, currentLeader.ProfileId)
                     : null;
-                Task cachedProfileTask = cachedProfileTaskValue as Task;
 
                 int existingFollowerCount = 0;
                 int existingWrapperCount = 0;
@@ -894,7 +894,7 @@ internal static class PitFireTeamRoundLifecycle
                 if (cachedProfileTask != null)
                 {
                     if (!profileTasks.Contains(currentLeader.ProfileId)
-                        || !ReferenceEquals(profileTasks[currentLeader.ProfileId], cachedProfileTask))
+                        || !ReferenceEquals(ReadCachedProfileTaskUnsafe(profileTasks, currentLeader.ProfileId), cachedProfileTask))
                     {
                         throw new InvalidOperationException(
                             "PFT replaced or removed the exact auto-prefetched replacement task during leader adoption");
@@ -972,7 +972,7 @@ internal static class PitFireTeamRoundLifecycle
                 if (_adoptedRespawnBoss && _profileTask != null)
                 {
                     if (!cache.Contains(_currentLeader.ProfileId)
-                        || !ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask))
+                        || !ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), _profileTask))
                     {
                         throw new InvalidOperationException(
                             "PFT replaced or removed the adopted replacement follower-profile task");
@@ -980,7 +980,7 @@ internal static class PitFireTeamRoundLifecycle
 
                     task = _createFollowerProfilesMethod.Invoke(
                         patchInstance,
-                        new[] { _currentBoss }) as Task;
+                        FollowerInvocationArgumentsUnsafe()) as Task;
                     if (task == null || !ReferenceEquals(task, _profileTask))
                     {
                         throw new InvalidOperationException(
@@ -997,14 +997,14 @@ internal static class PitFireTeamRoundLifecycle
 
                     task = _createFollowerProfilesMethod.Invoke(
                         patchInstance,
-                        new[] { _currentBoss }) as Task;
+                        FollowerInvocationArgumentsUnsafe()) as Task;
                     if (task == null)
                         throw new InvalidOperationException("PFT returned no follower-profile task");
                 }
 
                 cache = ReadProfileTaskCacheUnsafe();
                 if (!cache.Contains(_currentLeader.ProfileId)
-                    || !ReferenceEquals(cache[_currentLeader.ProfileId], task))
+                    || !ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), task))
                 {
                     throw new InvalidOperationException(
                         "PFT did not cache the exact follower-profile task that SpawnGroupBots must consume");
@@ -1081,7 +1081,7 @@ internal static class PitFireTeamRoundLifecycle
 
                 IDictionary cache = ReadProfileTaskCacheUnsafe();
                 if (!cache.Contains(_currentLeader.ProfileId)
-                    || !ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask))
+                    || !ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), _profileTask))
                 {
                     throw new InvalidOperationException(
                         "PFT replaced or removed the prefetched task before Arena could remap it");
@@ -1139,7 +1139,7 @@ internal static class PitFireTeamRoundLifecycle
             {
                 IDictionary cache = ReadProfileTaskCacheUnsafe();
                 if (!cache.Contains(_currentLeader.ProfileId)
-                    || !ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask))
+                    || !ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), _profileTask))
                 {
                     throw new InvalidOperationException(
                         "PFT will not consume Arena's prefetched profile task");
@@ -1251,7 +1251,7 @@ internal static class PitFireTeamRoundLifecycle
                 _stage = PitFireTeamRoundLifecycleStage.SpawnRequested;
                 Task spawnTask = _spawnGroupBotsMethod.Invoke(
                     patchInstance,
-                    new[] { _currentBoss }) as Task;
+                    FollowerInvocationArgumentsUnsafe()) as Task;
                 if (spawnTask == null)
                     throw new InvalidOperationException("PFT returned no SpawnGroupBots task");
 
@@ -1875,34 +1875,59 @@ internal static class PitFireTeamRoundLifecycle
             "Controller",
             BindingFlags.Public | BindingFlags.Static,
             typeof(BotsController));
-        _spawnedPlayersField = RequireField(
-            _botsPatchType,
-            "spawnedPlayers",
-            BindingFlags.Public | BindingFlags.Static,
-            null);
-        if (!typeof(IList).IsAssignableFrom(_spawnedPlayersField.FieldType))
-            throw new InvalidOperationException("BotsControllerPatch.spawnedPlayers is not an IList");
+        bool explicitRoster = assembly.GetName().Version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion;
+        if (explicitRoster)
+        {
+            _localRaidLeaderProperty = RequireProperty(_botsPatchType, "LocalRaidLeader",
+                BindingFlags.NonPublic | BindingFlags.Static, _bossType);
+            if (_localRaidLeaderProperty.GetGetMethod(true)?.IsAssembly != true
+                || _localRaidLeaderProperty.GetSetMethod(true)?.IsAssembly != true)
+                throw new InvalidOperationException("PFT LocalRaidLeader accessors changed");
+            Type taskType = typeof(Task<Dictionary<string, Profile>>);
+            Type cachedType = typeof(ValueTuple<,>).MakeGenericType(typeof(string[]), taskType);
+            _followerCreationTasksField = RequireField(_botsPatchType, "FollowerCreationTasks",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                typeof(Dictionary<,>).MakeGenericType(typeof(string), cachedType));
+            if (!_followerCreationTasksField.IsPrivate || !_followerCreationTasksField.IsInitOnly)
+                throw new InvalidOperationException("PFT follower cache ownership changed");
+            _createFollowerProfilesMethod = RequireMethod(_botsPatchType, "CreateFollowerProfiles",
+                BindingFlags.NonPublic | BindingFlags.Instance, taskType, _bossType, typeof(string[]));
+            _spawnGroupBotsMethod = RequireMethod(_botsPatchType, "SpawnGroupBots",
+                BindingFlags.NonPublic | BindingFlags.Instance, typeof(Task), _bossType, typeof(IReadOnlyList<string>));
+            if (!_createFollowerProfilesMethod.IsPrivate || !_spawnGroupBotsMethod.IsAssembly)
+                throw new InvalidOperationException("PFT explicit follower entry points changed");
+        }
+        else
+        {
+            _spawnedPlayersField = RequireField(
+                _botsPatchType,
+                "spawnedPlayers",
+                BindingFlags.Public | BindingFlags.Static,
+                null);
+            if (!typeof(IList).IsAssignableFrom(_spawnedPlayersField.FieldType))
+                throw new InvalidOperationException("BotsControllerPatch.spawnedPlayers is not an IList");
 
-        _followerCreationTasksField = RequireField(
-            _botsPatchType,
-            "followerCreationTask",
-            BindingFlags.Public | BindingFlags.Static,
-            null);
-        if (!typeof(IDictionary).IsAssignableFrom(_followerCreationTasksField.FieldType))
-            throw new InvalidOperationException("BotsControllerPatch.followerCreationTask is not an IDictionary");
+            _followerCreationTasksField = RequireField(
+                _botsPatchType,
+                "followerCreationTask",
+                BindingFlags.Public | BindingFlags.Static,
+                null);
+            if (!typeof(IDictionary).IsAssignableFrom(_followerCreationTasksField.FieldType))
+                throw new InvalidOperationException("BotsControllerPatch.followerCreationTask is not an IDictionary");
 
-        _createFollowerProfilesMethod = RequireMethod(
-            _botsPatchType,
-            "CreateFollowerProfiles",
-            BindingFlags.Public | BindingFlags.Instance,
-            typeof(Task<Dictionary<string, Profile>>),
-            _bossType);
-        _spawnGroupBotsMethod = RequireMethod(
-            _botsPatchType,
-            "SpawnGroupBots",
-            BindingFlags.Public | BindingFlags.Instance,
-            typeof(Task),
-            _bossType);
+            _createFollowerProfilesMethod = RequireMethod(
+                _botsPatchType,
+                "CreateFollowerProfiles",
+                BindingFlags.Public | BindingFlags.Instance,
+                typeof(Task<Dictionary<string, Profile>>),
+                _bossType);
+            _spawnGroupBotsMethod = RequireMethod(
+                _botsPatchType,
+                "SpawnGroupBots",
+                BindingFlags.Public | BindingFlags.Instance,
+                typeof(Task),
+                _bossType);
+        }
         _loadSavedSpawnSettingsMethod = null;
         System.Version installedVersion = assembly.GetName().Version;
         if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)
@@ -2142,6 +2167,7 @@ internal static class PitFireTeamRoundLifecycle
     private static bool SpawnGroupBotsPrefix(
         object __instance,
         object player,
+        object[] __args,
         ref Task __result,
         out SpawnGroupInvocationState __state)
     {
@@ -2157,7 +2183,23 @@ internal static class PitFireTeamRoundLifecycle
             }
 
             string problem = string.Empty;
+            if (_localRaidLeaderProperty != null)
+            {
+                try
+                {
+                    string[] accounts = (__args.Length == 2 ? __args[1] as IReadOnlyList<string> : null)?.ToArray();
+                    ValidateFrozenAccountsUnsafe(accounts);
+                    var cache = ReadProfileTaskCacheUnsafe();
+                    if (!cache.Contains(_currentLeader.ProfileId)
+                        || !ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), _profileTask)
+                        || !accounts.SequenceEqual(PitFireTeamExplicitRosterCache.Read<Dictionary<string, Profile>>(
+                            cache[_currentLeader.ProfileId], _canonicalProfilesByAccountId).Accounts, StringComparer.Ordinal))
+                        problem = "the explicit PFT spawn roster or its prepared task changed";
+                }
+                catch (Exception ex) { problem = ex.GetBaseException().Message; }
+            }
             if (_spawnGroupInvocationLease != null
+                || !string.IsNullOrEmpty(problem)
                 || !TryValidateBotCreationLeaseIdentityUnsafe(lease, out problem))
             {
                 string reason = _spawnGroupInvocationLease != null
@@ -4471,6 +4513,21 @@ internal static class PitFireTeamRoundLifecycle
 
     private static void ReplaceSpawnedBossUnsafe(object newBoss, Player currentLeader)
     {
+        if (_localRaidLeaderProperty != null)
+        {
+            object previous = _localRaidLeaderProperty.GetValue(null);
+            // Adopt only the old exact local boss or the replacement PFT just
+            // installed. A foreign leader must never be silently overwritten.
+            if (previous != null && !ReferenceEquals(previous, _oldBoss)
+                && !ReferenceEquals(previous, newBoss))
+                throw new InvalidOperationException("PFT LocalRaidLeader is not the exact old or replacement boss");
+            if (!ReferenceEquals(_bossRealPlayerField.GetValue(newBoss), currentLeader))
+                throw new InvalidOperationException("PFT replacement boss belongs to another body");
+            _localRaidLeaderProperty.SetValue(null, newBoss);
+            if (!ReferenceEquals(_localRaidLeaderProperty.GetValue(null), newBoss))
+                throw new InvalidOperationException("PFT did not retain the exact replacement local leader");
+            return;
+        }
         if (_spawnedPlayersField.GetValue(null) is not IList spawnedPlayers)
             throw new InvalidOperationException("PFT spawnedPlayers list is unavailable");
 
@@ -4543,6 +4600,32 @@ internal static class PitFireTeamRoundLifecycle
         if (_followerCreationTasksField.GetValue(null) is not IDictionary cache)
             throw new InvalidOperationException("PFT followerCreationTask cache is unavailable");
         return cache;
+    }
+
+    private static Task ReadCachedProfileTaskUnsafe(IDictionary cache, string leaderId)
+    {
+        object entry = cache[leaderId];
+        if (_localRaidLeaderProperty == null)
+            return entry as Task;
+        return PitFireTeamExplicitRosterCache.Read<Dictionary<string, Profile>>(entry, _canonicalProfilesByAccountId).Profiles;
+    }
+
+    private static void ValidateFrozenAccountsUnsafe(string[] accounts)
+        => PitFireTeamExplicitRosterCache.ValidateAccounts(accounts, _canonicalProfilesByAccountId);
+
+    private static object[] FollowerInvocationArgumentsUnsafe()
+    {
+        if (_localRaidLeaderProperty == null)
+            return new[] { _currentBoss };
+        var cache = ReadProfileTaskCacheUnsafe();
+        string[] accounts = cache.Contains(_currentLeader.ProfileId)
+            ? PitFireTeamExplicitRosterCache.Read<Dictionary<string, Profile>>(
+                cache[_currentLeader.ProfileId], _canonicalProfilesByAccountId).Accounts
+            : _canonicalProfilesByAccountId.Keys.ToArray();
+        ValidateFrozenAccountsUnsafe(accounts);
+        // Preserve the cached native order, while preventing a later mutation
+        // of either the PFT selection or its cache from changing our invocation.
+        return new object[] { _currentBoss, accounts.ToArray() };
     }
 
     private static bool IsActiveBody(BotOwner bot)
@@ -4684,6 +4767,7 @@ internal static class PitFireTeamRoundLifecycle
         _botsPatchInstanceField = null;
         _botsControllerField = null;
         _spawnedPlayersField = null;
+        _localRaidLeaderProperty = null;
         _followerCreationTasksField = null;
         _createFollowerProfilesMethod = null;
         _spawnGroupBotsMethod = null;

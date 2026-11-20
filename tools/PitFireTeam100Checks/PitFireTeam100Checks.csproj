@@ -4,9 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ProductionPersistenceSource Condition="'$(ProductionPersistenceSource)' == ''">../../ArenaMode.Server/Patches/PitFireTeamDynamicPersistencePatches.cs</ProductionPersistenceSource>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../ArenaMode.Server/Patches/PitFireTeamDynamicPersistencePatches.cs" Link="Production/Dynamic.cs" />
+    <Compile Include="$(ProductionPersistenceSource)" Link="Production/Dynamic.cs" />
     <Compile Include="../../ArenaMode.Server/Patches/PitFireTeamModernPersistence.cs" Link="Production/Modern.cs" />
     <Compile Include="../../ArenaMode.Server/Services/PitFireTeamOperationGate.cs" Link="Production/OperationGate.cs" />
     <Compile Include="../../ArenaMode.Server/Services/PitFireTeamManagementScope.cs" Link="Production/ManagementScope.cs" />

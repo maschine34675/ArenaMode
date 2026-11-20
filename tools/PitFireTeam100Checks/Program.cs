@@ -34,10 +34,14 @@ AssemblyLoadContext.Default.Resolving += (_, name) =>
 Assembly pft = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(serverFolder, "pitFireTeam.Server.dll"));
 int checks = 0;
 void Check(bool condition, string name) { if (!condition) throw new Exception(name); checks++; }
-Check(pft.GetName().Version == new Version(1, 0, 0, 0), "The fixture must be the exact 1.0.0 release.");
+Version version = pft.GetName().Version!;
+Check(version == new Version(1, 0, 0, 0) || version == new Version(1, 1, 1, 0) || version == new Version(1, 1, 2, 0),
+    "The fixture must be an exact reviewed modern release.");
 PitFireTeamDynamicPersistencePatches.TryEnable();
 Check(PitFireTeamDynamicPersistencePatches.ProtectionReady, PitFireTeamDynamicPersistencePatches.IncompatibilityReason);
 await ClientContractChecks.Verify(Path.Combine(release, "BepInEx/plugins/pitFireTeam/pitFireTeam.dll"), Check);
+if (version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion)
+    VerifyCompanionProtection(pft, Check);
 OperationGateChecks.Verify(Check);
 const string protectedId = "aaaaaaaaaaaaaaaaaaaaaaaa";
 const string otherId = "bbbbbbbbbbbbbbbbbbbbbbbb";
@@ -129,15 +133,31 @@ Check(!Directory.Exists(originalDirectory) && Directory.Exists(originalDirectory
 
 // Mutate only copied release metadata. Discovery must reject changed boundaries
 // before any prefix can claim protection. No foreign implementation is copied.
-foreach (string mutation in new[] { "missing-create", "changed-create-result", "missing-database-write" })
+foreach (string mutation in new[] { "missing-create", "changed-create-result", "missing-database-write" }.Concat(
+             version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion
+                 ? new[] { "missing-companion-register", "companion-register-parameter", "companion-begin-instance", "companion-drop-result" }
+                 : Array.Empty<string>()))
 {
+    bool companionMutation = mutation.Contains("companion", StringComparison.Ordinal);
+    string targetName = mutation switch
+    {
+        "missing-database-write" => "WriteBatch",
+        "missing-companion-register" or "companion-register-parameter" => "RegisterCompanionSpawnProtection",
+        "companion-begin-instance" => "BeginCompanionRaid",
+        "companion-drop-result" => "RegisterProtectedRaidItems",
+        _ => "CreateTeammate"
+    };
     string mutatedPath = Path.Combine(testRoot, mutation + ".dll");
     using (var definition = Mono.Cecil.AssemblyDefinition.ReadAssembly(pft.Location))
     {
         var type = definition.MainModule.GetType(mutation == "missing-database-write"
-            ? "pitTeam.Server.Persistence.TeammateDatabase" : "pitTeam.Server.Services.FriendlyTeammateService");
-        var method = type.Methods.Single(candidate => candidate.Name == (mutation == "missing-database-write" ? "WriteBatch" : "CreateTeammate"));
+            ? "pitTeam.Server.Persistence.TeammateDatabase" : companionMutation
+                ? "pitTeam.Server.Services.FriendlyPostRaidService" : "pitTeam.Server.Services.FriendlyTeammateService");
+        var method = type.Methods.Single(candidate => candidate.Name == targetName);
         if (mutation == "changed-create-result") method.ReturnType = definition.MainModule.TypeSystem.String;
+        else if (mutation == "companion-drop-result") method.ReturnType = definition.MainModule.TypeSystem.Void;
+        else if (mutation == "companion-register-parameter") method.Parameters[2].ParameterType = definition.MainModule.TypeSystem.String;
+        else if (mutation == "companion-begin-instance") { method.IsStatic = false; method.HasThis = true; }
         else method.Name += "Changed";
         definition.Write(mutatedPath);
     }
@@ -152,11 +172,66 @@ foreach (string mutation in new[] { "missing-create", "changed-create-result", "
     }
     else
     {
-        Array contracts = (Array)patchType.GetField("ModernManagementContracts", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
-        object contract = contracts.GetValue(0)!;
+        Array contracts = (Array)patchType.GetField(companionMutation ? "RaidPersistenceContracts" : "ModernManagementContracts", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+        object contract = companionMutation ? contracts.Cast<object>().Single(row =>
+            (string)row.GetType().GetProperty("MethodName")!.GetValue(row)! == targetName
+            && (bool)patchType.GetMethod("AppliesToInstalledBuild", BindingFlags.Static | BindingFlags.NonPublic)!
+                .Invoke(null, [row, version])!) : contracts.GetValue(0)!;
         Check(patchType.GetMethod("ResolveContract", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [changed, contract]) == null,
             mutation + " must reject the changed transaction.");
     }
     context.Unload();
 }
 Console.WriteLine($"PFT_100_CONTRACTS_VERIFIED ({checks} assertions; exact release DLL, production-linked patches; no live profile or gameplay test)");
+
+static void VerifyCompanionProtection(Assembly pft, Action<bool, string> check)
+{
+    const string profile = "7311223344556677889900aa", companion = "protected-companion";
+    var id = new MongoId(profile);
+    Type serviceType = pft.GetType("pitTeam.Server.Services.FriendlyPostRaidService", true)!;
+    object service = RuntimeHelpers.GetUninitializedObject(serviceType);
+    var logField = serviceType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+        .Single(field => field.FieldType.IsGenericType && field.FieldType.Name == "ISptLogger`1");
+    logField.SetValue(service, DispatchProxy.Create(logField.FieldType, typeof(QuietLoggerProxy)));
+    MethodInfo register = serviceType.GetMethod("RegisterCompanionSpawnProtection", BindingFlags.NonPublic | BindingFlags.Instance)!;
+    MethodInfo begin = serviceType.GetMethod("BeginCompanionRaid", BindingFlags.NonPublic | BindingFlags.Static)!;
+    MethodInfo snapshot = serviceType.GetMethod("SnapshotProtectedRaidItemIds", BindingFlags.NonPublic | BindingFlags.Static)!;
+    MethodInfo release = serviceType.GetMethod("RegisterProtectedRaidItems")!;
+    object request = Activator.CreateInstance(release.GetParameters()[1].ParameterType)!;
+    request.GetType().GetProperty("DroppingCompanionProfileId")!.SetValue(request, companion);
+    request.GetType().GetProperty("DroppedCompanionItemIds")!.SetValue(request, new List<string> { "drop" });
+    HashSet<string> Read() => (HashSet<string>)snapshot.Invoke(null, [id])!;
+
+    register.Invoke(service, [id, companion, new HashSet<string> { "keep", "drop" }]);
+    check(Read().SetEquals(["keep", "drop"]), "Ordinary 1.1.2 companion registration remains active.");
+    ArenaContext.Sessions.Protection.BeginArmed(profile, TimeSpan.FromMinutes(1));
+    ArenaContext.Sessions.State = ArenaSessionState.Armed;
+    try
+    {
+        register.Invoke(service, [id, companion, new HashSet<string> { "arena-only" }]);
+        // Invalid JSON proves the original parser is not entered under protection.
+        Exception? parsingFailure = null;
+        try { begin.Invoke(null, [id, "invalid JSON must not be parsed"]); }
+        catch (TargetInvocationException ex) { parsingFailure = ex.InnerException; }
+        check(parsingFailure == null, "Protected companion raid start does not enter native response parsing.");
+        object? accepted = release.Invoke(service, [id, request]);
+        check(accepted is string[] { Length: 0 }, "Protected dropped-companion transaction returns a non-null empty array.");
+        check(Read().SetEquals(["keep", "drop"]), "Protected registration, raid clearing and drop release preserve the entire companion cache.");
+    }
+    finally
+    {
+        ArenaContext.Sessions.Protection.Clear(profile);
+        ArenaContext.Sessions.State = ArenaSessionState.Idle;
+    }
+    check(release.Invoke(service, [id, request]) is string[] { Length: 1 } ids && ids[0] == "drop"
+        && Read().SetEquals(["keep"]), "Ordinary dropped companion gear is still released after Arena protection.");
+    begin.Invoke(null, [id, "{\"data\":{\"transition\":{\"transitionCount\":0}}}"]);
+    check(Read().Count == 0, "Ordinary next-raid clearing resumes after protected Arena.");
+}
+
+public class QuietLoggerProxy : DispatchProxy
+{
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        => targetMethod!.ReturnType == typeof(void) ? null
+            : targetMethod.ReturnType.IsValueType ? Activator.CreateInstance(targetMethod.ReturnType) : null;
+}

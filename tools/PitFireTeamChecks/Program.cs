@@ -135,14 +135,14 @@ internal static class Program
                    version => incompatibleTeam.Reason.Contains(version, StringComparison.Ordinal))
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
             "unsupported contract rejection names every pinned version and the runtime layout");
-        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3", "1.0.0", "1.1.1" })
+        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3", "1.0.0", "1.1.1", "1.1.2" })
                && PitFireTeamVersions.VerifiedAssemblyVersions.SequenceEqual(
-                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0), new Version(1, 0, 0, 0), new Version(1, 1, 1, 0) })
+                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0), new Version(1, 0, 0, 0), new Version(1, 1, 1, 0), new Version(1, 1, 2, 0) })
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.0")
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.3")
                && PitFireTeamVersions.IsSupportedAssemblyVersion(new Version(0, 10, 3, 0)),
             "the verified baselines stay distinct from forward admission");
-        foreach (var supported in new[] { "0.10.0", "0.10.0.0", "0.10.3", "0.10.3.0", "0.10.3.1", "0.10.4", "0.11.0", "1.0.0", "1.1.1", "1.1.1.0", "12.0.0.4" })
+        foreach (var supported in new[] { "0.10.0", "0.10.0.0", "0.10.3", "0.10.3.0", "0.10.3.1", "0.10.4", "0.11.0", "1.0.0", "1.1.1", "1.1.1.0", "1.1.2", "1.1.2.0", "12.0.0.4" })
         {
             var version = new Version(supported);
             Assert(PitFireTeamVersions.IsSupportedPluginVersion(supported), "admitted plugin " + supported);
@@ -171,7 +171,10 @@ internal static class Program
                && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1))
                && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1, 0))
                && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 0))
-               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1, 1)),
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1, 1))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 2))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 2, 0))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 2, 1)),
             "warnings distinguish known baselines from untested newer versions");
 
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical", "zombie" })
@@ -665,7 +668,7 @@ internal static class Program
         // Every gate reads the shared admission policy and matching build identity:
         // six places accepting "a version" independently is how a build slips in
         // through the half of the contract nobody remembered to widen.
-        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\", \"1.0.0\", \"1.1.1\" }", StringComparison.Ordinal)
+        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\", \"1.0.0\", \"1.1.1\", \"1.1.2\" }", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyName.Version)", StringComparison.Ordinal)
@@ -1871,8 +1874,15 @@ internal static class Program
         {
             var type = pit.MainModule.GetType(typeName)
                        ?? throw new InvalidOperationException($"Installed PFT cleanup type {typeName} is missing.");
-            Assert(type.Fields.Any(field => field.Name == fieldName && field.IsStatic),
-                $"installed PFT stop-recovery contract includes {typeName}.{fieldName}");
+            if (pit.Name.Version >= PitFireTeamVersions.ExplicitRosterVersion && fieldName == "spawnedPlayers")
+                Assert(type.Properties.Any(property => property.Name == "LocalRaidLeader"
+                    && property.GetMethod.IsStatic && property.SetMethod.IsStatic), "1.1.2 local leader cleanup property");
+            else if (pit.Name.Version >= PitFireTeamVersions.ExplicitRosterVersion && fieldName == "followerCreationTask")
+                Assert(type.Methods.Any(method => method.Name == "ClearPrefetchedFollowerProfiles" && method.IsStatic
+                    && method.ReturnType.FullName == "System.Void" && method.Parameters.Count == 0), "1.1.2 prefetch cleanup method");
+            else
+                Assert(type.Fields.Any(field => field.Name == fieldName && field.IsStatic),
+                    $"installed PFT stop-recovery contract includes {typeName}.{fieldName}");
         }
 
         var bossPlayers = pit.MainModule.GetType("pitTeam.Modules.BossPlayers")!;

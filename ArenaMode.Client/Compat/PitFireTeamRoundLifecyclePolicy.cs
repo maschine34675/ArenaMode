@@ -2,8 +2,37 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ArenaMode.Compat;
+
+/// <summary>
+/// The 1.1.2 cache is a pair, not a Task. Read both halves together so adopting
+/// an already-prefetched task cannot admit another selection with the same size.
+/// No Unity state is involved; callers still own exact leader/body/raid checks.
+/// </summary>
+internal static class PitFireTeamExplicitRosterCache
+{
+    internal static (string[] Accounts, Task<T> Profiles) Read<T>(object value,
+        IReadOnlyDictionary<string, string> frozenRoster)
+    {
+        if (value is not ValueTuple<string[], Task<T>> entry)
+            throw new InvalidOperationException("PFT explicit follower cache entry has an unsupported shape");
+        ValidateAccounts(entry.Item1, frozenRoster);
+        if (entry.Item2 == null)
+            throw new InvalidOperationException("PFT follower cache has no exact task");
+        return entry;
+    }
+
+    internal static void ValidateAccounts(string[] accounts, IReadOnlyDictionary<string, string> frozenRoster)
+    {
+        if (frozenRoster == null || !PitFireTeamRoundLifecyclePolicy.IsSupportedCompanionCount(frozenRoster.Count)
+            || accounts == null || accounts.Length != frozenRoster.Count
+            || accounts.Distinct(StringComparer.Ordinal).Count() != accounts.Length
+            || accounts.Any(account => account == null || !frozenRoster.ContainsKey(account)))
+            throw new InvalidOperationException("PFT explicit follower roster differs from the frozen Arena roster");
+    }
+}
 
 internal enum PitFireTeamRoundLifecycleStage
 {

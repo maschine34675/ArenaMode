@@ -10,14 +10,20 @@ internal static class ClientContractChecks
     internal static async Task Verify(string file, Action<bool, string> check)
     {
         using var assembly = AssemblyDefinition.ReadAssembly(file);
-        check(assembly.Name.Version == new Version(1, 0, 0, 0), "Exact released PFT client identity.");
+        Version version = assembly.Name.Version;
+        bool explicitRoster = version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion;
+        check(version == new Version(1, 0, 0, 0) || version == new Version(1, 1, 1, 0)
+            || version == new Version(1, 1, 2, 0), "Exact reviewed released PFT client identity.");
         var plugin = assembly.MainModule.GetType("pitTeam.pitFireTeam").CustomAttributes.Single(attribute => attribute.AttributeType.FullName == "BepInEx.BepInPlugin");
-        check((string)plugin.ConstructorArguments[0].Value == "xyz.pit.fireteam" && (string)plugin.ConstructorArguments[2].Value == "1.0.0", "Exact released plugin GUID/version.");
+        check((string)plugin.ConstructorArguments[0].Value == "xyz.pit.fireteam"
+            && (string)plugin.ConstructorArguments[2].Value == version.ToString(3), "Exact released plugin GUID/version.");
         foreach ((string type, string method, string result, string[] parameters) in new[]
         {
             ("pitTeam.Modules.PmcKarmaRuntime", "BeginRaid", "System.Void", new[] { "System.Boolean" }),
             ("pitTeam.Modules.PmcKarmaRuntime", "Send", "System.Void", new[] { "pitTeam.Shared.PmcKarmaReport", "EFT.Player" }),
-            ("pitTeam.Modules.FriendlyEncounterPenaltyRuntime", "SendKillReport", "System.Threading.Tasks.Task", new[] { "System.String", "System.String", "System.String", "System.Int64", "System.String" }),
+            ("pitTeam.Modules.FriendlyEncounterPenaltyRuntime", "SendKillReport", "System.Threading.Tasks.Task", version >= new Version(1, 1, 0, 0)
+                ? new[] { "System.String", "System.String", "System.String", "System.Int64", "System.String", "System.Boolean" }
+                : new[] { "System.String", "System.String", "System.String", "System.Int64", "System.String" }),
             ("pitTeam.Modules.GiveGearInsurance", "Cancel", "System.Void", new[] { "EFT.IEftSession", "EFT.Profile", "System.Collections.Generic.IEnumerable`1<System.String>" }),
             ("pitTeam.Modules.GiveGearInsurance", "Track", "System.Void", new[] { "EFT.IEftSession", "EFT.Player", "EFT.BotOwner", "System.Collections.Generic.IEnumerable`1<System.String>" }),
             ("pitTeam.Modules.FollowerInsuranceRaidReports", "Prepare", "pitTeam.Modules.FollowerInsuranceRaidReports/Report", new[] { "System.String" }),
@@ -29,14 +35,38 @@ internal static class ClientContractChecks
             ("pitTeam.Modules.BossPlayers", "AddPlayerAsBoss", "pitTeam.Components.pitAIBossPlayer", new[] { "EFT.Player", "EFT.BotsController" }),
             ("pitTeam.Components.BotFollowerPlayer", "Dismiss", "System.Void", new[] { "System.Boolean" }),
             ("pitTeam.Components.pitAIBossPlayer", "UnhookFollowerDeath", "System.Void", new[] { "EFT.BotOwner" }),
-            ("pitTeam.Patches.BotsControllerPatch", "CreateFollowerProfiles", "System.Threading.Tasks.Task`1<System.Collections.Generic.Dictionary`2<System.String,EFT.Profile>>", new[] { "pitTeam.Components.pitAIBossPlayer" }),
-            ("pitTeam.Patches.BotsControllerPatch", "SpawnGroupBots", "System.Threading.Tasks.Task", new[] { "pitTeam.Components.pitAIBossPlayer" }),
+            ("pitTeam.Patches.BotsControllerPatch", "CreateFollowerProfiles", "System.Threading.Tasks.Task`1<System.Collections.Generic.Dictionary`2<System.String,EFT.Profile>>", explicitRoster
+                ? new[] { "pitTeam.Components.pitAIBossPlayer", "System.String[]" } : new[] { "pitTeam.Components.pitAIBossPlayer" }),
+            ("pitTeam.Patches.BotsControllerPatch", "SpawnGroupBots", "System.Threading.Tasks.Task", explicitRoster
+                ? new[] { "pitTeam.Components.pitAIBossPlayer", "System.Collections.Generic.IReadOnlyList`1<System.String>" } : new[] { "pitTeam.Components.pitAIBossPlayer" }),
         })
         {
             var target = assembly.MainModule.GetType(type);
             check(target != null && target.Methods.Count(candidate => candidate.Name == method && candidate.ReturnType.FullName == result
                 && candidate.Parameters.Select(parameter => parameter.ParameterType.FullName).SequenceEqual(parameters)) == 1,
-                "PFT 1.0 client contract: " + type + "." + method);
+                "PFT " + version + " client contract: " + type + "." + method);
+        }
+        if (explicitRoster)
+        {
+            var controller = assembly.MainModule.GetType("pitTeam.Patches.BotsControllerPatch");
+            var leader = controller.Properties.Single(property => property.Name == "LocalRaidLeader");
+            check(leader.PropertyType.FullName == "pitTeam.Components.pitAIBossPlayer"
+                && leader.GetMethod.IsStatic && leader.GetMethod.IsAssembly && leader.SetMethod.IsAssembly,
+                "1.1.2 local leader has exact internal static accessors.");
+            var cache = controller.Fields.Single(field => field.Name == "FollowerCreationTasks");
+            check(cache.IsPrivate && cache.IsStatic && cache.IsInitOnly
+                && cache.FieldType.FullName == "System.Collections.Generic.Dictionary`2<System.String,System.ValueTuple`2<System.String[],System.Threading.Tasks.Task`1<System.Collections.Generic.Dictionary`2<System.String,EFT.Profile>>>>",
+                "1.1.2 follower cache retains both exact accounts and task.");
+            check(controller.Methods.Single(method => method.Name == "CreateFollowerProfiles").IsPrivate
+                && controller.Methods.Single(method => method.Name == "SpawnGroupBots").IsAssembly,
+                "1.1.2 follower entry point visibility is exact.");
+            check(controller.Methods.Any(method => method.Name == "ClearPrefetchedFollowerProfiles"
+                && method.IsStatic && method.IsAssembly && method.ReturnType.FullName == "System.Void" && method.Parameters.Count == 0),
+                "1.1.2 stop cleanup can clear prefetched profiles.");
+            var dispatch = assembly.MainModule.GetType("pitTeam.Patches.BotsEventsControllerSpawnPatch")
+                .Methods.Single(method => method.Name == "SpawnFollowers");
+            check(dispatch.IsPrivate && dispatch.IsStatic && dispatch.ReturnType.FullName == "System.Threading.Tasks.Task"
+                && dispatch.Parameters.Count == 0, "1.1.2 deferred initial dispatch must supply a non-null Task.");
         }
         foreach ((string type, string field, string fieldType) in new[]
         {

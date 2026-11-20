@@ -46,3 +46,12 @@ rule compiles successfully and fails the first one-companion assertion; the
 unmodified production rerun passes. Evidence is recorded under ignored
 `artifacts/pft-variable-roster-lifecycle-20261013/`. Native first-round assembly,
 round/wave restoration and profile/PFT-store neutrality remain separate tests.
+# Explicit follower roster in PitFireTeam 1.1.2
+
+The production-linked policy additionally checks the new cache's paired account
+array and exact Task identity for one to four companions. Missing, shortened,
+expanded, duplicated, substituted and null accounts, absent roster authority,
+null/replaced tasks and incompatible cache shapes are covered. The old source
+fixture remains in place; released 1.1.2 member signatures are checked by
+`tools/PitFireTeam100Checks` with that exact archive. This is offline evidence;
+deferred native startup and replacement leader/round activation need GPU tests.

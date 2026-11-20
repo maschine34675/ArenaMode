@@ -28,7 +28,10 @@ public class PitFireTeamVersionTests
     [InlineData("1.1.1", true, false)]
     [InlineData("1.1.1.0", true, false)]
     [InlineData("1.1.1.1", true, true)]
-    [InlineData("1.1.2", true, true)]
+    [InlineData("1.1.2", true, false)]
+    [InlineData("1.1.2.0", true, false)]
+    [InlineData("1.1.2.1", true, true)]
+    [InlineData("1.1.3", true, true)]
     [InlineData("15.3.2.4", true, true)]
     public void NumericAdmissionPreservesBaselinesAndWarnsOnlyForFutureBuilds(string text, bool admitted, bool warn)
     {

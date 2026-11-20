@@ -15,7 +15,7 @@ relaxed generic team predicate. Runtime Zombie wave/rebuild checks live separate
 
 When the optional client plugin is installed, the check also reads the installed
 `pitFireTeam.dll` and `Assembly-CSharp.dll` as metadata (it does not execute either
-assembly). This verifies the installed identity against the 0.10.0/0.10.3/1.0.0/1.1.1
+assembly). This verifies the installed identity against the 0.10.0/0.10.3/1.0.0/1.1.1/1.1.2
 reviewed baselines and forward admission, the selected-roster type, the
 inherited `RaidPlayer` identity fields and PFT's own My Squad marker against the
 runtime that will actually load.
@@ -81,3 +81,14 @@ report guard's arming predicate); without one, the leased call runs PFT's own pr
 and the lease fails closed with the extended diagnostic. The installed-metadata checks of
 these members are skipped on a PFT below 1.1.0, and the source pins are text-based, so
 the behaviour itself rests on the native GPU run recorded in the 1.1.1 review.
+
+## PitFireTeam 1.1.2
+
+The adapter retains legacy entry points and switches at 1.1.2 to the exact local
+leader property, paired account/task cache, explicit frozen roster arguments and
+private asynchronous initial dispatch. The server protects the separate companion
+spawn-inventory cache and returns an empty accepted-item array when a protected
+drop registration is suppressed. `PitFireTeam100Checks` runs those boundaries
+against the exact released DLL; `PitFireTeamRoundLifecycleChecks` executes the
+production roster/cache policy. Native round/body replacement remains a separate
+acceptance gate.

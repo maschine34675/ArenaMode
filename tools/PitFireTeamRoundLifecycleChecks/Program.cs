@@ -11,6 +11,7 @@ internal static class Program
         try
         {
             CheckCanonicalRoster();
+            CheckExplicitRosterCache();
             CheckRetirementBarrier();
             CheckLeaderBindingPolicy();
             CheckFreshIdentityRemap();
@@ -71,6 +72,46 @@ internal static class Program
         duplicateProfiles["account-4"] = duplicateProfiles["account-1"];
         Assert(!PitFireTeamRoundLifecyclePolicy.TryValidateCanonicalRoster(duplicateProfiles, out _),
             "duplicate canonical profile identities are rejected");
+    }
+
+    private static void CheckExplicitRosterCache()
+    {
+        static bool Rejects(object entry, IReadOnlyDictionary<string, string> roster)
+        {
+            try { PitFireTeamExplicitRosterCache.Read<int>(entry, roster); return false; }
+            catch (InvalidOperationException) { return true; }
+        }
+        for (int count = 1; count <= 4; count++)
+        {
+            var roster = Roster(count);
+            var task = new TaskCompletionSource<int>();
+            string[] accounts = roster.Keys.Reverse().ToArray();
+            object entry = (accounts, task.Task);
+            var read = PitFireTeamExplicitRosterCache.Read<int>(entry, roster);
+            Assert(ReferenceEquals(read.Profiles, task.Task) && ReferenceEquals(read.Accounts, accounts),
+                $"{count}: explicit-roster cache retains the exact pending task and native account order");
+            Assert(Rejects((accounts.Skip(1).ToArray(), task.Task), roster), $"{count}: shortened cache roster rejected");
+            Assert(Rejects((accounts.Concat(new[] { "foreign" }).ToArray(), task.Task), roster), $"{count}: enlarged cache roster rejected");
+            Assert(Rejects((accounts.Select((account, index) => index == 0 ? "foreign" : account).ToArray(), task.Task), roster),
+                $"{count}: same-size account substitution rejected");
+            Assert(Rejects((accounts.Select((account, index) => index == 0 ? null : account).ToArray(), task.Task), roster),
+                $"{count}: null account rejected");
+            if (count > 1)
+                Assert(Rejects((Enumerable.Repeat(accounts[0], count).ToArray(), task.Task), roster), $"{count}: duplicate accounts rejected");
+            Assert(Rejects((accounts, (Task<int>)null), roster), $"{count}: null cached task rejected");
+            Assert(Rejects(task.Task, roster) && Rejects(Tuple.Create(accounts, task.Task), roster)
+                && Rejects((accounts, Task.FromResult("wrong profile type")), roster), $"{count}: legacy task or malformed tuple rejected by new layout");
+            Assert(Rejects(entry, Roster(0)) && Rejects(entry, null), $"{count}: absent canonical authority rejected");
+            var replacement = new TaskCompletionSource<int>();
+            var replacementRead = PitFireTeamExplicitRosterCache.Read<int>((accounts, replacement.Task), roster);
+            Assert(!ReferenceEquals(read.Profiles, replacementRead.Profiles), $"{count}: same roster cannot conceal task replacement");
+            task.SetResult(42);
+            Assert(ReferenceEquals(PitFireTeamExplicitRosterCache.Read<int>(entry, roster).Profiles, task.Task),
+                $"{count}: completed prefetch preserves exact task identity");
+            accounts[0] = "changed-after-prefetch";
+            Assert(Rejects(entry, roster), $"{count}: in-place account array mutation is revalidated before task adoption");
+        }
+        Assert(Rejects(null, Roster(1)), "missing explicit-roster cache entry rejected");
     }
 
     private static void CheckRetirementBarrier()
@@ -1296,7 +1337,7 @@ internal static class Program
         RequireAll(
             profilePreparation,
             "if (_adoptedRespawnBoss && _profileTask != null)",
-            "ReferenceEquals(cache[_currentLeader.ProfileId], _profileTask)",
+            "ReferenceEquals(ReadCachedProfileTaskUnsafe(cache, _currentLeader.ProfileId), _profileTask)",
             "ReferenceEquals(task, _profileTask)",
             "PFT did not return the exact auto-prefetched replacement task");
 

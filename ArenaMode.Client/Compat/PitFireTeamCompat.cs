@@ -1792,6 +1792,13 @@ internal static partial class PitFireTeamCompat
         // PFT 1.1.0+ also resets CompanionRaidPreparation between the follower and
         // ally task clears (BotsControllerStopPatch order).
         bool pft11 = assembly.GetName().Version >= new System.Version(1, 1, 0, 0);
+        bool explicitRoster = assembly.GetName().Version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion;
+        if (explicitRoster)
+        {
+            AddSetStaticProperty(steps, assembly, "pitTeam.Patches.BotsControllerPatch", "LocalRaidLeader", null);
+            AddStaticCall(steps, assembly, "pitTeam.Patches.BotsControllerPatch", "ClearPrefetchedFollowerProfiles");
+            AddStaticCall(steps, assembly, "pitTeam.Modules.CompanionRaidPreparation", "Reset");
+        }
         foreach (var field in new[]
                  {
                      "spawnedPlayers",
@@ -1800,6 +1807,8 @@ internal static partial class PitFireTeamCompat
                      "bossCreationTask",
                  })
         {
+            if (explicitRoster && (field == "spawnedPlayers" || field == "followerCreationTask"))
+                continue;
             AddClearStaticField(steps, assembly, "pitTeam.Patches.BotsControllerPatch", field);
             if (pft11 && field == "followerCreationTask")
                 AddStaticCall(steps, assembly, "pitTeam.Modules.CompanionRaidPreparation", "Reset");

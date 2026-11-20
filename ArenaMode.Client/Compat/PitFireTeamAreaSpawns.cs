@@ -20,6 +20,7 @@ internal static class PitFireTeamAreaSpawns
 {
     private static MethodInfo _spawnFollowers, _getBoss;
     private static FieldInfo _controller, _bossPlayer, _bossController, _spawnedPlayers;
+    private static PropertyInfo _localRaidLeader;
     private static Pending _pending;
     private static readonly List<Arrival> Arrivals = new();
     // LocalGame creates a new BotCreatorClient for each raid. Canonical PFT
@@ -59,10 +60,12 @@ internal static class PitFireTeamAreaSpawns
     {
         var patch = assembly.GetType("pitTeam.Patches.BotsControllerPatch", true);
         var boss = assembly.GetType("pitTeam.Components.pitAIBossPlayer", true);
+        bool explicitRoster = assembly.GetName().Version >= ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion;
         _spawnFollowers = assembly.GetType("pitTeam.Patches.BotsEventsControllerSpawnPatch", true)
-            .GetMethod("SpawnFollowers", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
+            .GetMethod("SpawnFollowers", (explicitRoster ? BindingFlags.NonPublic : BindingFlags.Public) | BindingFlags.Static, null, Type.EmptyTypes, null);
         _controller = patch.GetField("Controller", BindingFlags.Public | BindingFlags.Static);
-        _spawnedPlayers = patch.GetField("spawnedPlayers", BindingFlags.Public | BindingFlags.Static);
+        _spawnedPlayers = explicitRoster ? null : patch.GetField("spawnedPlayers", BindingFlags.Public | BindingFlags.Static);
+        _localRaidLeader = explicitRoster ? patch.GetProperty("LocalRaidLeader", BindingFlags.NonPublic | BindingFlags.Static) : null;
         _bossPlayer = boss.GetField("realPlayer", BindingFlags.Public | BindingFlags.Instance);
         _bossController = boss.GetField("_botsController", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         _getBoss = assembly.GetType("pitTeam.Modules.BossPlayers", true).GetMethod("GetBoss",
@@ -70,12 +73,15 @@ internal static class PitFireTeamAreaSpawns
         var activate = patch.GetMethod("ActivateBotAtPosition", BindingFlags.NonPublic | BindingFlags.Instance,
             null, new[] { typeof(BotCreatorClient), typeof(Profile), typeof(PositionNote), typeof(BotZone),
                 typeof(bool), typeof(Func<BotOwner, BotZone, BotsGroup>), typeof(Action<BotOwner>), typeof(CancellationToken) }, null);
-        if (_spawnFollowers?.ReturnType != typeof(void) || _controller?.FieldType != typeof(BotsController)
-            || _spawnedPlayers == null || _bossPlayer?.FieldType != typeof(Player)
+        if (_spawnFollowers?.ReturnType != (explicitRoster ? typeof(Task) : typeof(void)) || _controller?.FieldType != typeof(BotsController)
+            || (explicitRoster ? _localRaidLeader?.PropertyType != boss || _localRaidLeader.GetGetMethod(true)?.IsAssembly != true
+                || _spawnFollowers.IsPrivate != true : _spawnedPlayers == null)
+            || _bossPlayer?.FieldType != typeof(Player)
             || _bossController?.FieldType != typeof(BotsController) || _getBoss?.ReturnType != boss
             || activate?.ReturnType != typeof(Task<bool>))
             throw new InvalidOperationException("PFT bounded companion spawn contract changed.");
-        harmony.Patch(_spawnFollowers, prefix: new HarmonyMethod(typeof(PitFireTeamAreaSpawns), nameof(DeferPrefix)));
+        harmony.Patch(_spawnFollowers, prefix: new HarmonyMethod(typeof(PitFireTeamAreaSpawns),
+            explicitRoster ? nameof(DeferAsyncPrefix) : nameof(DeferPrefix)));
         // The existing round lifecycle prefix validates/remaps runtime profiles
         // first. A rejected native call must not acquire a second placement lease.
         harmony.Patch(activate,
@@ -108,8 +114,7 @@ internal static class PitFireTeamAreaSpawns
         var boss = _getBoss.Invoke(null, new object[] { world.MainPlayer.ProfileId });
         if (boss == null || !ReferenceEquals(_bossPlayer.GetValue(boss), world.MainPlayer)
             || !ReferenceEquals(_bossController.GetValue(boss), controller)
-            || _spawnedPlayers.GetValue(null) is not IList spawned || spawned.Count != 1
-            || !ReferenceEquals(spawned[0], boss)) return null;
+            || !IsExactLocalLeader(boss)) return null;
         return new Pending { Game = game, World = world, Leader = world.MainPlayer,
             Controller = controller, Boss = boss, Epoch = ArenaSession.ArmEpoch };
     }
@@ -121,6 +126,19 @@ internal static class PitFireTeamAreaSpawns
             && ReferenceEquals(raid.Game, now.Game) && ReferenceEquals(raid.World, now.World)
             && ReferenceEquals(raid.Leader, now.Leader) && ReferenceEquals(raid.Controller, now.Controller)
             && ReferenceEquals(raid.Boss, now.Boss);
+    }
+
+    private static bool IsExactLocalLeader(object boss)
+        => _localRaidLeader != null ? ReferenceEquals(_localRaidLeader.GetValue(null), boss)
+            : _spawnedPlayers.GetValue(null) is IList spawned && spawned.Count == 1 && ReferenceEquals(spawned[0], boss);
+
+    private static bool DeferAsyncPrefix(ref Task __result)
+    {
+        if (DeferPrefix()) return true;
+        // The native caller immediately observes the returned Task. Skipping
+        // its async method must never leave that caller with a null task.
+        __result = Task.CompletedTask;
+        return false;
     }
 
     private static bool DeferPrefix()
@@ -144,9 +162,17 @@ internal static class PitFireTeamAreaSpawns
         _pending = null; // native squadSpawned remains the duplicate-dispatch owner
         try
         {
-            _spawnFollowers.Invoke(null, null);
+            if (_spawnFollowers.Invoke(null, null) is Task dispatch)
+                ObserveDispatch(dispatch);
             Plugin.ModLogger.LogDebug("Arena bounded PFT: released native companion dispatch after area readiness.");
         }
+        catch (Exception ex)
+        { Plugin.ModLogger.LogError("Arena bounded PFT dispatch failed: " + ex.GetBaseException().Message); }
+    }
+
+    private static async void ObserveDispatch(Task dispatch)
+    {
+        try { await dispatch; }
         catch (Exception ex)
         { Plugin.ModLogger.LogError("Arena bounded PFT dispatch failed: " + ex.GetBaseException().Message); }
     }

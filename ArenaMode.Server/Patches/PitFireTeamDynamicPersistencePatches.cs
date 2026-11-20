@@ -42,7 +42,9 @@ public static partial class PitFireTeamDynamicPersistencePatches
         int SessionParameterIndex = 0,
         bool IsPublic = true,
         Version? RequiredFromAssemblyVersion = null,
-        Version? RemovedFromAssemblyVersion = null);
+        Version? RemovedFromAssemblyVersion = null,
+        bool IsStatic = false,
+        string[]? ParameterTypeNames = null);
 
     /// <summary>Automatic raid-result work affecting profile, mail, queues, or PFT caches.</summary>
     private static readonly MethodContract[] RaidPersistenceContracts =
@@ -50,7 +52,19 @@ public static partial class PitFireTeamDynamicPersistencePatches
         new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleReturnItems", "System.Void"),
         new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleTeamEscaped", "System.Void"),
         new("pitTeam.Server.Services.FriendlyPostRaidService", "RecordKillMessage", "System.Void"),
-        new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.Void"),
+        new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.Void",
+            RemovedFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion),
+        new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.String[]",
+            RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion),
+        // 1.1.2 splits companion spawn inventory from the older protected-ID
+        // cache. Neither registration nor raid-start clearing may escape the
+        // same exact-session protection applied to that cache.
+        new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterCompanionSpawnProtection", "System.Void",
+            IsPublic: false, RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion,
+            ParameterTypeNames: ["SPTarkov.Server.Core.Models.Common.MongoId", "System.String", "System.Collections.Generic.HashSet`1[System.String]"]),
+        new("pitTeam.Server.Services.FriendlyPostRaidService", "BeginCompanionRaid", "System.Void",
+            IsPublic: false, RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.ExplicitRosterVersion,
+            IsStatic: true, ParameterTypeNames: ["SPTarkov.Server.Core.Models.Common.MongoId", "System.String"]),
         new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItemIds", "System.Void"),
         new("pitTeam.Server.Services.FriendlyPostRaidService", "RemoveProtectedTeammateItemsFromExtractedProfile", "System.Void"),
         new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleEndLocalRaidKillMessages", "System.Void"),
@@ -552,10 +566,12 @@ public static partial class PitFireTeamDynamicPersistencePatches
         Type? type = assembly.GetType(contract.TypeName, throwOnError: false, ignoreCase: false);
         BindingFlags visibility = contract.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic;
         MethodInfo[] candidates = type?
-            .GetMethods(BindingFlags.Instance | visibility | BindingFlags.DeclaredOnly)
+            .GetMethods((contract.IsStatic ? BindingFlags.Static : BindingFlags.Instance) | visibility | BindingFlags.DeclaredOnly)
             .Where(method =>
                 string.Equals(method.Name, contract.MethodName, StringComparison.Ordinal)
                 && ReturnTypeMatches(method.ReturnType, contract.ReturnTypeName)
+                && (contract.ParameterTypeNames == null || method.GetParameters().Select(parameter => parameter.ParameterType.ToString())
+                    .SequenceEqual(contract.ParameterTypeNames, StringComparer.Ordinal))
                 && method.GetParameters().Length > contract.SessionParameterIndex
                 && method.GetParameters()[contract.SessionParameterIndex].ParameterType == typeof(MongoId))
             .ToArray() ?? [];
@@ -811,6 +827,14 @@ public static partial class PitFireTeamDynamicPersistencePatches
         if (resultType.IsValueType)
         {
             il.Emit(OpCodes.Initobj, resultType);
+        }
+        else if (resultType.IsArray && resultType.GetArrayRank() == 1)
+        {
+            // PFT 1.1.2 serializes accepted dropped-companion IDs. Suppressed
+            // work accepts none; null is not a successful empty collection.
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Newarr, resultType.GetElementType()!);
+            il.Emit(OpCodes.Stind_Ref);
         }
         else
         {
