@@ -1187,13 +1187,31 @@ public class PitFireTeamPersistenceGuardTests
         Assembly pitFireTeam = Assembly.LoadFrom(assemblyPath);
         Assert.True(ArenaMode.Shared.PitFireTeamVersions.IsSupportedAssemblyVersion(pitFireTeam.GetName().Version));
         bool modernDatabase = pitFireTeam.GetName().Version >= new Version(1, 0, 0, 0);
+        bool explicitRoster = pitFireTeam.GetName().Version >= PitFireTeamVersions.ExplicitRosterVersion;
 
         InstalledMethodContract[] raidContracts =
         [
             new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleReturnItems", "System.Void"),
             new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleTeamEscaped", "System.Void"),
             new("pitTeam.Server.Services.FriendlyPostRaidService", "RecordKillMessage", "System.Void"),
-            new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.Void"),
+            // Mirrors production's layout threshold (PitFireTeamVersions.ExplicitRosterVersion):
+            // from 1.1.2 the registration returns the accepted dropped-companion ids, and the
+            // companion spawn protection has its own registration and its own raid-start clearing.
+            .. explicitRoster
+                ? new InstalledMethodContract[]
+                {
+                    new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.String[]"),
+                    new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterCompanionSpawnProtection", "System.Void",
+                        IsPublic: false,
+                        ParameterTypeNames: ["SPTarkov.Server.Core.Models.Common.MongoId", "System.String", "System.Collections.Generic.HashSet`1[System.String]"]),
+                    new("pitTeam.Server.Services.FriendlyPostRaidService", "BeginCompanionRaid", "System.Void",
+                        IsPublic: false, IsStatic: true,
+                        ParameterTypeNames: ["SPTarkov.Server.Core.Models.Common.MongoId", "System.String"]),
+                }
+                : new InstalledMethodContract[]
+                {
+                    new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItems", "System.Void"),
+                },
             new("pitTeam.Server.Services.FriendlyPostRaidService", "RegisterProtectedRaidItemIds", "System.Void"),
             new("pitTeam.Server.Services.FriendlyPostRaidService", "RemoveProtectedTeammateItemsFromExtractedProfile", "System.Void"),
             new("pitTeam.Server.Services.FriendlyPostRaidService", "HandleEndLocalRaidKillMessages", "System.Void"),
@@ -1353,13 +1371,14 @@ public class PitFireTeamPersistenceGuardTests
         allTargets = allTargets.Distinct().ToArray();
         // 0.10.3 adds exactly one management transaction (teammate proficiency).
         int expectedManagement = pitFireTeam.GetName().Version >= PitFireTeamVersions.MinimumForwardVersion ? 20 : 19;
-        Assert.Equal(11, raidTargets.Length);
+        // 1.1.2 adds two raid transactions (companion spawn protection and its raid-start clearing).
+        Assert.Equal(explicitRoster ? 13 : 11, raidTargets.Length);
         Assert.Equal(expectedManagement, managementTargets.Length);
         Assert.Equal(3, recoveryTargets.Length);
         Assert.Equal(30, operationBoundaryTargets.Length);
         // Two targets are shared between groups, so the distinct total is the
         // other four groups plus the management count for the installed build.
-        Assert.Equal(44 + expectedManagement - (modernDatabase ? 1 : 0), allTargets.Length);
+        Assert.Equal(44 + expectedManagement - (modernDatabase ? 1 : 0) + (explicitRoster ? 2 : 0), allTargets.Length);
 
         PitFireTeamDynamicPersistencePatches.TryEnable();
 
@@ -1554,7 +1573,9 @@ public class PitFireTeamPersistenceGuardTests
         string MethodName,
         string ReturnTypeName,
         int SessionParameterIndex = 0,
-        bool IsPublic = true);
+        bool IsPublic = true,
+        bool IsStatic = false,
+        string[]? ParameterTypeNames = null);
 
     private static MethodInfo ResolveInstalledContract(
         Assembly assembly,
@@ -1568,10 +1589,13 @@ public class PitFireTeamPersistenceGuardTests
             ? BindingFlags.Public
             : BindingFlags.NonPublic;
         MethodInfo[] candidates = type
-            .GetMethods(BindingFlags.Instance | visibility | BindingFlags.DeclaredOnly)
+            .GetMethods((contract.IsStatic ? BindingFlags.Static : BindingFlags.Instance) | visibility | BindingFlags.DeclaredOnly)
             .Where(method =>
                 string.Equals(method.Name, contract.MethodName, StringComparison.Ordinal)
                 && InstalledReturnTypeMatches(method.ReturnType, contract.ReturnTypeName)
+                && (contract.ParameterTypeNames == null || method.GetParameters()
+                    .Select(parameter => parameter.ParameterType.ToString())
+                    .SequenceEqual(contract.ParameterTypeNames, StringComparer.Ordinal))
                 && method.GetParameters().Length > contract.SessionParameterIndex
                 && method.GetParameters()[contract.SessionParameterIndex].ParameterType
                     == typeof(MongoId))
