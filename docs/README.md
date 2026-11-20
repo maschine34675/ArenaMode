@@ -33,6 +33,8 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Specifications and contracts
 
+- [PitFireTeam 1.1.2, TarkovaCola 3.0.1 and VisualAssist 1.2.0 compatibility](reviews/MOD-REFRESH-20261120.md)
+
 - [Private training-course artwork, loading and main-menu parallax](reviews/SESSION-MENU-ART-20261109.md)
 - [Private and ordinary startup checks on GPU-1 and GPU-2](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md)
 

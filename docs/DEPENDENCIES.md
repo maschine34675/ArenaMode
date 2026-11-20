@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-Updated 2026-11-14 for ArenaMode 0.6.0. This overview describes the reviewed ArenaMode source revision,
+Updated 2026-11-20 for development after ArenaMode 0.6.0. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -38,8 +38,9 @@ optional standalone body fixes; ArenaMode's mod exclusions for ORBIT, Questing B
 are unchanged. Redeploy's `docs/CHANGELOG.md` and its
 `docs/compatibility/` records state which checks ran in the game and which only offline.
 Core 1.0.21 to 1.0.23 were never released on their own: ArenaMode 0.6.0 and Redeploy 1.1.3
-are the first releases that carry them. A client built from this source refuses Core 1.0.23
-or older, so ArenaMode 0.6.0 and Redeploy 1.1.3 ship together. Core keeps its independent
+are the first releases that carry them. Development after 0.6.0 requires Core **1.0.25**
+for VisualAssist's grenade-preview body handoff; the released 0.6.0 package still requires
+1.0.24. Core keeps its independent
 version line; the public Redeploy client/server release is 1.1.3. Keep one copy of the
 shared library.
 The server metadata declares no additional mandatory third-party mods.
@@ -70,14 +71,14 @@ Bot Callsigns Reloaded,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
 and Better BepInEx, plus Use Items Anywhere,
 ImpactCue (client and Web Config server), Enemy Markers, Fast Grenade Throw 2.0.0,
-Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, plus the diagnostic tools
+Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0, PiP Disabler 2.1.0 and VisualAssist 1.2.0, plus the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
 ArenaMapPort 0.6.0 (0.5.0 and 0.4.0 still work without Chop Shop and the added Bot spawn rows, 0.4.0 also
 without Iceberg and the crowd reactions, 0.3.0 also without score monitors, each with a version advisory),
-PitFireTeam 1.1.1 and Redeploy 1.1.3 on both sides. User policy is preserved.
+PitFireTeam 1.1.2, Tarkova Cola 3.0.1 and Redeploy 1.1.3 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -107,7 +108,7 @@ and is therefore also admitted if installed, but was not part of those checks. S
 |---|---|---|
 | SAIN | 4.5.1 or newer; reviewed at that version, newer versions warn | Personalities, search speed, movement and lifecycle safeguards; no SAIN extraction in an Arena raid. Native AI is used without SAIN. |
 | BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Domination (required: without BigBrain and the companion only Domination is locked), directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
-| PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0, 1.1.1 (1.1.x binds three more members, gated on the installed version: the served spawn-settings preflight, the six-argument kill report, two stop resets; see [the 1.1.1 review](reviews/PITFIRETEAM-111-20261107.md)). Current whitelist review: 1.1.1. Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator and Chop Shop remain excluded from PFT Zombies (space, not rows); Chop Shop is also excluded from PFT Tactical (the yard centre has too few distant bot rows for a PitFireTeam squad; solo Tactical is admitted there). PFT Tactical is admitted on Equator and Iceberg since 2026-11-13 (ArenaMapPort's rows of 2026-11-12; see [the follow-up](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)). |
+| PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0, 1.1.1 and 1.1.2 (1.1.x binds three more members, gated on the installed version: the served spawn-settings preflight, the six-argument kill report, two stop resets; see [the 1.1.1 review](reviews/PITFIRETEAM-111-20261107.md)). Current whitelist review: 1.1.2; its explicit-roster, async dispatch and companion-cache changes are covered by [the 1.1.2 review](reviews/MOD-REFRESH-20261120.md). Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator and Chop Shop remain excluded from PFT Zombies (space, not rows); Chop Shop is also excluded from PFT Tactical (the yard centre has too few distant bot rows for a PitFireTeam squad; solo Tactical is admitted there). PFT Tactical is admitted on Equator and Iceberg since 2026-11-13 (ArenaMapPort's rows of 2026-11-12; see [the follow-up](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)). |
 | APBS | Metadata version 2.4.1 or newer; reviewed at that version, newer versions warn | Bot equipment/progression. Without APBS, native SPT generation is used; a missing/old version or invalid API contract leaves APBS's own level selection in place with a warning. |
 | ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer; Iceberg requires ArenaMapPort 0.5.0 or newer (0.4.0 has none, and Arena detects Iceberg by the live location, never by version); **ArenaMode 0.6.0 is made for ArenaMapPort 0.6.0, which is required for Chop Shop and for the added Bot spawn rows** | Bay5, Equator, Air Pit, Bowl, Iceberg and Chop Shop (`arena_autoservice`, which ships with ArenaMapPort 0.6.0; Arena detects it by the live location, never by version). Tactical on Equator and Iceberg and solo Tactical on Chop Shop, Chop Shop's default of eight participants and the 6 of 6 Domination pickups assume the 16/16/17 Bot rows of ArenaMapPort 0.6.0 (Chop Shop 16, Equator 16, Iceberg 17; Bay5 has 16, Air Pit 20 and Bowl 21): ArenaMapPort 0.5.0 has 10 on Equator and 9 on Iceberg, where the old refusals were argued, and Arena does not check the row count or the ArenaMapPort version at run time (the offline pins in `MapModeAdmissionChecks` read the installed data and fail on the older data with the SPAWN-ROWS-DATA message). **With ArenaMapPort 0.5.0:** Chop Shop is not offered. Equator, Bay5, Air Pit, Bowl and Iceberg keep working in Gun Game, Deathmatch, Team Deathmatch, Domination and Zombies as they did with ArenaMode 0.5.0. Tactical on Equator and Iceberg is offered, but 0.5.0 has too few distant spawn points there (Equator 10, Iceberg 9; Equator: 4 distant from the atrium, grid minimum 3; Iceberg: 4 distant in the centre): a solo squad can arrive short or late (a partial squad after 45 s), and in a PitFireTeam Tactical match a leader who survives in the middle gets four rows instead of five and the match ends as no contest. The whitelist records ArenaMapPort 0.6.0, and a differing installed version produces an advisory note only (never a refusal), so install ArenaMapPort 0.6.0. Independent Team DM and Domination use their team starts; Bowl supports 2v2–10v10 from its east/west boxes, Iceberg 2v2–10v10 from its USEC west / BEAR east pockets. Chop Shop supports 2v2-10v10 from its USEC east / BEAR west pockets. Chop Shop excludes PFT Tactical and PFT Zombies, Equator PFT Zombies. Other Bowl, Iceberg and Chop Shop modes use generic spawns. Without a build that ships Iceberg or Chop Shop, Arena simply does not offer that map. Not required for ordinary SPT maps. |
 | ArenaMapPort SpectatorCrowd contract (client) | Contract version 1, optional, bound by exact signatures in two independent parts: the murmur intensity (`SetExcitement`, published in 0.4.0) and the crowd reactions (`ReactionKinds`, `ClaimReactions`, `React`, `ReleaseReactions`; phase A of ArenaMapPort's plan, published in ArenaMapPort 0.5.0 on 2026-11-07 together with the roar layer; kinds 1 to 5, mask 62, Lull 6 and PurifiedTeam 7 reserved; owners up to 64 characters, ArenaMode's 40 pass unchanged) | F12 Audio `CrowdReactions`. With 0.4.0 only the murmur follows the match; 0.5.0 plays the reactions and the roar. Absent members are an older ArenaMapPort (silent), changed members switch their part off with one warning. A refused `React` (also MapPort's withdrawal of the kinds mid-match through its developer key `Spectators/Reactions`) ends the reactions for that match; the next match claims anew. Nothing in a match depends on it. ArenaMapPort's roar layer (`e3e4290`, 2026-11-07: each played reaction roars one of Arena's Cheer beds for Approve, Start and Finish or an Angry bed for Disapprove from every stand, the other kind cut in 0.5 s; contract unchanged) is why ArenaMode sends one mood per flush and holds a 1 s mood window. Offline check against the installed client: the real-surface stage of `tools/CrowdReactionChecks`, which fails without a phase A client and reports whether the roar layer is present. See [the contract](reviews/CROWD-REACTIONS-20261102.md). |
@@ -202,14 +203,22 @@ native observations below predate that migration; see
   See [four-candidate review and verification boundaries](reports/2026-10/FOUR-MOD-COMPAT-20261025.md)
   for both additions and the initial exclusions. The subsequent Fast Grenade
   Throw and Tarkova Cola integrations are described below.
-- **Tarkova Cola 2.2.1+:** both client and server are admitted with checked
+- **Tarkova Cola 2.2.1+, reviewed 3.0.1:** both client and server are admitted with checked
   lifecycle, storage and achievement-catalog contracts. Arena protects ordinary
   progression and restores foreign state after play. Completed Zombie matches
   can transfer research and earned achievements through the existing protected
   reward path; bottle/grenade refunds are excluded. Other Arena modes retain
   temporary perks without exporting Cola progression. Install Tarkova Cola
   separately; its optional VisitAPI storyline is outside this integration.
-  See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md).
+  Both reviewed research catalogs retain their own reward semantics. Arena blocks
+  the new companion-perk and machine-editor writes; repeated body creation does
+  not duplicate machines. APEX progression is not exported.
+  See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md) and the
+  [3.0.1 review](reviews/MOD-REFRESH-20261120.md).
+- **VisualAssist 1.2.0:** optional grenade preview, with physical-body and owned
+  renderer cleanup in Core 1.0.25. Arena refreshes valid ordinary-throw predictions
+  and leaves quick throws or invalid predictions to native physics. Ordinary raids
+  retain the mod's own throw behavior. [Scope](reviews/MOD-REFRESH-20261120.md).
 - **ABPS/BotPlacementSystem:** spawn-pump/bot-limit behavior is covered; Arena's
   population ownership prevents additional third-party ambient spawns.
 - **Increase Look Direction 1.3.0:** no body-replacement adapter is needed. When

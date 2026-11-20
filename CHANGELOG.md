@@ -10,6 +10,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Review PitFireTeam 1.1.2 and TarkovaCola 3.0.1 for the default whitelist, with
+  updated squad lifecycle/persistence contracts and protected new Cola state.
+  Older supported PFT versions and Cola reward receipts retain their behavior.
+- Add VisualAssist 1.2.0 to the default whitelist. Core 1.0.25 preserves its
+  preview through body replacement; Arena guards quick throws from stale
+  prediction data. [Integration details](docs/reviews/MOD-REFRESH-20261120.md).
+
 - Entering Arena, returning from it and the end of an Arena raid now work when a mod such as Pack A Punch changes what is written to your profile file (before, Arena declined the start with "save-not-confirmed" or could not finish the raid end). Arena checks the save against what the game's own write produced; without such a mod nothing changes.
 - Arena's startup profile writes no longer make Pack A Punch set its data aside as a ".stale" file at the next start. If your Pack A Punch data went missing after Arena 0.6.0, see the recovery steps in docs/PACK-A-PUNCH-COMPAT.md.
 - One broken weapon preset (for example from a weapon mod that changed the weapon's slots) no longer makes Arena fall back to the short built-in Gun Game ladder: that preset is left out of the pool, the server log says which one and why (one Warning per start), and the other weapons stay. Thanks to Sankese, whose ArenaMode-WeaponPoolFix add-on supplied the failure analysis and the idea.

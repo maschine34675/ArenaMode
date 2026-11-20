@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "mods": [
-    { "guid": "com.tarkovacola.server", "name": "Tarkova Cola", "kind": "mod", "clientVersion": "2.2.1", "serverVersion": "2.2.1" },
+    { "guid": "com.tarkovacola.server", "name": "Tarkova Cola", "kind": "mod", "clientVersion": "3.0.1", "serverVersion": "3.0.1" },
     { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "clientVersion": "4.5.1", "serverVersion": "4.5.1" },
     { "guid": "com.acidphantasm.progressivebotsystem", "name": "APBS", "kind": "mod", "serverVersion": "2.4.1" },
     { "guid": "com.acidphantasm.botplacementsystem", "name": "ABPS", "kind": "mod", "clientVersion": "2.1.0", "serverVersion": "2.1.0" },
@@ -19,7 +19,7 @@
     { "guid": "com.maschine.StashFilter", "name": "StashFilter", "kind": "mod", "clientVersion": "1.0.0" },
     { "guid": "com.maschine.SurroundAudio", "name": "SurroundAudio", "kind": "mod", "clientVersion": "1.0.0" },
     { "guid": "com.maschine.UnloadAllMagazines", "name": "UnloadAllMagazines", "kind": "mod", "clientVersion": "2.2.1" },
-    { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod", "clientVersion": "1.1.1", "serverVersion": "1.1.1" },
+    { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod", "clientVersion": "1.1.2", "serverVersion": "1.1.2" },
     { "guid": "com.mpstark.dynamicmaps", "name": "DynamicMaps", "kind": "mod", "clientVersion": "1.2.1", "serverVersion": "1.2.1" },
     { "guid": "com.tyfon.uifixes", "name": "UIFixes", "kind": "mod", "clientVersion": "6.0.3", "serverVersion": "6.0.3" },
     { "guid": "com.wtt.commonlib", "name": "WTT-CommonLib", "kind": "mod", "clientVersion": "3.0.6", "serverVersion": "3.0.6" },
@@ -47,6 +47,7 @@
     { "guid": "com.Amanda.Graphics", "name": "Amand's Graphics", "kind": "mod", "clientVersion": "1.8.0" },
     { "guid": "flir.enemymarkers", "name": "Enemy Markers", "kind": "mod", "clientVersion": "1.4.0" },
     { "guid": "com.vultify.fastgrenadethrow", "name": "Fast Grenade Throw", "kind": "mod", "clientVersion": "2.0.0" },
+    { "guid": "com.janky.visualassist", "name": "VisualAssist", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.manimal.quickcancel", "name": "Manimal's Quick Cancel", "kind": "mod", "clientVersion": "2.0.0" },
     { "guid": "com.deadwolf.hudbreakout", "name": "HUD Breakout", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.fiodor.pipdisabler", "name": "Picture in Picture Disabler", "kind": "mod", "clientVersion": "2.1.0" },

@@ -357,7 +357,8 @@ public sealed class ArenaWhitelistTests
         // Written out by hand, not derived from the file, so that a lost entry shows.
         var expected = new (string Id, string Name, ArenaWhitelistTier Tier, string? Client, string? Server)[]
         {
-            ("com.tarkovacola.server", "Tarkova Cola", ArenaWhitelistTier.Mod, "2.2.1", "2.2.1"),
+            ("com.tarkovacola.server", "Tarkova Cola", ArenaWhitelistTier.Mod, "3.0.1", "3.0.1"),
+            ("com.janky.visualassist", "VisualAssist", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("me.sol.sain", "SAIN", ArenaWhitelistTier.Mod, "4.5.1", "4.5.1"),
             ("com.acidphantasm.progressivebotsystem", "APBS", ArenaWhitelistTier.Mod, null, "2.4.1"),
             ("com.acidphantasm.botplacementsystem", "ABPS", ArenaWhitelistTier.Mod, "2.1.0", "2.1.0"),
@@ -375,7 +376,7 @@ public sealed class ArenaWhitelistTests
             ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
-            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.1.1", "1.1.1"),
+            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.1.2", "1.1.2"),
             ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.2.1", "1.2.1"),
             ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
             ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.6", "3.0.6"),
@@ -445,10 +446,11 @@ public sealed class ArenaWhitelistTests
     }
 
     [Theory]
-    [InlineData("1.1.1", false)]
-    [InlineData("1.1.1.0", false)]
-    [InlineData("1.1.1.1", true)]
-    [InlineData("1.1.2", true)]
+    [InlineData("1.1.2", false)]
+    [InlineData("1.1.2.0", false)]
+    [InlineData("1.1.2.1", true)]
+    [InlineData("1.1.3", true)]
+    [InlineData("1.1.1", true)]
     [InlineData("1.0.0", true)]
     public void ShippedPftReviewControlsBothNotesAndVersionFilteredSessions(string version, bool differs)
     {
