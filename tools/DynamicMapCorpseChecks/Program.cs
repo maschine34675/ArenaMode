@@ -226,7 +226,7 @@ foreach (var boundary in new[] { "ordinary", "reset", "world" })
 
 // These are synthetic future metadata values using the known API fixture,
 // not evidence that an actual unreleased DynamicMaps build is compatible.
-foreach (var version in new[] { new Version(1, 2, 1), new Version(1, 2, 1, 0) })
+foreach (var version in new[] { new Version(1, 2, 1), new Version(1, 2, 1, 0), new Version(1, 3, 0), new Version(1, 3, 0, 0) })
 {
     Setup(false);
     Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = version;
@@ -237,7 +237,7 @@ foreach (var version in new[] { new Version(1, 2, 1), new Version(1, 2, 1, 0) })
 
 {
     var (_, corpse, dead, retained) = Setup(false);
-    Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(1, 3, 0);
+    Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(1, 4, 0);
     DynamicMapsCorpseMarkers.Enable();
     Check(Harmony.Hooks.Count == 1, "future version enables exact marker hook");
     Check(Plugin.ModLogger.Warnings.Count == 1 && Plugin.ModLogger.Warnings[0].Contains("newer than the tested"),
@@ -267,7 +267,7 @@ foreach (var version in new[] { new Version(1, 2, 1), new Version(1, 2, 1, 0) })
         "future-version notice and runtime failure have independent warning budgets");
 }
 
-foreach (var version in new[] { new Version(1, 2, 2), new Version(2, 0, 0), new Version(1, 2, 1, 1) })
+foreach (var version in new[] { new Version(1, 3, 1), new Version(2, 0, 0), new Version(1, 3, 0, 1) })
 {
     var (_, corpse, dead, retained) = Setup(false);
     Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = version;

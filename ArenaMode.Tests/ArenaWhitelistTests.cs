@@ -377,7 +377,7 @@ public sealed class ArenaWhitelistTests
             ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
             ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.1.2", "1.1.2"),
-            ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.2.1", "1.2.1"),
+            ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.3.0", "1.3.0"),
             ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
             ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.6", "3.0.6"),
             ("com.wtt.contentbackport", "WTT-ContentBackport", ArenaWhitelistTier.Mod, "2.0.5", "2.0.5"),

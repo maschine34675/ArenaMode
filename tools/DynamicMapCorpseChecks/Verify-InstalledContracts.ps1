@@ -14,7 +14,7 @@ function Assert-Calls($Type, [string]$Method, [string[]]$Calls) {
 try {
     $identity = @($mapAssembly.MainModule.GetType('DynamicMaps.Plugin').CustomAttributes | Where-Object { $_.AttributeType.FullName -eq 'BepInEx.BepInPlugin' })
     if ($identity.Count -ne 1 -or $identity[0].ConstructorArguments[0].Value -ne 'com.mpstark.dynamicmaps' -or
-        $identity[0].ConstructorArguments[2].Value -ne '1.2.1') { throw 'DynamicMaps installed identity/version differs from reviewed 1.2.1.' }
+        $identity[0].ConstructorArguments[2].Value -notin @('1.2.1', '1.3.0')) { throw 'DynamicMaps installed identity/version differs from reviewed 1.2.1 / 1.3.0.' }
     $provider = $mapAssembly.MainModule.GetType('DynamicMaps.DynamicMarkers.CorpseMarkerProvider')
     $markers = @($provider.Fields | Where-Object Name -eq '_corpseMarkers')
     if ($markers.Count -ne 1 -or !$markers[0].IsPrivate -or $markers[0].IsStatic -or
@@ -42,7 +42,7 @@ try {
     foreach ($forbidden in @('EFT.GameWorld::', 'EFT.Player::', 'EFT.Interactive.Corpse::', 'EFT.BotSpawner::')) {
         if ($removeBodies.Contains($forbidden)) { throw "Reviewed UI removal now reaches native lifetime owner: $forbidden" }
     }
-    Write-Output ('DynamicMaps 1.2.1 SHA256 ' + (Get-FileHash -LiteralPath $mapPath -Algorithm SHA256).Hash)
+    Write-Output ('DynamicMaps ' + $identity[0].ConstructorArguments[2].Value + ' SHA256 ' + (Get-FileHash -LiteralPath $mapPath -Algorithm SHA256).Hash)
     Write-Output 'ARENA_DYNAMICMAP_CORPSE_INSTALLED_CONTRACTS_PASSED'
 }
 finally { $mapAssembly.Dispose(); $gameAssembly.Dispose() }

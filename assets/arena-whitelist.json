@@ -20,7 +20,7 @@
     { "guid": "com.maschine.SurroundAudio", "name": "SurroundAudio", "kind": "mod", "clientVersion": "1.0.0" },
     { "guid": "com.maschine.UnloadAllMagazines", "name": "UnloadAllMagazines", "kind": "mod", "clientVersion": "2.2.1" },
     { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod", "clientVersion": "1.1.2", "serverVersion": "1.1.2" },
-    { "guid": "com.mpstark.dynamicmaps", "name": "DynamicMaps", "kind": "mod", "clientVersion": "1.2.1", "serverVersion": "1.2.1" },
+    { "guid": "com.mpstark.dynamicmaps", "name": "DynamicMaps", "kind": "mod", "clientVersion": "1.3.0", "serverVersion": "1.3.0" },
     { "guid": "com.tyfon.uifixes", "name": "UIFixes", "kind": "mod", "clientVersion": "6.0.3", "serverVersion": "6.0.3" },
     { "guid": "com.wtt.commonlib", "name": "WTT-CommonLib", "kind": "mod", "clientVersion": "3.0.6", "serverVersion": "3.0.6" },
     { "guid": "com.wtt.contentbackport", "name": "WTT-ContentBackport", "kind": "mod", "clientVersion": "2.0.5", "serverVersion": "2.0.5" },

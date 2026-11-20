@@ -13,6 +13,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Restore Domination objective markers with DynamicMaps 1.3.0 while retaining
   1.2.1 support. Changing DynamicMaps' marker pack keeps the objective diamonds.
   [Integration details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md).
+- Review DynamicMaps 1.3.0 in the default client/server whitelist and corpse-marker advisory. The 1.2.1 minimum remains unchanged. Core 1.0.26 refreshes active map quest/key subscriptions after respawn.
 
 - Review PitFireTeam 1.1.2 and TarkovaCola 3.0.1 for the default whitelist, with
   updated squad lifecycle/persistence contracts and protected new Cola state.

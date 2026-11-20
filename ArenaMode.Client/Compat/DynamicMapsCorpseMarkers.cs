@@ -22,7 +22,8 @@ namespace ArenaMode.Compat;
 internal static class DynamicMapsCorpseMarkers
 {
     internal const string PluginGuid = "com.mpstark.dynamicmaps";
-    private static readonly Version ReviewedVersion = new Version(1, 2, 1, 0);
+    private static readonly Version MinimumVersion = new Version(1, 2, 1, 0);
+    private static readonly Version ReviewedVersion = new Version(1, 3, 0, 0);
     private static readonly Harmony Patches = new Harmony(Plugin.PluginGuid + ".DynamicMapsCorpseMarkers");
     private static readonly List<WeakReference<object>> Providers = new List<WeakReference<object>>();
     private static FieldInfo _playerCorpse, _markers;
@@ -38,7 +39,7 @@ internal static class DynamicMapsCorpseMarkers
         try
         {
             var version = NormalizeVersion(info.Metadata?.Version);
-            if (version == null || version < ReviewedVersion)
+            if (version == null || version < MinimumVersion)
                 throw new NotSupportedException("DynamicMaps 1.2.1 or newer is required");
             var assembly = info.Instance.GetType().Assembly;
             var provider = assembly.GetType("DynamicMaps.DynamicMarkers.CorpseMarkerProvider", true);
@@ -80,7 +81,7 @@ internal static class DynamicMapsCorpseMarkers
         if (_reportedNewerVersion) return;
         _reportedNewerVersion = true;
         Plugin.ModLogger.LogWarning("Arena DynamicMaps " + version
-            + " is newer than the tested 1.2.1; corpse marker cleanup is enabled with its API checks, but compatibility is unverified.");
+            + " is newer than the tested 1.3.0; corpse marker cleanup is enabled with its API checks, but compatibility is unverified.");
     }
 
     private static MethodInfo ExactMethod(Type type, string name)

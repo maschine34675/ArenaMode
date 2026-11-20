@@ -12,6 +12,22 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-20: DynamicMaps 1.3.0 and Core 1.0.26.** The default
+  client/server whitelist and corpse-marker advisory review DynamicMaps 1.3.0;
+  the adapter still admits 1.2.1. Shared quest/inventory rebinding and Advanced
+  Movement outgoing-body cleanup live in Redeploy.Core. Standalone and Arena
+  native tests on GPU-2 passed, including active/hidden maps, Slide/Dive swaps
+  retaining the old living body, real deaths, own-Scav, key events and shooting.
+  Advanced Movement is not added to the default Arena whitelist by this work.
+  The final candidate preserves the separately developed Domination fix by
+  fast-forwarding `fix/dynamicmaps-130` through `026d4c44`; that branch/worktree
+  remain. Exact accepted Core `1.0.26+5283c7c` and Arena `0.6.0+026d4c44`
+  binaries are now installed on the VM and both GPU hosts (all ten hashes match).
+  Temporary runtime files are removed, settings restored, synchronization active;
+  both games/servers are stopped. Final Arena verification: 64 steps passed;
+  xunit 4,422 passed, three known skips. No release or push.
+  [Build identities, limits and verification](reports/2026-11/DYNAMICMAPS-BODY-COMPAT-20261120.md).
+
 - **Development, 2026-11-20: branch collection and push.** At the user's request ("merge every branch and
   worktree that still exists except the Fika one, delete them, push `master`"):
   `fix/reward-history-foreign-entry` was merged (`bc1d912f`); every other branch was already contained in
