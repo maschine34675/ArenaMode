@@ -286,12 +286,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (298)
+## Reports (299)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Pack A Punch on GPU-2, 2026-11-20: Forge issue 3 reproduced on 0.6.0; with the fix the private entry and return and the normal-session match end pass with PaP loaded; on a copied install a startup profile write sets PaP's side file aside without the carry and keeps it with the carry](reports/2026-11/PAP-NATIVE-20261120.md)
 - [Native acceptance on GPU-2, 2026-11-20: solo Tactical opening rounds at both steps (levels, buy-screen line, the purge per role and its cost), Zombie special waves and the menu row, the supply of infected profiles (from wave 5 on the default-size waves fill at 0.6 to 0.7 per second; the build before shows the same fall), Gun Game with the generated weapon pool, the smoke run of the ported performance collector](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)
 - [Zombie alive ceiling on GPU-2, 2026-11-19: 32, 36, 40, 48 and 56 alive on Factory, controls on Labs and Air Pit, two passes with the protocols, the thresholds, the integrity notes, the weapon confound and the decision (the ceiling stays 32, the growth is not built)](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)
 - [Rewards paused at start: a copied install with an unsettled session of another folder starts with rewards paused and settles at the next start; a private Arena round trip on GPU-2 with the new helper](reports/2026-11/FAIL-SOFT-NATIVE-20261119.md)
