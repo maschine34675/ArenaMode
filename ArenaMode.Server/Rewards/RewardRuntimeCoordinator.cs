@@ -230,7 +230,7 @@ internal sealed class RewardRuntimeCoordinator
         if (_pause is { } paused) return RewardUnavailableText.ForStartupReason(paused.Reason);
         string? profile = _startupFailures.GetValueOrDefault(id);
         if (profile?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true) return RewardUnavailableText.RecordsMismatch;
-        if (profile is not null) return RewardUnavailableText.Temporary;
+        if (profile is not null) return RewardUnavailableText.ForProfileReason(profile);
         if (_storageUnusable) return RewardUnavailableText.StorageUnusable;
         return _startupUnavailable is { } startup ? RewardUnavailableText.ForStartupReason(startup) : RewardUnavailableText.Temporary;
     }

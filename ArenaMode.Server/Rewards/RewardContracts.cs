@@ -99,7 +99,19 @@ internal interface IRewardSettlementLease : IDisposable
     bool TryWriteProfile(string expectedRevision, string json);
 }
 
-internal sealed class RewardDataException(string reason) : Exception(reason);
+internal class RewardDataException(string reason) : Exception(reason);
+
+/// <summary>
+/// A file in a profile's reward history (<c>decisions/</c>) that Arena did not write: a sync tool's conflict copy, a
+/// backup, a copy someone made. It is neither read as history nor skipped as noise (a conflict copy is the trace of a
+/// second writer on the same reward folder); the start names it, so the player can move it out. <see cref="Entry"/> is
+/// the bare file name, never a path.
+/// </summary>
+internal sealed class RewardHistoryForeignEntryException(string entry) : RewardDataException(RewardHistoryForeignEntryException.Code)
+{
+    internal const string Code = "result-history-foreign-entry";
+    internal string Entry { get; } = entry;
+}
 
 internal static class RewardIdentity
 {

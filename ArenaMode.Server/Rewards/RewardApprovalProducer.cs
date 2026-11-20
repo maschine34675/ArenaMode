@@ -202,6 +202,12 @@ internal static class RewardApprovalProducer
         foreach (var path in paths)
         {
             RewardStartupFiles.RequireLocalPath(root, path);
+            // Arena writes only "<run id>.json" here. Anything else (a sync tool's conflict copy, a backup, a copy) is
+            // named, not read and not skipped: on 2026-11-13 two hosts sharing one synchronized install both settled
+            // the same receipts, and the losing side's copies stopped every later reward as invalid-result-history.
+            var name = Path.GetFileName(path);
+            if (!name.EndsWith(".json", StringComparison.Ordinal) || !RewardIdentity.IsGuid(name[..^5]) || Directory.Exists(path))
+                throw new RewardHistoryForeignEntryException(name);
             var value = RewardStartupFiles.Read<RewardApprovalDecision>(path, RewardStartupFiles.MaxApprovalBytes);
             if (value.Schema != 1 || value.Binding != binding || !RewardIdentity.IsGuid(value.RunId)
                 || Path.GetFileName(path) != value.RunId + ".json" || value.Sequence is < 1 or > 4096

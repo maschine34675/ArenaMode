@@ -163,7 +163,10 @@ internal static class RewardRuntimeInbox
                 RewardStartupFiles.RequireCleanProfile(profile, enrollment.Binding);
                 _ = RewardProfileDocument.ReadLedger(profile, enrollment.Binding, new());
                 var decisionsPath = Path.Combine(directory, "decisions");
-                var count = RewardRuntimeFiles.Exists(root, decisionsPath) ? Directory.EnumerateFiles(decisionsPath, "*.json").Count() : 0;
+                // The next sequence follows the validated history, never a file count: a foreign *.json there would
+                // shift it, and an allocation is written once and never rebased.
+                var count = RewardRuntimeFiles.Exists(root, decisionsPath)
+                    ? RewardApprovalProducer.ReadDecisions(root, enrollment.Binding, decisionsPath).Count : 0;
                 if (count >= 4096) throw new RewardDataException("reward-receipt-capacity");
                 var revision = RewardIdentity.Hash(profile);
                 // The source restoration is already authenticated above. This
