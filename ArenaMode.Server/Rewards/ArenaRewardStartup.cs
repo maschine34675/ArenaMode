@@ -111,6 +111,8 @@ public sealed class ArenaRewardStartup(
                 LogAuthority(outcome);
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
                     logger.Info($"[ArenaMode] Arena reward: {outcome.Roubles} RUB delivered by mail; {outcome.Experience} XP credited.");
+                else if (outcome.Result.Status == RewardSettlementStatus.Quarantined && RewardUnavailableText.IsHistoryReason(outcome.Result.Reason))
+                    logger.Warning(ComposeHistoryWarning(outcome));
                 else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected)
                     logger.Debug($"[ArenaMode] Reward skipped for profile {outcome.ProfileId} ({outcome.Result.Reason}).");
                 else
@@ -250,6 +252,31 @@ public sealed class ArenaRewardStartup(
         "offline-inbox-conflict" => "a stored reward receipt differs from the session's",
         _ => "see the code"
     };
+
+    // A history outcome recurs at every start until someone acts, so it is a Warning, not the Debug "Reward skipped" line
+    // (a test profile stayed stopped for a week on 2026-11-13 with only that Debug line). Nothing is repaired here: the
+    // history is the anti-replay record, so a foreign file is named, and a damaged one is left for a person to look at.
+    internal static string ComposeHistoryWarning(RewardStartupOutcome outcome)
+    {
+        string id = outcome.ProfileId, code = outcome.Result.Reason;
+        string folder = $"user/arena-rewards/{id}/decisions";
+        string tail = " Until then nothing is paid for this profile; its finished Arena matches stay queued and are settled at the first start after that."
+            + $" Code: {code}.";
+        if (code == RewardHistoryForeignEntryException.Code)
+            return $"[ArenaMode] Rewards are off for profile {id}: its reward history ({folder}) holds '{Printable(outcome.Detail)}', a file Arena did not write"
+                + " (a sync tool's conflict copy, a backup or a copy). Stop SPT and move that file out of the SPT folder."
+                + " If this SPT folder is synchronized between PCs, run the server on one PC at a time." + tail;
+        return $"[ArenaMode] Rewards are off for profile {id}: a decision in its reward history ({folder}) is damaged or out of sequence."
+            + " Arena does not repair it; keep the folder as it is and report the code." + tail;
+    }
+
+    // A file name from the reward folder, for one log line: no control characters (Linux allows a line break in a name), at most 120 characters.
+    private static string Printable(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var text = new string(name.Select(c => char.IsControl(c) ? '?' : c).ToArray());
+        return text.Length <= 120 ? text : text[..120] + "...";
+    }
 
     internal static string ComposeRefusalWarning(string reason, IEnumerable<StartupCallback> callbacks)
         => $"[ArenaMode] Startup rewards unavailable ({DescribeRefusal(reason, callbacks)}); profiles will load normally."

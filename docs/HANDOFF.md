@@ -523,6 +523,17 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Reward history conflict copies, 2026-11-20 (branch `fix/reward-history-foreign-entry`, based on master `e57c85fe`, local
+commits only, not pushed, not deployed; [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)):** the GPU-2 test
+profile paid nothing from 2026-11-13 because GPU-1 and GPU-2 both settled its queue while Syncthing had not reconciled them,
+and Syncthing's conflict copies in `decisions/` failed `ReadDecisions` (`invalid-result-history`, Debug only). Recovered on
+2026-11-20 with the owner's approval: 24 copies moved to `D:\SPT41-Backups\reward-history-recovery-20261120`, one start on
+GPU-2 settled 100 queued receipts and paid 24 of them once (433,000 RUB, 43,300 XP); a second start was `AlreadyPaid`. The
+fix names a foreign history entry (`result-history-foreign-entry`), takes the next sequence from the validated history, logs
+one Warning per start for the history codes and stops calling them "temporarily unavailable". Trap:
+[TRAPS.md](TRAPS.md#rewards-on-the-synchronized-gpu-hosts-2026-11-20). Not examined: the seven conflict copies of the profile
+file itself (2026-11-13 to 2026-11-15).
+
 **Pack A Punch save pipeline, 2026-11-20 (branch `feature/pap-save-pipeline-v070`, based on master `0d596980`, local commits
 only, not pushed; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
 raid end failing in a normal session) is fixed in two parts. Part 1: `ProfileWriteProof` captures SPT's profile write
@@ -533,7 +544,8 @@ keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. O
 `tools/OfflineStartupChecks/Mutations.ps1`. Native on GPU-2 with PaP 2.2.1 and Hideout Uncensored 1.3.0
 ([report](reports/2026-11/PAP-NATIVE-20261120.md)): issue 3 reproduced on 0.6.0, entry/return and the normal-session match
 end pass with the fix; Part 2 shown on a copied install against a control build without the carry. Not native: a payout at
-the return (the GPU-2 test profile reports `invalid-result-history` at every start since at least 2026-11-17, before PaP).
+the return (the GPU-2 test profile reported `invalid-result-history` at every start from 2026-11-13, before PaP; cleared
+2026-11-20, see the next entry).
 [User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
 retired (the owner's decision; the Forge reply is the owner's too). The Forge description line about Pack A Punch belongs to the 0.7.0 description (it is not in the 0.6.0 draft in `FORGE-DESCRIPTION.md`, since 0.6.0 does not contain the fix).
 

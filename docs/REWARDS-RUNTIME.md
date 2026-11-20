@@ -210,6 +210,32 @@ A soft failure pauses rewards for the whole installation for this start:
 | `reward-admission-<code>` | the reward step failed before it took ownership | restart SPT; report the code |
 | `reward-cola-recovery-incomplete` | a Tarkova Cola payment may exist while its companion write is unfinished | keep the reward journal and the Cola files as they are; see the Warning and [Tarkova Cola compatibility](TARKOVA-COLA-COMPAT.md) |
 
+### Foreign files in the reward history
+
+`user/arena-rewards/<profile>/decisions/` holds one `<runId>.json` per settled match; it is
+the anti-replay record and is never repaired or pruned. An entry Arena did not write there (a
+sync tool's conflict copy such as `<runId>.sync-conflict-<date>-<time>-<device>.json`, a cloud
+client's "conflicted copy", a backup, `desktop.ini`, a directory) stops that profile's rewards
+with `result-history-foreign-entry`. It is not read as history and not skipped as noise: a
+conflict copy is the trace of a second writer on the same reward folder, and its sequence may
+collide with the kept one. A canonical name whose content is damaged or out of sequence stays
+`invalid-result-history` / `result-history-gap-or-duplicate`.
+
+- Each start logs one Warning for the profile: for a foreign file, its name and the remedy;
+  for a damaged decision, that Arena does not repair it. The card says "Rewards are off for this
+  profile: a file in its reward history needs attention. See the server log." (not
+  "temporarily": a restart changes nothing).
+- Nothing is paid for that profile and no allocation is written; Arena stays usable and its
+  finished matches stay queued in `inbox/`.
+- **Remedy for a foreign file:** stop SPT, move the named file out of the SPT folder (not into
+  another reward folder), start SPT. The queued matches are settled at that start, in order. If
+  the copy came from a synchronized SPT folder, run the server on one PC at a time: two servers
+  on one synchronized install settle the same receipts twice, and the sync tool keeps only one
+  side. A conflict copy outside `decisions/` (`allocations/`, `imported/`, `candidate.json`)
+  belongs to the same event: move those out together, each only when its canonical sibling
+  exists. Recovery of 2026-11-20 with backup, hash checks and payout:
+  [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md).
+
 ### Lost reward authority
 
 **Offline-session history after a move.** Every lease in `user/arena-rewards/offline-sessions`

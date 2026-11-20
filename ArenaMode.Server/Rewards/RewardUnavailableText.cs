@@ -14,6 +14,7 @@ internal static class RewardUnavailableText
 {
     internal const string Temporary = "Rewards are temporarily unavailable.";
     internal const string RecordsMismatch = "Rewards are off for this profile: its reward records no longer match it or this installation. See the server log.";
+    internal const string HistoryAttention = "Rewards are off for this profile: a file in its reward history needs attention. See the server log.";
     internal const string StorageUnusable = "Rewards are off: this installation's reward folder cannot be used. See the server log.";
     internal const string EarlierCallback = "Rewards are off: another mod's startup step runs before Arena's reward step. See the server log.";
     internal const string UnreviewedStart = "Rewards are off: this SPT server version or start is not reviewed for rewards. See the server log.";
@@ -52,6 +53,16 @@ internal static class RewardUnavailableText
         "reward-storage-linked" or "reward-storage-access-denied" or "reward-storage-unavailable" => StorageUnusable,
         _ => Temporary,
     };
+
+    /// <summary>
+    /// A profile's own start outcome whose cause sits in its reward history and stays until someone acts on it: a foreign
+    /// file there, or a decision that is damaged or out of sequence. A restart changes nothing, so the card does not say
+    /// "temporarily" and the start logs a Warning (ArenaRewardStartup.ComposeHistoryWarning).
+    /// </summary>
+    internal static bool IsHistoryReason(string reason) => reason is RewardHistoryForeignEntryException.Code
+        or "invalid-result-history" or "result-history-gap-or-duplicate";
+
+    internal static string ForProfileReason(string reason) => IsHistoryReason(reason) ? HistoryAttention : Temporary;
 
     // The entry's read of the profile's reward records (RewardOfflineSession.ReadEntryAuthority): a sharing violation
     // or denied access after the stop may be a scanner holding the file for a moment (MayClearOnItsOwn), so that is no

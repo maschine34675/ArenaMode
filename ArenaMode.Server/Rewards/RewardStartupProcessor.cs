@@ -2,8 +2,9 @@ using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
 
+// Detail: what the start's Warning names besides the code, today only the foreign file of a reward history.
 internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementResult Result, long Roubles, long Experience = 0,
-    RewardAuthorityNotice? Authority = null);
+    RewardAuthorityNotice? Authority = null, string? Detail = null);
 
 internal static class RewardStartupProcessor
 {
@@ -153,6 +154,7 @@ internal static class RewardStartupProcessor
         catch (IOException) { return Outcome(RewardSettlementStatus.Deferred, "startup-storage-unavailable"); }
         catch (UnauthorizedAccessException) { return Outcome(RewardSettlementStatus.Deferred, "startup-storage-unavailable"); }
         catch (JsonException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
+        catch (RewardHistoryForeignEntryException e) { return Outcome(RewardSettlementStatus.Quarantined, e.Message) with { Detail = e.Entry }; }
         catch (RewardDataException e) { return Outcome(RewardSettlementStatus.Quarantined, e.Message); }
         catch (InvalidOperationException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
         catch (FormatException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
