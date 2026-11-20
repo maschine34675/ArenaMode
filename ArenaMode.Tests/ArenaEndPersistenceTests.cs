@@ -181,6 +181,84 @@ public sealed class ArenaEndPersistenceTests
         Assert.True(fixture.Snapshots.HasPendingPersistence(Id));
     }
 
+    // A profile-write mod (Pack A Punch) strips data on its way to disk. The raid-end readback accepts that only
+    // through the captured pipeline: RAM equals the write's input and the write's output equals the disk text.
+    [Fact]
+    public async Task NativeEndCompletesUnderTransformingPipeline()
+    {
+        using var scope = new PipelineScope();
+        var fixture = new ProfileFixture();
+        Assert.True(fixture.Snapshots.RestoreSnapshot(Id));
+        var warnings = new List<string>();
+        await ArenaProtectedRaidEndService.SaveAndConfirmRestoredAsync(fixture.Snapshots, Id,
+            _ => { fixture.Disk = scope.TransformingWrite(Id, fixture.Serialize()); return Task.CompletedTask; },
+            p => fixture.SerializeProfile(p), () => fixture.Disk, CancellationToken.None, warnings.Add, "raid-end");
+        Assert.NotEqual(fixture.Expected, fixture.Disk);
+        Assert.Empty(warnings);
+        // The same restored profile without a captured pipeline is the strict failure it always was.
+        ProfileWriteProof.ResetForTests();
+        await Assert.ThrowsAsync<RewardDataException>(() => ArenaProtectedRaidEndService.SaveAndConfirmRestoredAsync(
+            fixture.Snapshots, Id, _ => Task.CompletedTask, p => fixture.SerializeProfile(p), () => fixture.Disk,
+            CancellationToken.None, warnings.Add, "raid-end"));
+        Assert.Single(warnings);
+        Assert.Contains("operation=raid-end;", warnings[0]);
+        Assert.Contains("pipeline=unavailable;", warnings[0]);
+    }
+
+    [Fact]
+    public async Task TransformedOutputThatIsNotOnDiskStaysRefusedAndIsDiagnosed()
+    {
+        using var scope = new PipelineScope();
+        var fixture = new ProfileFixture();
+        Assert.True(fixture.Snapshots.RestoreSnapshot(Id));
+        var warnings = new List<string>();
+        var failure = await Assert.ThrowsAsync<RewardDataException>(() => ArenaProtectedRaidEndService.SaveAndConfirmRestoredAsync(
+            fixture.Snapshots, Id,
+            _ =>
+            {
+                scope.TransformingWrite(Id, fixture.Serialize());
+                fixture.Disk = fixture.Serialize().Replace("12345", "99999"); // someone else wrote the file
+                return Task.CompletedTask;
+            }, p => fixture.SerializeProfile(p), () => fixture.Disk, CancellationToken.None, warnings.Add, "failed-start"));
+        Assert.Equal("return-profile-save-not-confirmed", failure.Message);
+        Assert.True(fixture.Snapshots.HasPendingPersistence(Id));
+        string warning = Assert.Single(warnings);
+        Assert.Contains("operation=failed-start;", warning);
+        Assert.Contains("pipeline=transformed;", warning);
+        Assert.Contains("outputDiskMatch=false;", warning);
+    }
+
+    // The ProfileWriteProof state for one test: a temp profiles directory and the hook marked ready, with the
+    // same Begin/Seal/End sequence the capture patches run around SPT's profile write.
+    private sealed class PipelineScope : IDisposable
+    {
+        private readonly string _dir = Path.Combine(Path.GetTempPath(), "ArenaMode.EndPersistence.Tests", Guid.NewGuid().ToString("N"));
+        internal PipelineScope()
+        {
+            Directory.CreateDirectory(_dir);
+            ProfileWriteProof.ResetForTests();
+            ProfileWriteProof.ProfilesDirectory = () => _dir;
+            ProfileWriteProof.MarkReady(true);
+        }
+        // Removes one inventory item (a subtractive edit away from every protected subtree) and returns the output.
+        internal string TransformingWrite(MongoId id, string input)
+        {
+            var node = System.Text.Json.Nodes.JsonNode.Parse(input)!;
+            ((System.Text.Json.Nodes.JsonArray)node["characters"]!["pmc"]!["Inventory"]!["items"]!).RemoveAt(0);
+            string output = node.ToJsonString();
+            string path = Path.Combine(_dir, id + ".json");
+            ProfileWriteProof.Begin(path, input);
+            ProfileWriteProof.Seal(path, System.Text.Encoding.UTF8.GetBytes(output));
+            ProfileWriteProof.End();
+            return output;
+        }
+        public void Dispose()
+        {
+            ProfileWriteProof.ResetForTests();
+            try { Directory.Delete(_dir, recursive: true); } catch { }
+        }
+    }
+
     private sealed class ProfileFixture
     {
         private readonly JsonUtil _json = new([new SptJsonConverterRegistrator()]);
@@ -209,6 +287,7 @@ public sealed class ArenaEndPersistenceTests
             Assert.True(Snapshots.TakeSnapshot(Id));
         }
         internal string Serialize() => _json.Serialize(_saves.GetProfile(Id))!;
+        internal string SerializeProfile(SptProfile profile) => _json.Serialize(profile)!;
         internal void Tick(bool resources = true)
         {
             var hideout = _saves.GetProfile(Id).CharacterData!.PmcData!.Hideout!;
