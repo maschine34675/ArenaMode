@@ -29,11 +29,16 @@ internal static class ArenaRewardLifecycle
     }
 
     internal static void Persisted(MongoId sessionId, string nativeEndIdentity, bool recoveryOnly = false)
+        => Persisted(sessionId, nativeEndIdentity, recoveryOnly, RewardRuntimeCoordinator.Current,
+            RewardStartupFiles.Canonical(Directory.GetCurrentDirectory()));
+
+    // Tests: the coordinator and the runtime root this observes.
+    internal static void Persisted(MongoId sessionId, string nativeEndIdentity, bool recoveryOnly,
+        RewardRuntimeCoordinator coordinator, string root)
     {
         try
         {
-            if (!RewardRuntimeCoordinator.Current.HasCapture(sessionId.ToString())) return;
-            string root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
+            if (!coordinator.HasCapture(sessionId.ToString())) return;
             string id = sessionId.ToString();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-id");
             string path = Path.Combine(root, "user", "profiles", id + ".json");
@@ -45,8 +50,13 @@ internal static class ArenaRewardLifecycle
             if (file.Length > 64 * 1024 * 1024) throw new RewardDataException("profile-too-large");
             using var reader = new StreamReader(file);
             string persisted = reader.ReadToEnd();
-            if (recoveryOnly) RewardRuntimeCoordinator.Current.RecoverPersisted(id, persisted);
-            else RewardRuntimeCoordinator.Current.FinalizePersisted(id, nativeEndIdentity, persisted);
+            // Under a profile-write mod the file is not the restored profile but that profile run through the
+            // mod's write. Resolve validates the captured input/output pair on this very disk text; without a
+            // transformation it is Strict and the checkpoint compares the disk exactly as before.
+            var proof = ProfileWriteProof.Resolve(id, persisted);
+            string? pipelineInput = proof.Mode == ProfileProofMode.Pipeline ? proof.Comparable : null;
+            if (recoveryOnly) coordinator.RecoverPersisted(id, persisted, pipelineInput);
+            else coordinator.FinalizePersisted(id, nativeEndIdentity, persisted, pipelineInput);
         }
         catch (Exception e)
         {

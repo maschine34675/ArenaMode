@@ -210,7 +210,7 @@ public sealed class RewardStartupAdmissionTests : IDisposable
         Directory.CreateSymbolicLink(Alias, Real);
         var logger = DispatchProxy.Create<ISptLogger<ArenaRewardStartup>, ArenaServerInstanceTests.RecordingLogger>();
         var log = (ArenaServerInstanceTests.RecordingLogger)(object)logger;
-        var startup = new ArenaRewardStartup(null!, [], logger);
+        var startup = new ArenaRewardStartup(null!, [], [], logger);
         var previous = Environment.CurrentDirectory;
         try
         {

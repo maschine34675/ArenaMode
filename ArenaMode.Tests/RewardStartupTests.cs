@@ -419,7 +419,7 @@ public sealed class RewardStartupTests
         Assert.Null(RewardUnavailableText.ForLeaseReason(reason));
     }
 
-    private sealed class StartupFixture : IDisposable
+    internal sealed class StartupFixture : IDisposable
     {
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "ArenaMode.StartupRewards.Tests", Guid.NewGuid().ToString("N"));
         internal RewardBinding Binding { get; } = new("11111111111111111111111111111111", "0123456789abcdef01234567", "22222222222222222222222222222222");

@@ -506,6 +506,20 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Pack A Punch save pipeline, 2026-11-20 (branch `feature/pap-save-pipeline-v070`, based on master `0d596980`, local commits
+only, not pushed; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
+raid end failing in a normal session) is fixed in two parts. Part 1: `ProfileWriteProof` captures SPT's profile write
+(`ArenaProfileWriteCapturePatches`) and the readback at entry/return, raid end/failed start and the checkpoint accepts RAM
+equal to the write's input and the write's output equal to the file, with a subtractive projection and unchanged protected
+subtrees; startup recovery stays strict; all profile comparisons use `ExactSameProfile`. Part 2: `PapSideFileGuard`
+keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. Offline: xunit and ten mutants in
+`tools/OfflineStartupChecks/Mutations.ps1`. Native on GPU-2 with PaP 2.2.1 and Hideout Uncensored 1.3.0
+([report](reports/2026-11/PAP-NATIVE-20261120.md)): issue 3 reproduced on 0.6.0, entry/return and the normal-session match
+end pass with the fix; Part 2 shown on a copied install against a control build without the carry. Not native: a payout at
+the return (the GPU-2 test profile reports `invalid-result-history` at every start since at least 2026-11-17, before PaP).
+[User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
+retired (the owner's decision; the Forge reply is the owner's too). The Forge description line about Pack A Punch belongs to the 0.7.0 description (it is not in the 0.6.0 draft in `FORGE-DESCRIPTION.md`, since 0.6.0 does not contain the fix).
+
 **Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
 commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
 decision of 2026-11-19 reverses "Tactical gets no build-up" of the difficulty model: the enemy squad of solo Tactical
@@ -544,13 +558,14 @@ minute) was wrong and is superseded, see the next entry.** The numbers stand; wa
 reached that night.
 
 **Zombie profile pool, 2026-11-20 (branch `feature/zombie-profile-supply`, on `master` `0d596980`, the merge of
-`feature/opening-rounds-zombie-waves`; local, not pushed; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
+`feature/opening-rounds-zombie-waves`; merged into local `master` on 2026-11-20 together with
+`feature/zombie-audio-container-guard`, not pushed; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
 profile pool held every reloaded profile twice", [native report](reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md)):**
 the game's backup loader stored every reloaded bot profile twice, and the second copy is rejected when drawn, which
 Arena logged as `Arena burst spawn: no profiles for <role> — request dropped.` The branch holds the correction
 (`ArenaBackupProfileDuplicatePatch`, commits `62de29e4` and `fb8bea72`: in the exact active Arena raid, in every mode,
 it leaves out of a reload what the pool already holds; fails open). Checked natively on SPT-GPU-2 on 2026-11-20, not
-merged, not pushed: at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
+pushed: at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
 request in run A; two more raids (all shooters in waves of 60, and the reviewed build up to wave 5) dropped none
 either. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT-GPU-2 (hashes in the
 report); the branch builds are not installed. EFT and the SPT server on the host are not running. Open: (1) the
@@ -560,7 +575,7 @@ Combined` that appeared in five bursts in one raid: a game bug, the audio pool h
 the double return seen natively the same day
 ([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); the Arena-only guard
 `ArenaAudioContainerReturnGuardPatch` is built on the branch `feature/zombie-audio-container-guard` (stacked on this
-one, local, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)) and accepted natively on
+one, merged into local `master` with it, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)) and accepted natively on
 SPT-GPU-2 the same afternoon (13 returns skipped, no duplicate, no exception; release `0.6.0+72273354` installed again);
 (3) a played match
 with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline

@@ -40,6 +40,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
 - [Tarkova Cola: protected gameplay, Zombie progression and achievement payout](TARKOVA-COLA-COMPAT.md)
+- [Pack A Punch: profile writes that transform the save, side file, log tokens and recovery](PACK-A-PUNCH-COMPAT.md)
 
 ### Rewards
 
@@ -63,7 +64,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (212)
+## Feature reviews and contracts (218)
 
 Sorted by file name.
 
@@ -228,6 +229,7 @@ Sorted by file name.
 - [Bot Shield and Double Damage indicators](reviews/POWERUP-INDICATORS-20261018.md) *(superseded)*
 - [Preset description regression: VestTemplate null plate array in KitSummary](reviews/PRESET-DESCRIPTION-REVIEW.md)
 - [Bot-profile batches built under a per-frame budget (ProfileBuildBudgetMs)](reviews/PROFILE-BUILD-BUDGET-20261017.md)
+- [Profile write pipeline: save proof under transforming mods (Pack A Punch) and side-file carry](reviews/PROFILE-WRITE-PIPELINE-20261120.md)
 - [Arena raid-end persistence: update hold through restore, save and verify](reviews/RAID-END-PERSISTENCE-20261027.md)
 - [Raid info panels: weapon, status and grenade HUD absorbed into ArenaMode](reviews/RAID-INFO-PANELS-REVIEW.md)
 - [Arena visibility, notifications and Labyrinth access (markers, banner, popups)](reviews/RAID-POLISH-REVIEW.md)
@@ -285,12 +287,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (303)
+## Reports (301)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Pack A Punch on GPU-2, 2026-11-20: Forge issue 3 reproduced on 0.6.0; with the fix the private entry and return and the normal-session match end pass with PaP loaded; on a copied install a startup profile write sets PaP's side file aside without the carry and keeps it with the carry](reports/2026-11/PAP-NATIVE-20261120.md)
 - [Native acceptance on GPU-2, 2026-11-20: solo Tactical opening rounds at both steps (levels, buy-screen line, the purge per role and its cost), Zombie special waves and the menu row, the supply of infected profiles (from wave 5 on the default-size waves fill at 0.6 to 0.7 per second; the build before shows the same fall; superseded on the same day: the cause was every reloaded profile being pooled twice, see the profile pool report), Gun Game with the generated weapon pool, the smoke run of the ported performance collector](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)
 - [Zombie alive ceiling on GPU-2, 2026-11-19: 32, 36, 40, 48 and 56 alive on Factory, controls on Labs and Air Pit, two passes with the protocols, the thresholds, the integrity notes, the weapon confound and the decision (the ceiling stays 32, the growth is not built)](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)
 - [Zombie profile pool on GPU-2, 2026-11-20: the game's backup loader stored every reloaded bot profile twice and the second copy could not be drawn; the correction in the exact Arena raid, run A with waves 1 to 12 at 2.2 to 2.8 infected per second and no dropped request next to the night before (0.6 to 0.7 from wave 5), runs B and C, loader and request counts, frame times, what was not shown, and the audio exception seen in run A](reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md)
