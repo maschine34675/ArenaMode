@@ -254,4 +254,29 @@ public sealed class TarkovaColaClientPolicyTests
         Assert.True(lease.Rebind(world, body, next));
         Assert.Throws<OverflowException>(() => lease.ObserveExperience(world, next, 1));
     }
+    [Fact]
+    public void DelayedRerollRequiresItsExactLivingBodyOutsideReplacementAndFinalization()
+    {
+        var lease = NewLease(); var world = new object(); var body = new object(); var next = new object();
+        lease.BindWorld(world, body, "profile", "factory4_day", 7);
+        lease.Confirm(world, "profile", "zombie", 7);
+        bool Allows(TarkovaColaClientLease current, object w, object main, bool replacing = false, bool alive = true)
+            => TarkovaColaPolicy.AllowsDelayedAction(current, lease, w, main, body, replacing, alive);
+        Assert.True(Allows(lease, world, body));
+        Assert.False(Allows(NewLease(), world, body));
+        Assert.False(Allows(lease, new object(), body));
+        Assert.False(Allows(lease, world, next));
+        Assert.False(Allows(lease, world, body, replacing: true));
+        Assert.False(Allows(lease, world, body, alive: false));
+        Assert.False(Allows(null!, world, body));
+        lease.BeforeReplacementStatistics(world, body, next, 0);
+        lease.Rebind(world, body, next);
+        Assert.False(Allows(lease, world, next));
+        Assert.True(TarkovaColaPolicy.AllowsDelayedAction(lease, lease, world, next, next, false, true));
+        lease.BeginFinal(world);
+        Assert.False(TarkovaColaPolicy.AllowsDelayedAction(lease, lease, world, next, next, false, true));
+        lease.Release();
+        Assert.False(TarkovaColaPolicy.AllowsDelayedAction(lease, lease, world, next, next, false, true));
+    }
+
 }

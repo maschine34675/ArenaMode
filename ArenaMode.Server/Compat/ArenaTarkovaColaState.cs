@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using HarmonyLib;
 using ArenaMode.Server.Rewards;
+using ArenaMode.Shared;
 using SPTarkov.Server.Core.Models.Common;
 
 namespace ArenaMode.Server.Compat;
@@ -16,6 +17,7 @@ internal static class ArenaTarkovaColaState
     private static readonly Dictionary<string, Scope> Scopes = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, string> Pending = new(StringComparer.Ordinal);
     private static string? _folder;
+    private static string _catalog = RewardColaCatalog.Version;
     private static string? _failure;
     private static bool _installed;
     internal static string? Failure => _failure;
@@ -32,8 +34,10 @@ internal static class ArenaTarkovaColaState
             var assembly = assemblies[0];
             _folder = ResolveFolder(Directory.GetCurrentDirectory());
             var metadata = Activator.CreateInstance(assembly.GetType("TarkovaCola.Server.ModMetadata", true)!)!;
-            if (Version.Parse(metadata.GetType().GetProperty("Version")!.GetValue(metadata)!.ToString()!) > new Version(2, 2, 1))
-                ArenaContext.Logger?.Warning("[ArenaMode] Tarkova Cola is newer than reviewed 2.2.1; required protection contracts and existing achievement rewards match.");
+            var version = Version.Parse(metadata.GetType().GetProperty("Version")!.GetValue(metadata)!.ToString()!);
+            _catalog = version >= new Version(3, 0, 1) ? RewardColaCatalog.CurrentVersion : RewardColaCatalog.Version;
+            if (version > new Version(TarkovaColaPolicy.ReviewedVersion))
+                ArenaContext.Logger?.Warning("[ArenaMode] Tarkova Cola is newer than reviewed " + TarkovaColaPolicy.ReviewedVersion + "; required protection contracts and existing achievement rewards match.");
             var store = assembly.GetType("TarkovaCola.Server.PerkStore", true)!;
             var achievements = assembly.GetType("TarkovaCola.Server.AchievementStore", true)!;
             var refunds = assembly.GetType("TarkovaCola.Server.RefundStore", true)!;
@@ -148,7 +152,7 @@ internal static class ArenaTarkovaColaState
             // but never leak into the ordinary menu's foreign state/save route.
             var view = Pending.GetValueOrDefault(id) is { } prior
                 ? RewardColaDelta.Merge(baseline, prior) : baseline;
-            Scopes.Add(id, new Scope(arm, mode == "zombie" ? "zombies" : mode, baseline, view));
+            Scopes.Add(id, new Scope(arm, mode == "zombie" ? "zombies" : mode, baseline, view, _catalog));
         }
     }
 
@@ -166,7 +170,7 @@ internal static class ArenaTarkovaColaState
             if (mode != "zombies") return null;
             if (observed is null) throw new RewardDataException("cola-final-state-missing");
             ValidateState(observed);
-            return RewardColaDelta.Capture(scope.View, observed);
+            return RewardColaDelta.Capture(scope.View, observed, scope.Catalog);
         }
     }
 
@@ -179,7 +183,7 @@ internal static class ArenaTarkovaColaState
             // Recompute an accumulated delta against the original ordinary
             // baseline, rather than importing any raw private mod document.
             var merged = RewardColaDelta.Merge(scope.View, delta);
-            var cumulative = RewardColaDelta.Capture(scope.Baseline, merged);
+            var cumulative = RewardColaDelta.Capture(scope.Baseline, merged, scope.Catalog);
             if (cumulative is not null) Pending[id] = cumulative;
         }
     }
@@ -244,5 +248,5 @@ internal static class ArenaTarkovaColaState
     // Hold through the entire synchronous foreign method, including its disk
     // write: arm cannot overtake a save whose prefix has already returned.
     private static void ExitOperation(bool __state) { if (__state) Monitor.Exit(Sync); }
-    private sealed record Scope(string Arm, string Mode, string Baseline, string View);
+    private sealed record Scope(string Arm, string Mode, string Baseline, string View, string Catalog);
 }

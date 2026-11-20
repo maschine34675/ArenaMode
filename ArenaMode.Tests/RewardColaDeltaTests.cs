@@ -188,4 +188,60 @@ public sealed class RewardColaDeltaTests
         Assert.Throws<InvalidOperationException>(() => TarkovaColaResearchCatalog.Challenge("speedcola", "arbitrary|field", 1));
         Assert.Throws<InvalidOperationException>(() => TarkovaColaResearchCatalog.Synergy("syn_cardio", -1));
     }
+    [Fact]
+    public void CurrentCatalogMatchesReviewedSourceWithoutReplacingTheLegacyCatalog()
+    {
+        Assert.Equal(9, RewardColaCatalog.CurrentPerks.Count);
+        Assert.Equal(72, RewardColaCatalog.CurrentChallenges.Count);
+        Assert.Equal(5, RewardColaCatalog.Challenges["a_bolt"].Goal);
+        Assert.Equal(10, RewardColaCatalog.CurrentChallenges["a_bolt"].Goal);
+        var entries = RewardColaCatalog.CurrentPerks.Select(TarkovaColaResearchCatalog.Perk)
+            .Concat(RewardColaCatalog.CurrentChallenges.Select(p => TarkovaColaResearchCatalog.Challenge(p.Value.Perk, p.Key, p.Value.Goal)))
+            .Concat(RewardColaCatalog.Synergies.Select(p => TarkovaColaResearchCatalog.Synergy(p.Key, p.Value))).ToArray();
+        Assert.Equal(TarkovaColaResearchCatalog.CurrentResearchFingerprint, TarkovaColaResearchCatalog.Fingerprint(entries));
+        TarkovaColaResearchCatalog.RequireResearch(entries);
+        Assert.Throws<InvalidOperationException>(() => TarkovaColaResearchCatalog.RequireResearch(
+            entries.Select(x => x == "aug|speedcola|a_bolt|10" ? "aug|speedcola|a_bolt|5" : x)));
+    }
+
+    [Fact]
+    public void NewPerkResearchTransfersButApexEquipmentAndInventoryRemainOrdinary()
+    {
+        const string after = """{"xp":{"bandolier":20,"vultureaid":30,"meleemacchiato":40},"prog":{"phdflopper":{"pf_drop":15},"speedcola":{"a_bolt":10},"bandolier":{"bb_sleek":5}},"apex":{"cores":100,"equipped":"apex_juggernog","prog":{"apex_juggernog":1500}},"equipped":{"arena":true},"items":[1]}""";
+        string delta = RewardColaDelta.Capture("{}", after, RewardColaCatalog.CurrentVersion)!;
+        Assert.Equal(RewardColaCatalog.CurrentVersion, RewardColaDelta.Read(delta).Catalog);
+        Assert.DoesNotContain("apex", delta);
+        Assert.DoesNotContain("equipped", delta);
+        Assert.DoesNotContain("items", delta);
+        const string before = """{"chv":2,"apex":{"cores":2,"equipped":"apex_deadshot","prog":{"apex_juggernog":100}},"equipped":{"ordinary":true},"items":[5]}""";
+        var merged = JsonNode.Parse(RewardColaDelta.Merge(before, delta))!;
+        var original = JsonNode.Parse(before)!;
+        foreach (var key in new[] { "apex", "equipped", "items" }) Assert.True(JsonNode.DeepEquals(original[key], merged[key]));
+        Assert.True(merged["researched"]!["phdflopper"]!["pf_drop"]!.GetValue<bool>());
+        Assert.Equal(10, merged["prog"]!["speedcola"]!["a_bolt"]!.GetValue<int>());
+        Assert.Equal(30, merged["xp"]!["vultureaid"]!.GetValue<int>());
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Capture("{}", after));
+    }
+
+    [Fact]
+    public void GoalChangesRemainBoundToTheReceiptsCatalogAndNeverRegressLaterProgress()
+    {
+        const string progress = """{"prog":{"speedcola":{"a_bolt":5}}}""";
+        string oldDelta = RewardColaDelta.Capture("{}", progress)!;
+        string newDelta = RewardColaDelta.Capture("{}", progress, RewardColaCatalog.CurrentVersion)!;
+        Assert.True(JsonNode.Parse(RewardColaDelta.Merge("{}", oldDelta))!["researched"]!["speedcola"]!["a_bolt"]!.GetValue<bool>());
+        Assert.Null(JsonNode.Parse(RewardColaDelta.Merge("{}", newDelta))!["researched"]);
+        const string upgraded = """{"chv":2,"xp":{"bandolier":9},"prog":{"speedcola":{"a_bolt":8}}}""";
+        var retained = JsonNode.Parse(RewardColaDelta.Merge(upgraded, oldDelta))!;
+        Assert.Equal(8, retained["prog"]!["speedcola"]!["a_bolt"]!.GetValue<int>());
+        Assert.Equal(9, retained["xp"]!["bandolier"]!.GetValue<int>());
+        Assert.True(retained["researched"]!["speedcola"]!["a_bolt"]!.GetValue<bool>()); // old completed reward is grandfathered
+        Assert.Contains("\"catalog\":\"tarkova-cola-2.2.1\"", oldDelta);
+        var crossed = JsonNode.Parse(newDelta)!;
+        crossed["prog"]!["a_bolt"] = 10;
+        crossed["catalog"] = RewardColaCatalog.Version;
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Validate(crossed.ToJsonString()));
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Capture("{}", """{"prog":{"speedcola":{"a_bolt":11}}}""", RewardColaCatalog.CurrentVersion));
+    }
+
 }

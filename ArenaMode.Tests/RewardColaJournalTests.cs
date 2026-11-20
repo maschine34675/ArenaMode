@@ -1215,6 +1215,29 @@ public sealed class RewardColaJournalTests
         Assert.DoesNotContain("..", ArenaRewardStartup.DescribeColaStop(new RewardColaRecoveryException("A sentence.")));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReviewedCatalogPlanResumesAfterNativePaymentWithoutChangingItsBytes(bool current)
+    {
+        string catalog = current ? RewardColaCatalog.CurrentVersion : RewardColaCatalog.Version;
+        string delta = RewardColaDelta.Capture("{}", """{"prog":{"speedcola":{"a_bolt":5}},"ach":{"a_first":true}}""", catalog)!;
+        using var f = new Fixture(delta);
+        var plan = f.Prepare();
+        string beforePlan = File.ReadAllText(f.PlanPath), foreign = f.Foreign;
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Pay()).Status);
+        Assert.Equal(foreign, f.Foreign); // native payment is not the foreign-file commit
+        await f.Recover();
+        Assert.Equal(beforePlan, File.ReadAllText(f.PlanPath));
+        Assert.Equal(plan.AfterJson, f.Foreign);
+        Assert.Equal(catalog, JsonNode.Parse(Assert.Single(f.Ledger).Cola!)!["catalog"]!.GetValue<string>());
+        string paid = f.Profile, settled = f.Foreign;
+        await f.Recover();
+        Assert.Equal(paid, f.Profile);
+        Assert.Equal(settled, f.Foreign);
+        Assert.Equal(beforePlan, File.ReadAllText(f.PlanPath));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private static readonly string FixtureParent = Path.Combine(Path.GetTempPath(), "ArenaMode.ColaJournal.Tests");
@@ -1241,7 +1264,7 @@ public sealed class RewardColaJournalTests
         internal IReadOnlyList<RewardPayment> Ledger => RewardProfileDocument.ReadLedger(Profile, Binding, new());
         internal RewardJournal Journal => RewardSettlementCore.ParseJournal(File.ReadAllText(JournalPath), Binding, new());
 
-        internal Fixture()
+        internal Fixture(string? suppliedDelta = null)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ProfilePath)!);
             Directory.CreateDirectory(Path.GetDirectoryName(ForeignPath)!);
@@ -1254,7 +1277,7 @@ public sealed class RewardColaJournalTests
             File.WriteAllText(ForeignPath, """
                 {"chv":2,"xp":{"speedcola":10},"equipped":["ordinary"],"stats":{"ordinaryKills":7},"mode":"Classic","classic":{"bought":true},"future":[1,2]}
                 """);
-            string delta = RewardColaDelta.Capture("{}", "{\"xp\":{\"speedcola\":3}}")!;
+            string delta = suppliedDelta ?? RewardColaDelta.Capture("{}", "{\"xp\":{\"speedcola\":3}}")!;
             Claim = new(Binding, "33333333333333333333333333333333", 1, 1000, "synthetic-cola-v1", 100, delta);
             Enrollment = new(1, true, Root, Binding);
             Approval = new(1, RewardStartupApprovalState.RestoredAndApproved, Claim, RewardIdentity.Hash(Profile));

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using ArenaMode.Session;
 using ArenaMode.Shared;
@@ -39,6 +40,13 @@ internal static class ArenaTarkovaColaCompat
     private static object[] _refunds, _native, _claims;
     private static Profile _lastProfile;
     private static string _captured;
+    // Tag the exact request closure and produced JSON, never a reusable container.
+    // Weak keys avoid retaining old worlds. Only Cola's three request boundaries
+    // and reset share this lock; no Task/global callback interception is used.
+    private static readonly object RerollSync = new();
+    private static readonly ConditionalWeakTable<object, RerollOwner> RerollClosures = new();
+    private static readonly ConditionalWeakTable<JObject, RerollResponse> RerollResponses = new();
+    [ThreadStatic] private static RerollOwner _rerollRequestOwner;
 
     internal static void Initialize() => GetRejectionReason();
 
@@ -56,11 +64,11 @@ internal static class ArenaTarkovaColaCompat
             var harmony = new Harmony(Owner);
             try
             {
-                void Patch(MethodInfo target, string prefix = null, string postfix = null, int priority = Priority.Normal)
+                void Patch(MethodBase target, string prefix = null, string postfix = null, int priority = Priority.Normal, string finalizer = null)
                 {
                     HarmonyMethod Method(string name) => name == null ? null
                         : new HarmonyMethod(typeof(ArenaTarkovaColaCompat).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)) { priority = priority };
-                    harmony.Patch(target, Method(prefix), Method(postfix));
+                    harmony.Patch(target, Method(prefix), Method(postfix), finalizer: Method(finalizer));
                 }
                 Patch(contract.Flush, nameof(PersistPrefix));
                 Patch(contract.FlushSync, nameof(PersistPrefix));
@@ -73,6 +81,16 @@ internal static class ArenaTarkovaColaCompat
                 Patch(contract.AchReady, nameof(PlayerReadyPrefix));
                 Patch(contract.ClassicReady, nameof(PlayerReadyPrefix));
                 Patch(contract.EternalReady, nameof(PlayerReadyPrefix));
+                if (contract.MachinesReady != null) Patch(contract.MachinesReady, nameof(PlayerReadyPrefix));
+                foreach (var method in contract.ProtectedMutations) Patch(method, nameof(PersistPrefix));
+                if (contract.RerollRequest != null)
+                {
+                    Patch(contract.RerollRequest, nameof(RerollRequestPrefix), finalizer: nameof(RerollRequestFinalizer));
+                    Patch(contract.RerollClosureCtor, postfix: nameof(RerollClosurePostfix));
+                    Patch(contract.RerollReset, nameof(RerollResetPrefix), finalizer: nameof(RerollLockFinalizer));
+                    Patch(contract.RerollApply, nameof(RerollApplyPrefix), finalizer: nameof(RerollLockFinalizer));
+                    Patch(contract.RerollCallback, nameof(RerollCallbackPrefix), nameof(RerollCallbackPostfix), finalizer: nameof(RerollCallbackFinalizer));
+                }
                 Patch(contract.ArenaTick, nameof(ArenaTickPrefix));
                 Patch(contract.ArenaStart, postfix: nameof(ArenaStartPostfix));
                 Patch(contract.ModeId, nameof(ModePrefix));
@@ -102,7 +120,7 @@ internal static class ArenaTarkovaColaCompat
             if (!_warnedForward && info.Metadata.Version > new System.Version(TarkovaColaPolicy.ReviewedVersion))
             {
                 _warnedForward = true;
-                Plugin.ModLogger.LogWarning("Tarkova Cola is newer than the reviewed 2.2.1 build; required Arena contracts were found.");
+                Plugin.ModLogger.LogWarning("Tarkova Cola is newer than the reviewed " + TarkovaColaPolicy.ReviewedVersion + " build; required Arena contracts were found.");
             }
             return null;
         }
@@ -279,6 +297,7 @@ internal static class ArenaTarkovaColaCompat
             Restore(_contract.PendingClaims, _claims);
             ClearAnimator();
             Invoke(_contract.ClearActive);
+            foreach (var reset in _contract.NewPerkCleanup) Invoke(reset);
             Invoke(_contract.EternalStart);
             Invoke(_contract.Refresh);
             restored = true;
@@ -320,6 +339,97 @@ internal static class ArenaTarkovaColaCompat
     private static bool AwardPrefix() => !Blocks || _allowAward;
     private static bool ArenaTickPrefix() => !Blocks || (!_lease.Failed && !_lease.Finished);
     private static bool PlayerReadyPrefix() => !Blocks || !_rebindInitialization;
+    private sealed class RerollOwner
+    {
+        internal TarkovaColaClientLease Lease;
+        internal GameWorld World;
+        internal Player Body;
+    }
+    private sealed class RerollRequestState { internal RerollOwner Previous; }
+    private sealed class RerollResponse
+    {
+        internal RerollOwner Owner;
+        internal object Container;
+    }
+    private sealed class RerollCallbackState
+    {
+        internal RerollOwner Owner;
+        internal object Container;
+        internal JObject Previous;
+    }
+    private static bool RerollRequestPrefix(out RerollRequestState __state)
+    {
+        __state = null;
+        if (!Blocks) return true;
+        System.Threading.Monitor.Enter(RerollSync);
+        __state = new RerollRequestState { Previous = _rerollRequestOwner };
+        var world = CurrentWorld(); var body = world?.MainPlayer;
+        if (!TarkovaColaPolicy.AllowsDelayedAction(_lease, _lease, world, body, body,
+            RespawnApi.IsReplacing, body?.HealthController?.IsAlive == true)) return false;
+        _rerollRequestOwner = new RerollOwner { Lease = _lease, World = world, Body = body };
+        return true;
+    }
+    private static void RerollRequestFinalizer(RerollRequestState __state)
+    {
+        if (__state == null) return;
+        _rerollRequestOwner = __state.Previous;
+        System.Threading.Monitor.Exit(RerollSync);
+    }
+    private static void RerollClosurePostfix(object __instance)
+    {
+        if (_rerollRequestOwner != null) RerollClosures.Add(__instance, _rerollRequestOwner);
+    }
+    private static void RerollResetPrefix(out bool __state)
+    {
+        __state = Blocks;
+        if (__state) System.Threading.Monitor.Enter(RerollSync);
+    }
+    private static void RerollLockFinalizer(bool __state)
+    {
+        if (__state) System.Threading.Monitor.Exit(RerollSync);
+    }
+    private static bool RerollCallbackPrefix(object __instance, out RerollCallbackState __state)
+    {
+        __state = null;
+        if (!RerollClosures.TryGetValue(__instance, out var owner)) return !Blocks;
+        System.Threading.Monitor.Enter(RerollSync);
+        __state = new RerollCallbackState { Owner = owner };
+        // This is a Task continuation. Read only managed lease identities here;
+        // Unity/world/health and replacement checks belong to main-thread Apply.
+        // A failed replacement with the old body retained must still run Cola's
+        // finally (_busy=false), rather than leave its requests permanently busy.
+        if (!ReferenceEquals(_lease, owner.Lease) || owner.Lease.FinalRequested
+            || !owner.Lease.CanApply(owner.World, owner.Body)) return false;
+        __state.Container = _contract.RerollContainer.GetValue(__instance);
+        __state.Previous = (JObject)_contract.RerollPending.GetValue(null);
+        return true;
+    }
+    private static void RerollCallbackPostfix(bool __runOriginal, RerollCallbackState __state)
+    {
+        if (!__runOriginal || __state == null) return;
+        var pending = (JObject)_contract.RerollPending.GetValue(null);
+        if (pending != null && !ReferenceEquals(pending, __state.Previous)
+            && ReferenceEquals(_contract.RerollPendingFor.GetValue(null), __state.Container))
+            RerollResponses.GetValue(pending, _ => new RerollResponse { Owner = __state.Owner, Container = __state.Container });
+    }
+    private static void RerollCallbackFinalizer(RerollCallbackState __state)
+    {
+        if (__state != null) System.Threading.Monitor.Exit(RerollSync);
+    }
+    private static bool RerollApplyPrefix(JObject __0, object __1, out bool __state)
+    {
+        __state = false;
+        if (!Blocks && (__0 == null || !RerollResponses.TryGetValue(__0, out _))) return true;
+        System.Threading.Monitor.Enter(RerollSync); __state = true;
+        if (__0 == null || !RerollResponses.TryGetValue(__0, out var response)) return !Blocks;
+        // Upstream Tick reads pending JSON/container separately. A concurrent
+        // callback must never redirect an earlier response into another crate.
+        if (!ReferenceEquals(__1, response.Container)) return false;
+        var owner = response.Owner;
+        var world = CurrentWorld();
+        return ReferenceEquals(world, owner.World) && TarkovaColaPolicy.AllowsDelayedAction(_lease, owner.Lease,
+            world, world?.MainPlayer, owner.Body, RespawnApi.IsReplacing, owner.Body?.HealthController?.IsAlive == true);
+    }
     private static void TrackerPostfix()
     {
         if (Blocks && _rebindInitialization && (bool)_contract.TrackerInit.GetValue(null))
@@ -491,11 +601,15 @@ internal static class ArenaTarkovaColaCompat
         internal readonly MethodInfo TrackerTick, ArenaStart, ArenaTick, ArenaEnd, Enter, Lookup, ModeId, RaidEnd, Award;
         internal readonly MethodInfo DrinkPlay, IsMe, DrinkPostfix, ClearActive, EternalStart, Refresh, RefreshPhysical;
         internal readonly MethodInfo AchReady, ClassicReady, EternalReady;
+        internal readonly MethodInfo MachinesReady, RerollRequest, RerollApply, RerollCallback, RerollReset;
+        internal readonly ConstructorInfo RerollClosureCtor;
+        internal readonly FieldInfo RerollContainer, RerollPending, RerollPendingFor;
+        internal readonly List<MethodInfo> ProtectedMutations = new(), NewPerkCleanup = new();
 
         internal Contract(Assembly assembly)
         {
             if (assembly.GetName().Name != "TarkovaCola.Client") throw new InvalidOperationException("Unexpected Cola assembly.");
-            RequireProgressCatalog(assembly);
+            bool currentCatalog = RequireProgressCatalog(assembly);
             Type T(string name) => assembly.GetType("TarkovaCola.Client." + name, true);
             MethodInfo M(string type, string name, Type returns, params Type[] args)
             {
@@ -551,9 +665,56 @@ internal static class ArenaTarkovaColaCompat
             DrinkPostfix = M("DrinkPatch", "Postfix", typeof(void), typeof(ActiveHealthController), typeof(EFT.InventoryLogic.Item));
             ClearActive = M("Perks", "ClearActive", typeof(void)); EternalStart = M("Eternal", "OnRaidStart", typeof(void));
             Refresh = M("Perk", "Refresh", typeof(void)); RefreshPhysical = M("PerkFx", "RefreshPhysical", typeof(void), typeof(Player));
+            if (assembly.GetType("TarkovaCola.Client.PitPerks", false) != null)
+            {
+                // 3.0.1's follower editor writes pit_perks.json directly, outside
+                // PerkService. Block both UI mutation and delayed bottle actions,
+                // leaving ordinary raids and already pending ordinary work alone.
+                foreach (string name in new[] { "Tick", "Save", "ApplyBottles" })
+                    ProtectedMutations.Add(M("PitPerks", name, typeof(void)));
+                ProtectedMutations.Add(M("PitPerks", "OnDeath", typeof(void), typeof(Player)));
+                foreach (string name in new[] { "Equip", "Unequip" })
+                {
+                    var method = T("PitPerks").GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+                        null, new[] { typeof(string) }, null);
+                    if (method == null || method.ReturnType != typeof(void) || method.IsGenericMethod)
+                        throw new MissingMethodException("PitPerks", name);
+                    ProtectedMutations.Add(method);
+                }
+                MachinesReady = M("Machines", "OnPlayerReady", typeof(void), typeof(Player));
+                ProtectedMutations.Add(M("Machines", "Save", typeof(void)));
+                ProtectedMutations.Add(M("Machines", "Place", typeof(void)));
+                ProtectedMutations.Add(M("Machines", "DeleteNearest", typeof(void), typeof(Vector3)));
+                NewPerkCleanup.Add(M("Bandolier", "Reset", typeof(void))); // restores shared grenade fuse templates
+                NewPerkCleanup.Add(M("VultureAid", "Reset", typeof(void))); // releases old container/HTTP state
+                NewPerkCleanup.Add(M("MeleeMacchiato", "Reset", typeof(void)));
+                NewPerkCleanup.Add(M("NewPerkUtil", "Reset", typeof(void)));
+                RerollRequest = M("Reroll", "Request", typeof(void), typeof(EFT.Interactive.LootableContainer));
+                RerollApply = M("Reroll", "Apply", typeof(void), typeof(JObject), typeof(EFT.Interactive.LootableContainer));
+                // Bind the reviewed HTTP continuation, not every task or a global
+                // response handler. A late response must not repopulate a new raid.
+                var callbacks = T("Reroll").GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+                    .SelectMany(t => t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+                    .Where(m => m.Name.StartsWith("<Request>b__", StringComparison.Ordinal)
+                        && m.ReturnType == typeof(void) && !m.IsGenericMethod
+                        && m.GetParameters().Select(p => p.ParameterType).SequenceEqual(new[] { typeof(System.Threading.Tasks.Task<string>) })).ToArray();
+                if (callbacks.Length != 1) throw new MissingMethodException("Reroll", "Request continuation");
+                RerollCallback = callbacks[0];
+                RerollClosureCtor = RerollCallback.DeclaringType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null, Type.EmptyTypes, null);
+                if (RerollClosureCtor == null) throw new MissingMethodException("Reroll", "closure constructor");
+                RerollReset = M("Reroll", "Reset", typeof(void));
+                RerollPending = F("Reroll", "_pending", typeof(JObject));
+                RerollPendingFor = F("Reroll", "_pendingFor", typeof(EFT.Interactive.LootableContainer));
+                RerollContainer = RerollCallback.DeclaringType.GetField("c", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (RerollContainer?.FieldType != typeof(EFT.Interactive.LootableContainer)) throw new MissingFieldException("Reroll", "c");
+            }
+            else if (currentCatalog || assembly.GetType("TarkovaCola.Client.Machines", false) != null
+                || assembly.GetType("TarkovaCola.Client.Apex", false) != null)
+                throw new MissingMemberException("Incomplete Tarkova Cola 3.x protection contract.");
         }
 
-        private static void RequireProgressCatalog(Assembly assembly)
+        private static bool RequireProgressCatalog(Assembly assembly)
         {
             const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
             IEnumerable Values(string type, string name, bool property = false)
@@ -588,6 +749,7 @@ internal static class ArenaTarkovaColaCompat
             foreach (var achievement in Values("Achievements", "All", property: true))
                 achievements.Add(TarkovaColaResearchCatalog.Achievement(Text(achievement, "Key"), Text(achievement, "ServerId")));
             TarkovaColaResearchCatalog.RequireAchievements(achievements);
+            return TarkovaColaResearchCatalog.Fingerprint(research) == TarkovaColaResearchCatalog.CurrentResearchFingerprint;
         }
     }
 }

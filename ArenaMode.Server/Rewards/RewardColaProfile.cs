@@ -15,7 +15,7 @@ internal static class RewardColaProfile
         var achievements = Achievements(profile, create: false);
         var added = delta.Achievements.Select(k => RewardColaCatalog.Achievements[k].Id)
             .Where(id => !AlreadyEarned(achievements, id)).Order(StringComparer.Ordinal).ToArray();
-        return Write(RewardIdentity.Hash(deltaJson), added);
+        return Write(RewardIdentity.Hash(deltaJson), added, delta.Catalog);
     }
 
     internal static bool MatchesClaim(string? payment, string? delta)
@@ -23,7 +23,7 @@ internal static class RewardColaProfile
         if (payment is null || delta is null) return payment is null && delta is null;
         var resolved = Read(payment);
         var changes = RewardColaDelta.Read(delta);
-        return resolved.Hash == RewardIdentity.Hash(delta) && resolved.Ids.All(id =>
+        return resolved.Catalog == changes.Catalog && resolved.Hash == RewardIdentity.Hash(delta) && resolved.Ids.All(id =>
             changes.Achievements.Contains(RewardColaCatalog.ById[id].Key, StringComparer.Ordinal));
     }
 
@@ -84,22 +84,23 @@ internal static class RewardColaProfile
         " Tarkova-Cola research recorded; " + Read(payment).Ids.Count.ToString(CultureInfo.InvariantCulture)
         + " new achievement(s) credited. Collect any achievement items below.";
 
-    private static (string Hash, IReadOnlyList<string> Ids) Read(string json)
+    private static (string Hash, IReadOnlyList<string> Ids, string Catalog) Read(string json)
     {
         var obj = RewardColaDelta.ParseObject(json, RewardColaDelta.MaxBytes);
         RewardColaDelta.Fields(obj, "schema", "catalog", "delta", "ach");
         string hash = RewardColaDelta.Text(obj["delta"]);
+        string catalog = RewardColaDelta.Text(obj["catalog"]);
         if (RewardColaDelta.Integer(obj["schema"]) != 1
-            || RewardColaDelta.Text(obj["catalog"]) != RewardColaCatalog.Version || !RewardIdentity.IsHex(hash, 64))
+            || !RewardColaCatalog.IsKnownVersion(catalog) || !RewardIdentity.IsHex(hash, 64))
             throw new RewardDataException("cola-payment-version-or-hash");
         var ids = RewardColaDelta.Set(obj["ach"], RewardColaCatalog.ById.ContainsKey);
-        if (json != Write(hash, ids)) throw new RewardDataException("cola-payment-noncanonical");
-        return (hash, ids);
+        if (json != Write(hash, ids, catalog)) throw new RewardDataException("cola-payment-noncanonical");
+        return (hash, ids, catalog);
     }
 
-    private static string Write(string hash, IEnumerable<string> ids) => new JsonObject
+    private static string Write(string hash, IEnumerable<string> ids, string catalog) => new JsonObject
     {
-        ["schema"] = 1, ["catalog"] = RewardColaCatalog.Version, ["delta"] = hash,
+        ["schema"] = 1, ["catalog"] = catalog, ["delta"] = hash,
         ["ach"] = RewardColaDelta.Array(ids)
     }.ToJsonString();
 

@@ -7,12 +7,17 @@ namespace ArenaMode.Shared;
 internal static class TarkovaColaPolicy
 {
     internal const string PluginGuid = "com.tarkovacola.server";
-    internal const string ReviewedVersion = "2.2.1";
+    internal const string ReviewedVersion = "3.0.1";
     internal const int MaxStateBytes = 524288;
     internal static bool SupportedVersion(Version version)
         => version != null && version >= new Version(2, 2, 1);
     internal static bool RewardsAllowed(string mode)
         => string.Equals(mode, "zombie", StringComparison.Ordinal);
+    internal static bool AllowsDelayedAction(TarkovaColaClientLease current, TarkovaColaClientLease captured,
+        object world, object currentBody, object capturedBody, bool replacing, bool alive)
+        => current != null && ReferenceEquals(current, captured) && !replacing && alive
+            && !current.FinalRequested && ReferenceEquals(currentBody, capturedBody)
+            && current.CanApply(world, capturedBody);
 }
 
 /// <summary>

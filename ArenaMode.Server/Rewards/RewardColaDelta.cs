@@ -7,7 +7,7 @@ namespace ArenaMode.Server.Rewards;
 internal sealed record RewardColaChanges(
     IReadOnlyDictionary<string, int> Xp, IReadOnlyDictionary<string, int> Progress,
     IReadOnlyList<string> Researched, IReadOnlyDictionary<string, int> SynergyProgress,
-    IReadOnlyList<string> SynergyDone, IReadOnlyList<string> Achievements);
+    IReadOnlyList<string> SynergyDone, IReadOnlyList<string> Achievements, string Catalog = RewardColaCatalog.Version);
 
 // A typed monotonic delta, never a foreign profile copy. The owner must bind this
 // to a Zombie run and durable restoration before signing it; Merge is a detached
@@ -18,17 +18,17 @@ internal static class RewardColaDelta
     internal const int MaxForeignBytes = 1_048_576;
     internal const int MaxXpDelta = 1_000_000;
 
-    internal static string? Capture(string beforeJson, string afterJson)
+    internal static string? Capture(string beforeJson, string afterJson, string catalog = RewardColaCatalog.Version)
     {
-        var before = Snapshot(ParseForeign(beforeJson));
-        var after = Snapshot(ParseForeign(afterJson));
+        var before = Snapshot(ParseForeign(beforeJson), catalog);
+        var after = Snapshot(ParseForeign(afterJson), catalog);
         var delta = new RewardColaChanges(
             Difference(before.Xp, after.Xp, MaxXpDelta),
             Difference(before.Progress, after.Progress, int.MaxValue),
             Added(before.Researched, after.Researched),
             Difference(before.SynergyProgress, after.SynergyProgress, int.MaxValue),
             Added(before.SynergyDone, after.SynergyDone),
-            Added(before.Achievements, after.Achievements));
+            Added(before.Achievements, after.Achievements), catalog);
         if (Empty(delta)) return null;
         var json = Write(delta);
         Validate(json);
@@ -41,15 +41,18 @@ internal static class RewardColaDelta
     {
         var root = ParseObject(json, MaxBytes);
         Fields(root, "schema", "catalog", "xp", "prog", "researched", "synProg", "synDone", "ach");
-        if (Integer(root["schema"]) != 1 || Text(root["catalog"]) != RewardColaCatalog.Version)
+        string catalog = Text(root["catalog"]);
+        var perks = RewardColaCatalog.PerksFor(catalog);
+        var challenges = RewardColaCatalog.ChallengesFor(catalog);
+        if (Integer(root["schema"]) != 1)
             throw new RewardDataException("cola-delta-version");
         var changes = new RewardColaChanges(
-            Numbers(Object(root["xp"]), id => RewardColaCatalog.Perks.Contains(id) ? MaxXpDelta : -1, positive: true),
-            Numbers(Object(root["prog"]), id => RewardColaCatalog.Challenges.TryGetValue(id, out var c) ? c.Goal : -1, positive: true),
-            Set(root["researched"], RewardColaCatalog.Challenges.ContainsKey),
+            Numbers(Object(root["xp"]), id => perks.Contains(id) ? MaxXpDelta : -1, positive: true),
+            Numbers(Object(root["prog"]), id => challenges.TryGetValue(id, out var c) ? c.Goal : -1, positive: true),
+            Set(root["researched"], challenges.ContainsKey),
             Numbers(Object(root["synProg"]), id => RewardColaCatalog.Synergies.GetValueOrDefault(id, -1), positive: true),
             Set(root["synDone"], RewardColaCatalog.Synergies.ContainsKey),
-            Set(root["ach"], RewardColaCatalog.Achievements.ContainsKey));
+            Set(root["ach"], RewardColaCatalog.Achievements.ContainsKey), catalog);
         if (Empty(changes) || !string.Equals(json, Write(changes), StringComparison.Ordinal))
             throw new RewardDataException("cola-delta-empty-or-noncanonical");
         return changes;
@@ -61,18 +64,22 @@ internal static class RewardColaDelta
         var current = ParseForeign(currentForeignJson);
         // Refuse incompatible/malformed known subtrees instead of quietly replacing
         // them; unowned root fields and nested settings remain exactly preserved.
-        _ = Snapshot(current);
+        // An old signed receipt may meet a profile already upgraded by Cola.
+        // Validate the entire current owned state against the reviewed superset,
+        // while applying only the receipt's original goals and identities.
+        _ = Snapshot(current, RewardColaCatalog.CurrentVersion);
+        var challenges = RewardColaCatalog.ChallengesFor(delta.Catalog);
         PrepareCurrentChallengeVersion(current);
         foreach (var (id, amount) in delta.Xp)
             Add(Ensure(current, "xp"), id, amount, int.MaxValue, clamp: false);
         foreach (var (id, amount) in delta.Progress)
         {
-            var def = RewardColaCatalog.Challenges[id];
-            if (Add(Ensure(Ensure(current, "prog"), def.Perk), id, amount, def.Goal, clamp: true) == def.Goal)
+            var def = challenges[id];
+            if (Add(Ensure(Ensure(current, "prog"), def.Perk), id, amount, def.Goal, clamp: true) >= def.Goal)
                 Ensure(Ensure(current, "researched"), def.Perk)[id] = true;
         }
         foreach (var id in delta.Researched)
-            Ensure(Ensure(current, "researched"), RewardColaCatalog.Challenges[id].Perk)[id] = true;
+            Ensure(Ensure(current, "researched"), challenges[id].Perk)[id] = true;
         foreach (var (id, amount) in delta.SynergyProgress)
             if (Add(Ensure(Ensure(current, "syn"), "prog"), id, amount, RewardColaCatalog.Synergies[id], clamp: true)
                 == RewardColaCatalog.Synergies[id])
@@ -84,29 +91,31 @@ internal static class RewardColaDelta
         return result;
     }
 
-    private static RewardColaChanges Snapshot(JsonObject root)
+    private static RewardColaChanges Snapshot(JsonObject root, string catalog)
     {
+        var perks = RewardColaCatalog.PerksFor(catalog);
+        var challenges = RewardColaCatalog.ChallengesFor(catalog);
         if (root.TryGetPropertyValue("chv", out var version) && Integer(version) is < 0 or > 2)
             throw new RewardDataException("cola-challenge-version");
-        var xp = Numbers(Optional(root, "xp"), id => RewardColaCatalog.Perks.Contains(id) ? int.MaxValue : -1);
+        var xp = Numbers(Optional(root, "xp"), id => perks.Contains(id) ? int.MaxValue : -1);
         var prog = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var researched = new List<string>();
         foreach (var (perk, value) in Optional(root, "prog"))
         {
-            if (!RewardColaCatalog.Perks.Contains(perk)) throw new RewardDataException("cola-unknown-perk");
-            foreach (var entry in Numbers(Object(value), id => RewardColaCatalog.Challenges.TryGetValue(id, out var c) && c.Perk == perk ? c.Goal : -1))
+            if (!perks.Contains(perk)) throw new RewardDataException("cola-unknown-perk");
+            foreach (var entry in Numbers(Object(value), id => challenges.TryGetValue(id, out var c) && c.Perk == perk ? c.Goal : -1))
                 prog.Add(entry.Key, entry.Value);
         }
         foreach (var (perk, value) in Optional(root, "researched"))
         {
-            if (!RewardColaCatalog.Perks.Contains(perk)) throw new RewardDataException("cola-unknown-perk");
-            researched.AddRange(Flags(Object(value), id => RewardColaCatalog.Challenges.TryGetValue(id, out var c) && c.Perk == perk));
+            if (!perks.Contains(perk)) throw new RewardDataException("cola-unknown-perk");
+            researched.AddRange(Flags(Object(value), id => challenges.TryGetValue(id, out var c) && c.Perk == perk));
         }
         var syn = Optional(root, "syn");
         return new(xp, prog, researched.Order(StringComparer.Ordinal).ToArray(),
             Numbers(Optional(syn, "prog"), id => RewardColaCatalog.Synergies.GetValueOrDefault(id, -1)),
             Flags(Optional(syn, "done"), RewardColaCatalog.Synergies.ContainsKey),
-            Flags(Optional(root, "ach"), RewardColaCatalog.Achievements.ContainsKey));
+            Flags(Optional(root, "ach"), RewardColaCatalog.Achievements.ContainsKey), catalog);
     }
 
     private static void PrepareCurrentChallengeVersion(JsonObject root)
@@ -172,7 +181,7 @@ internal static class RewardColaDelta
 
     private static string Write(RewardColaChanges d) => new JsonObject
     {
-        ["schema"] = 1, ["catalog"] = RewardColaCatalog.Version,
+        ["schema"] = 1, ["catalog"] = d.Catalog,
         ["xp"] = Map(d.Xp), ["prog"] = Map(d.Progress), ["researched"] = Array(d.Researched),
         ["synProg"] = Map(d.SynergyProgress), ["synDone"] = Array(d.SynergyDone), ["ach"] = Array(d.Achievements)
     }.ToJsonString();
@@ -201,7 +210,8 @@ internal static class RewardColaDelta
         long before = obj.TryGetPropertyValue(id, out var node) ? Integer(node) : 0;
         long value = before + delta;
         if (!clamp && value > maximum) throw new RewardDataException("cola-progress-overflow");
-        int merged = (int)Math.Min(maximum, value);
+        // Old receipts must not lower progress already advanced under 3.0.1.
+        int merged = (int)Math.Max(before, Math.Min(maximum, value));
         obj[id] = merged;
         return merged;
     }

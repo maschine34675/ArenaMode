@@ -90,6 +90,59 @@ internal static class RewardColaCatalog
             ["dd_slot"] = new("deadshot", 1),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
+    // Preserve the legacy catalog and receipt bytes. The 3.0.1 revision changed
+    // a_bolt from 5 to 10 and added three complete perk trees plus pf_drop.
+    internal const string CurrentVersion = "tarkova-cola-3.0.1";
+    internal const string CurrentSourceCommit = "8d4294d4410425bad27f1d019db4f7dc8fa17631";
+    internal static readonly FrozenSet<string> CurrentPerks = Perks.Concat(
+        new[] { "bandolier", "vultureaid", "meleemacchiato" }).ToFrozenSet(StringComparer.Ordinal);
+    internal static readonly FrozenDictionary<string, RewardColaChallenge> CurrentChallenges =
+        CreateCurrentChallenges();
+
+    private static FrozenDictionary<string, RewardColaChallenge> CreateCurrentChallenges()
+    {
+        var values = Challenges.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+        values["a_bolt"] = new("speedcola", 10);
+        values["pf_drop"] = new("phdflopper", 15);
+        values["bb_sleek"] = new("bandolier", 5);
+        values["bb_disc"] = new("bandolier", 5);
+        values["bb_bring"] = new("bandolier", 10);
+        values["bb_pouch"] = new("bandolier", 5);
+        values["bb_cold"] = new("bandolier", 1000);
+        values["bb_leech"] = new("bandolier", 15);
+        values["bb_strap"] = new("bandolier", 3000);
+        values["bb_slot"] = new("bandolier", 1);
+        values["va_scent"] = new("vultureaid", 10);
+        values["va_bonus"] = new("vultureaid", 25);
+        values["va_reroll"] = new("vultureaid", 40);
+        values["va_sharp"] = new("vultureaid", 20);
+        values["va_leftover"] = new("vultureaid", 15);
+        values["va_kit"] = new("vultureaid", 10);
+        values["va_lucky"] = new("vultureaid", 15);
+        values["va_slot"] = new("vultureaid", 1);
+        values["mm_charge"] = new("meleemacchiato", 2000);
+        values["mm_frenzy"] = new("meleemacchiato", 10);
+        values["mm_iron"] = new("meleemacchiato", 10);
+        values["mm_quick"] = new("meleemacchiato", 30);
+        values["mm_hone"] = new("meleemacchiato", 50);
+        values["mm_flash"] = new("meleemacchiato", 200);
+        values["mm_wind"] = new("meleemacchiato", 25);
+        values["mm_slot"] = new("meleemacchiato", 1);
+        return values.ToFrozenDictionary(StringComparer.Ordinal);
+    }
+
+    internal static bool IsKnownVersion(string version) => version is Version or CurrentVersion;
+    internal static FrozenSet<string> PerksFor(string version) => version switch
+    {
+        Version => Perks, CurrentVersion => CurrentPerks,
+        _ => throw new RewardDataException("cola-delta-version")
+    };
+    internal static FrozenDictionary<string, RewardColaChallenge> ChallengesFor(string version) => version switch
+    {
+        Version => Challenges, CurrentVersion => CurrentChallenges,
+        _ => throw new RewardDataException("cola-delta-version")
+    };
+
     internal static readonly FrozenDictionary<string, int> Synergies =
         new Dictionary<string, int>(StringComparer.Ordinal)
         {

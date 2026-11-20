@@ -1,4 +1,10 @@
-# Tarkova Cola compatibility — 2026-10-25
+# Tarkova Cola compatibility — updated 2026-11-20
+
+Development after ArenaMode 0.6.0 also reviews **3.0.1**, with a separate research
+catalog so old 2.2.1 receipts and plans keep their meaning. New companion-perk and
+machine-editor writes are protected, machines are not duplicated by respawns and
+new perk state is cleaned up at Arena exit. APEX remains outside reward transfer.
+See the [3.0.1 contract and limits](reviews/MOD-REFRESH-20261120.md).
 
 The user requested Zombie research and achievement rewards, with no bottle or
 grenade refunds. This integration is optional, requires both parts of Tarkova Cola
