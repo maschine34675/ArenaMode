@@ -2,6 +2,33 @@
 
 Date: 2026-11-01. User choice: only during Domination, with live possession.
 
+## DynamicMaps 1.3.0 adaptation (2026-11-20)
+
+The adapter now recognizes either complete known API shape before installing any
+hook: 1.2.1's `LoadMap(MapDef, RectTransform)` plus public styling getters, or
+1.3.0's `LoadMap(MapDef)` plus private `Image`/`Label` getters and protected
+`LabelAlphaLayerStatus`. The exact property types, getter visibility, public
+setters and method returns remain mandatory. An unsupported or mixed shape
+disables only the optional overlay before scanning the scene. There is still no
+DynamicMaps binary dependency, private field access or global-category mutation.
+
+The per-marker styling getters reach only the UI objects the adapter created.
+Native marker-pack changes in 1.3.0 reload their sprites, so the existing periodic
+refresh restores the solid diamond on owned markers. Native player/exfil/corpse
+icons remain untouched. Objective locations, size, labels, possession colours,
+layer handling, raid eligibility and round cleanup are unchanged. DynamicMaps
+1.3.0 still shares one MapView between its separate main/minimap controllers;
+their viewport transitions require native acceptance separately from API tests.
+
+The production-linked harness builds distinct 1.2.1/1.3.0 fixtures and an invalid
+mixed shape, with deliberate faults for shape selection, access guards, lifecycle
+and marker-pack refresh. Metadata checks also inspect the actual released DLLs:
+1.2.1 SHA256 `c41507eb1edb6d6c8101314fedf9eb52c874c980e757cbc8348f084d2231b1b8`,
+1.3.0 SHA256 `87878b34a7bb4d50dcf05daa6cd9a93a27543b0c26aa38fa213c40053a6db19b`.
+The source change does not raise the separately reviewed corpse-adapter version.
+Native acceptance of this new build is pending; the older evidence below applies
+only to its named 1.2.1 builds.
+
 ## Behavior and ownership
 
 Optional DynamicMaps shows the current round's compact objective IDs on its map
@@ -24,7 +51,7 @@ objective placement, profile, scoring, bot or saved configuration state is writt
 Reviewed DynamicMaps 1.2.1, product
 `1.2.1+99200c60f084d1f64491dee93ceb09351bb8a2cd`, SHA256
 `c41507eb1edb6d6c8101314fedf9eb52c874c980e757cbc8348f084d2231b1b8`.
-The adapter binds public exact signatures and uses a soft dependency already
+At that baseline the adapter bound public exact signatures and used a soft dependency already
 declared by ArenaMode. Absent DynamicMaps is silent; an incompatible API disables
 only this overlay. Future versions must still pass the API checks and are not
 claimed tested by this baseline.

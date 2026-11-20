@@ -29,7 +29,7 @@ namespace UnityEngine
 }
 namespace UnityEngine.UI
 {
-    public class Image : UnityEngine.Component { public object sprite = new(); public UnityEngine.RectTransform rectTransform = new(); }
+    public class Image : UnityEngine.Component { public object sprite = new(); public UnityEngine.Color color; public UnityEngine.RectTransform rectTransform = new(); }
 }
 namespace TMPro
 {
@@ -108,9 +108,23 @@ namespace DynamicMaps.UI.Components
     public class MapMarker : UnityEngine.Component
     {
         public string Id, Category, Icon;
+#if DYNAMICMAPS_130
+#if DYNAMICMAPS_BAD_SHAPE
+        public TMPro.TextMeshProUGUI Label { get; } = new();
+#else
+        private TMPro.TextMeshProUGUI Label { get; } = new();
+#endif
+        private UnityEngine.UI.Image Image { get; } = new();
+        protected Dictionary<LayerStatus, float> LabelAlphaLayerStatus { get; } = new() { [LayerStatus.OnTop] = 0 };
+#else
         public TMPro.TextMeshProUGUI Label { get; } = new();
         public UnityEngine.UI.Image Image { get; } = new();
         public Dictionary<LayerStatus, float> LabelAlphaLayerStatus { get; } = new() { [LayerStatus.OnTop] = 0 };
+#endif
+        // Assertions observe the resulting UI independently of the API the adapter binds.
+        public TMPro.TextMeshProUGUI TestLabel => Label;
+        public UnityEngine.UI.Image TestImage => Image;
+        public Dictionary<LayerStatus, float> TestAlpha => LabelAlphaLayerStatus;
         public UnityEngine.Vector2 Size { get; set; }
         private UnityEngine.Vector3 _position;
         private UnityEngine.Color _color;
@@ -119,9 +133,9 @@ namespace DynamicMaps.UI.Components
         public UnityEngine.Vector3 Position
         {
             get => _position;
-            set { _position = value; Moves++; _color.a = Hidden ? 0 : 1; Label.color.a = Hidden ? 0 : LabelAlphaLayerStatus[LayerStatus.OnTop]; }
+            set { _position = value; Moves++; Image.color.a = Hidden ? 0 : 1; Label.color.a = Hidden ? 0 : LabelAlphaLayerStatus[LayerStatus.OnTop]; }
         }
-        public UnityEngine.Color Color { get => _color; set { _color = value; Label.color = value; } }
+        public UnityEngine.Color Color { get => _color; set { _color = value; Image.color = value; Label.color = value; } }
     }
     public class MapView : UnityEngine.Component
     {
@@ -130,7 +144,11 @@ namespace DynamicMaps.UI.Components
         public int Adds, Removes;
         public bool ThrowAdd, ThrowRemove;
         public MapView() { UnityEngine.Object.Scene.Add(this); }
+#if DYNAMICMAPS_130
+        public void LoadMap(Data.MapDef def)
+#else
         public void LoadMap(Data.MapDef def, UnityEngine.RectTransform mask)
+#endif
         { if (CurrentMapDef != null) UnloadMap(); CurrentMapDef = def; HarmonyLib.Harmony.Call(nameof(LoadMap), this); }
         public void UnloadMap()
         { HarmonyLib.Harmony.Call(nameof(UnloadMap), this); foreach (var m in Markers) m.Destroyed = true; Markers.Clear(); CurrentMapDef = null; }

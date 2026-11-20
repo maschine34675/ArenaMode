@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Restore Domination objective markers with DynamicMaps 1.3.0 while retaining
+  1.2.1 support. Changing DynamicMaps' marker pack keeps the objective diamonds.
+  [Integration details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md).
+
 - Review PitFireTeam 1.1.2 and TarkovaCola 3.0.1 for the default whitelist, with
   updated squad lifecycle/persistence contracts and protected new Cola state.
   Older supported PFT versions and Cola reward receipts retain their behavior.

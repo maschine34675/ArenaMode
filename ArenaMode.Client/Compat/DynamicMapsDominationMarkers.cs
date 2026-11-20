@@ -105,7 +105,6 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
                 // canvas. A native solid UI quad makes possession readable without
                 // shipping an icon or allocating a texture. Rotate only the backdrop.
                 var image = (Image)_api.Image.GetValue(marker);
-                image.sprite = null;
                 image.rectTransform.sizeDelta = new Vector2(30f, 30f);
                 image.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 var label = (TextMeshProUGUI)_api.Label.GetValue(marker);
@@ -122,6 +121,9 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
         for (int i = 0; i < owned.Count; i++)
         {
             var marker = owned[i];
+            // 1.3 reloads every marker's native sprite when its marker pack changes.
+            // Restore only our solid backdrop at the next existing objective sample.
+            ((Image)_api.Image.GetValue(marker)).sprite = null;
             _api.Color.SetValue(marker, ColorFor(_points[i]));
             var label = (TextMeshProUGUI)_api.Label.GetValue(marker);
             // Native OnEnable/hover may restyle a label; restore only our ID.
@@ -205,8 +207,9 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
         }
     }
 
-    // Bind public, exact contracts before installing either hook. No reference to
-    // DynamicMaps.dll, private field reads or changes to its global categories.
+    // Bind exact contracts before installing either hook. 1.3 moved only the
+    // per-marker styling properties behind non-public getters; no private field
+    // access, binary reference or change to DynamicMaps' global categories.
     private sealed class Api
     {
         internal readonly Type ViewType, DefinitionType;
@@ -226,7 +229,12 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
                 || !layerStatus.IsEnum || DefinitionType.GetConstructor(Type.EmptyTypes) == null)
                 throw new NotSupportedException("DynamicMaps marker types changed.");
             OnTop = Enum.Parse(layerStatus, "OnTop");
-            Load = Method(ViewType, "LoadMap", typeof(void), map, typeof(RectTransform));
+            // 1.3 owns the viewport separately; 1.2.1 receives it with the map.
+            // Bind one complete known API shape, never a mixture of access levels.
+            bool modern = ViewType.GetMethod("LoadMap", BindingFlags.Public | BindingFlags.Instance,
+                null, new[] { map }, null) != null;
+            Load = modern ? Method(ViewType, "LoadMap", typeof(void), map)
+                : Method(ViewType, "LoadMap", typeof(void), map, typeof(RectTransform));
             Unload = Method(ViewType, "UnloadMap", typeof(void));
             Add = Method(ViewType, "AddMapMarker", marker, DefinitionType);
             Remove = Method(ViewType, "RemoveMapMarker", typeof(void), marker);
@@ -239,9 +247,11 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
             Position = Property(marker, "Position", typeof(Vector3), true);
             Color = Property(marker, "Color", typeof(Color), true);
             Size = Property(marker, "Size", typeof(Vector2), true);
-            Image = Property(marker, "Image", typeof(Image));
-            Label = Property(marker, "Label", typeof(TextMeshProUGUI));
-            LabelAlpha = Property(marker, "LabelAlphaLayerStatus", typeof(Dictionary<,>).MakeGenericType(layerStatus, typeof(float)));
+            var visualAccess = modern ? MethodAttributes.Private : MethodAttributes.Public;
+            Image = Property(marker, "Image", typeof(Image), getterAccess: visualAccess);
+            Label = Property(marker, "Label", typeof(TextMeshProUGUI), getterAccess: visualAccess);
+            LabelAlpha = Property(marker, "LabelAlphaLayerStatus", typeof(Dictionary<,>).MakeGenericType(layerStatus, typeof(float)),
+                getterAccess: modern ? MethodAttributes.Family : MethodAttributes.Public);
         }
 
         private static MethodInfo Method(Type type, string name, Type returns, params Type[] args)
@@ -252,10 +262,13 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
             return method;
         }
 
-        private static PropertyInfo Property(Type type, string name, Type expected, bool writable = false)
+        private static PropertyInfo Property(Type type, string name, Type expected, bool writable = false,
+            MethodAttributes getterAccess = MethodAttributes.Public)
         {
-            var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            if (property?.PropertyType != expected || property.GetGetMethod() == null
+            var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var getter = property?.GetGetMethod(true);
+            if (property?.PropertyType != expected || property.GetIndexParameters().Length != 0 || getter == null
+                || (getter.Attributes & MethodAttributes.MemberAccessMask) != getterAccess
                 || writable && property.GetSetMethod() == null)
                 throw new MissingMemberException(type.FullName, name);
             return property;
