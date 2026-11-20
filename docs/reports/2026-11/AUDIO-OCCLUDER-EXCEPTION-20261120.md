@@ -246,7 +246,9 @@ Non-negotiable 2 governs all of them: a patch starts with `ArenaSession.IsActive
 Built the same day on the owner's word, on the branch `feature/zombie-audio-container-guard`: the return guard of the
 last row (`ArenaAudioContainerReturnGuardPatch`, contract [AUDIO-CONTAINER-GUARD-20261120.md](../../reviews/AUDIO-CONTAINER-GUARD-20261120.md)).
 Its review found one more case the prefix cannot see (a return nested in another return of the same container at the
-raid's end); the contract records it.
+raid's end); the contract records it. Its native acceptance the same afternoon (run A's settings, 69 retirements,
+13 returns skipped) saw no container in two pool slots, no two infected on one container and no exception; the
+contract has the table.
 
 | Option | What it changes | Cause addressed | Risk | Verdict |
 | --- | --- | --- | --- | --- |

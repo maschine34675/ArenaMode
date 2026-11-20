@@ -65,10 +65,44 @@ returned as in the game: <message>` (at most once per raid). Nothing at Info.
   load order does not protect against it. An inlined copy would bypass the patch silently. The native Debug line is the
   proof that the patch is reached; if it never comes while a container stands in two pool slots, patch the callers
   (`ClearPlayerOcclusionWithDelay`, `UnregisterSourceContainer`) instead.
-- Native acceptance (to be run): a Zombie raid on SPT-GPU-2 with the pool monitor of the report
+- Native acceptance criteria: a Zombie raid on SPT-GPU-2 with the pool monitor of the report
   (`artifacts/audio-occluder-20261120/monitor3.mjs`): the Debug line appears when an armed infected dies (the proof
   that the patch is reached and not inlined), no object stands in two pool slots and no two players own one container
   for the whole raid, and the loaded client matches the deployed hash.
+
+## Native acceptance, 2026-11-20
+
+SPT-GPU-2, 13:16 to 13:34 (VM time), on the owner's word. Installed for the run: client DLL, PDB and server DLL
+`0.6.0+f21b7ac4` (no-deploy build; Redeploy Core `1.0.24+67f8303` not touched, checked before and after); UiBridge
+reported 16 of 16 Arena plugins identical (VM build, host disk, loaded) and listed the prefix on
+`AudioSourceContainerData.ReturnContainer`. Factory, Zombies, Arena kits, 32 alive, waves 50 +20, the settings of run A
+of the profile pool check (`StuckWaveTimeoutSeconds` 5 and `IntermissionSeconds` 2 with persist=false), no player kills,
+godmode.
+
+| | This run (guard) | Run A of the same day (same settings, no guard) |
+| --- | --- | --- |
+| Watchdog retirements (of 28 or more) | 69 (58), 2016 infected | 66 (55) |
+| Arrivals, dropped requests | 2038, 0 | 1952, 0 |
+| Containers armed (seen in both registries) | 11 | not measured |
+| Returns skipped by the guard (Debug line) | 13 | none (no guard) |
+| Polls with one object in two pool slots | 0 of 1153 | not measured; 6 of 6 armed containers in the unguarded raids that afternoon |
+| Polls with two players on one container | 0 | not measured; in every unguarded raid that afternoon |
+| Stale occluder keys seen | 0 | not measured; 6 in the third unguarded raid |
+| `Can't handle not proposed occlusion test` | 0 | 5259 in five bursts |
+| Guard warnings | 0 | — |
+
+- Each of the 13 Debug lines came within 0.2 s after a watchdog retirement (first at 13:18:44.848, container 62, 0.17 s
+  after the retirement of 18): the patch is reached, no caller inlined it.
+- The exception's absence alone would prove little (it came in 5 of 55 retirements of run A and in none of runs B and
+  C); the zero duplicates against 13 skipped returns are the evidence.
+- Restored after the run: client `978B32CB...`, PDB `9183A6F9...`, server `69A60D06...` (`0.6.0+72273354`) on the VM
+  and on the host (`gpu-run deploy-wait`), `com.maschine.ArenaMode.cfg` `F9AF829F...` and `client-settings.json`
+  `1F29D2C9...` on both, from `D:\SPT41-Backups\audio-guard-native\20261120-131437\`; EFT and the SPT server on the host
+  stopped. The test profile differs from that backup only in `Health/UpdateTime` and
+  `Hideout/sptUpdateLastRunTimestamp`. Raw data (git-ignored): `artifacts/audio-occluder-20261120/monitor-guard.jsonl`,
+  `host2-bepinex-guard.log`.
+- Not shown: a played match with kills, the PMC modes (the guard is active there too and decides nothing unless a
+  container is returned twice), a normal raid (the gate is proven offline).
 
 ## Rules for changes
 

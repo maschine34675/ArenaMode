@@ -560,7 +560,8 @@ Combined` that appeared in five bursts in one raid: a game bug, the audio pool h
 the double return seen natively the same day
 ([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); the Arena-only guard
 `ArenaAudioContainerReturnGuardPatch` is built on the branch `feature/zombie-audio-container-guard` (stacked on this
-one, local, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)), its native acceptance is open;
+one, local, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)) and accepted natively on
+SPT-GPU-2 the same afternoon (13 returns skipped, no duplicate, no exception; release `0.6.0+72273354` installed again);
 (3) a played match
 with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline
 harness for the prefix is `tools/BackupProfileDuplicateChecks` (commit `5a0863aa`, registered in
