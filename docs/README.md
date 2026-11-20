@@ -295,6 +295,8 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [PitFireTeam 1.1.2, TarkovaCola 3.0.1 and VisualAssist 1.2.0: scoped native tests, regular installation and restoration](reports/2026-11/GPU-MOD-REFRESH-20261120.md)
+
 - [Pack A Punch on GPU-2, 2026-11-20: Forge issue 3 reproduced on 0.6.0; with the fix the private entry and return and the normal-session match end pass with PaP loaded; on a copied install a startup profile write sets PaP's side file aside without the carry and keeps it with the carry](reports/2026-11/PAP-NATIVE-20261120.md)
 - [Native acceptance on GPU-2, 2026-11-20: solo Tactical opening rounds at both steps (levels, buy-screen line, the purge per role and its cost), Zombie special waves and the menu row, the supply of infected profiles (from wave 5 on the default-size waves fill at 0.6 to 0.7 per second; the build before shows the same fall; superseded on the same day: the cause was every reloaded profile being pooled twice, see the profile pool report), Gun Game with the generated weapon pool, the smoke run of the ported performance collector](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)
 - [Zombie alive ceiling on GPU-2, 2026-11-19: 32, 36, 40, 48 and 56 alive on Factory, controls on Labs and Air Pit, two passes with the protocols, the thresholds, the integrity notes, the weapon confound and the decision (the ceiling stays 32, the growth is not built)](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)

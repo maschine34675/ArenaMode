@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-16. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-20. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,23 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Development, 2026-11-20: optional-mod refresh.** PitFireTeam 1.1.2,
+  TarkovaCola 3.0.1 and VisualAssist 1.2.0 are reviewed and whitelisted, and their
+  official packages remain installed by user request. Source changes are on
+  `master` through `08a09104`; shared VisualAssist body ownership is in
+  Redeploy.Core 1.0.25 (`430657c`, public API v1 unchanged). The exact tested
+  Arena candidate still carries its precommit `0.6.0+e57c85fe` stamp; its source
+  manifest binds the final production sources. Do not mistake that stamp for an
+  unchanged release binary. The accepted client/BigBrain/server, whitelist and
+  Core/Client pair are installed on the VM and both GPU hosts. GPU-2 exercised
+  PFT Tactical rounds and leader replacement, PFT Zombies with Cola consumption,
+  standalone Redeploy with VisualAssist, and Arena preview/quick throws and
+  Molotov after respawn. GPU-1 has matching files only, not a native acceptance
+  run for this refresh. All 74 selected Arena verification steps and 637 Core
+  unit tests passed; scenario limits and restoration are recorded in the
+  [native report](reports/2026-11/GPU-MOD-REFRESH-20261120.md).
+  No push, release or Arena version bump was performed.
 
 - **Development, 2026-11-16: Factory Translocator collision fix**, same
   `codex/translocator-20261115` branch, based on `c37ee3e5`. Collision candidate A

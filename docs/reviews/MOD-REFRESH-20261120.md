@@ -70,7 +70,8 @@ disable the preview or change ordinary raids. Core does not change throw physics
 Offline checks cover released metadata and reflected signatures, native API
 compilation, lifecycle/ownership decisions, persistence suppression, both Cola
 catalogs and historical plans. Their passing does not establish native behavior;
-the dated GPU report records the exact tested binaries and scenarios separately.
+the [dated GPU report](../reports/2026-11/GPU-MOD-REFRESH-20261120.md) records the
+exact tested binaries, passed scenarios and unexercised scope separately.
 
 User decision: retain these three official mods after testing. Additional probes
 and the temporary Fast Grenade Throw test installation are removed afterwards.
