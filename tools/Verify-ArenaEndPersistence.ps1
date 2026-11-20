@@ -16,10 +16,10 @@ try {
     & dotnet test (Join-Path $repo 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --nologo -v:minimal `
         "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $repo 'tools/AirPitChecks/NoDeploy.targets')" `
         "-p:SPTUserMods=$sentinel" '-p:SPTPath=D:/SPT41' '-p:SPTUserPath=D:/SPT41/SPT_Runtime' `
-        --filter 'FullyQualifiedName~ArenaEndPersistenceTests|FullyQualifiedName~RewardLifecycleTests|FullyQualifiedName~RewardReturnControlTests|FullyQualifiedName~IsolationProtectionTests|FullyQualifiedName~ArenaAreaServerTests' `
+        --filter 'FullyQualifiedName~ArenaEndPersistenceTests|FullyQualifiedName~RewardLifecycleTests|FullyQualifiedName~RewardReturnControlTests|FullyQualifiedName~IsolationProtectionTests|FullyQualifiedName~ArenaAreaServerTests|FullyQualifiedName~ProfileWriteProof|FullyQualifiedName~PapSideFileGuardTests' `
         --logger 'trx;LogFileName=results.trx' --results-directory $directory *> (Join-Path $directory 'run.log')
     if ($LASTEXITCODE -ne 0) { Get-Content (Join-Path $directory 'run.log') -Tail 60; throw 'End persistence tests failed.' }
-    $result = Assert-ArenaTestRun -TrxPath $trx -AllowedSkipReasons @() -RequireFamilies @('ArenaEndPersistenceTests','RewardLifecycleTests','RewardReturnControlTests')
+    $result = Assert-ArenaTestRun -TrxPath $trx -AllowedSkipReasons @() -RequireFamilies @('ArenaEndPersistenceTests','RewardLifecycleTests','RewardReturnControlTests','ProfileWriteProofTests','PapSideFileGuardTests')
     "ARENA_END_PERSISTENCE_PASSED total=$($result.Total) passed=$($result.Passed)"
 } finally {
     Assert-ArenaInstalledSnapshotUnchanged $before 'D:/SPT41'

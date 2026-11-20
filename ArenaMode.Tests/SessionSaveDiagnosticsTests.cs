@@ -250,6 +250,112 @@ public sealed class SessionSaveDiagnosticsTests
             wire.RootElement.EnumerateObject().Select(p => p.Name));
     }
 
+    // ---- pipeline facts (pipeline-aware save proof)
+
+    private static string PipelineWarning(string before, string disk, string after, ProfileProof proof, string profile = Selected)
+    {
+        var diagnostic = new SessionSaveDiagnostics();
+        var error = Assert.Throws<RewardDataException>(() =>
+            ArenaRewardReturnListener.RequireSavedProfile(before, disk, after, diagnostic, profile, Selected, proof));
+        Assert.Equal("return-profile-save-not-confirmed", error.Message);
+        return Warning(diagnostic);
+    }
+
+    [Fact]
+    public void LinesWithoutPipelineAreByteIdentical()
+    {
+        string plain = Warning(Capture(Current, Changed, Current));
+        string none = PipelineWarning(Current, Changed, Current, ProfileProof.Strict(Changed, "none"));
+        Assert.Equal(plain, none);
+        Assert.DoesNotContain("pipeline=", plain);
+        Assert.DoesNotContain("ramInputMatch", plain);
+        Assert.DoesNotContain("outputDiskMatch", plain);
+        // The exact substring the earlier tests pin is still there, unchanged.
+        Assert.Contains("ramDiskMatch=false; ramStableDuringReadback=true; fieldSample=[disk:characters.pmc.Hideout.sptUpdateLastRunTimestamp]; diagnostics=sample; active requests=",
+            plain);
+    }
+
+    [Theory]
+    [InlineData("opaque")]
+    [InlineData("unsafe")]
+    [InlineData("unavailable")]
+    public void EveryNonNoneStrictPipelineValueIsNamedWithNotApplicableFacts(string pipeline)
+    {
+        string line = PipelineWarning(Current, Changed, Current, ProfileProof.Strict(Changed, pipeline));
+        Assert.Contains($"diagnostics=sample; pipeline={pipeline}; ramInputMatch=n/a; outputDiskMatch=n/a; active requests=", line);
+        Assert.Contains("fieldSample=[disk:characters.pmc.Hideout.sptUpdateLastRunTimestamp]", line);
+    }
+
+    [Fact]
+    public void PipelineFactsAreFixedVocabularyAndBounded()
+    {
+        const string secret = "SECRET_MOD_SECTION\r\nforged";
+        string input = Changed.Replace("\"characters\"", "\"" + secret + "\"");
+        // RAM differs from the input, the output from the disk, and RAM from itself afterwards.
+        var proof = ProfileProof.Strict(Changed, "transformed", "false", Changed, Current);
+        string line = PipelineWarning(Current, Changed, Changed, proof);
+        Assert.Contains("diagnostics=sample; pipeline=transformed; ramInputMatch=false; outputDiskMatch=false; active requests=", line);
+        string fields = line.Split("fieldSample=[")[1].Split(']')[0];
+        const string section = "characters.pmc.Hideout.sptUpdateLastRunTimestamp";
+        Assert.Equal($"input:{section},output:{section},ram:{section}", fields);
+        Assert.DoesNotContain("disk:", fields); // in a transformed write the disk delta is the other mod's expected edit
+        Assert.DoesNotContain("SECRET", line);
+        Assert.DoesNotContain('\n', line);
+        Assert.True(line.Length < 1000);
+
+        // Secret names in the captured texts reach neither the line nor the sample.
+        var hostile = ProfileProof.Strict(Changed, "transformed", "false", input, Current.Replace("characters", secret));
+        string hostileLine = PipelineWarning(Current, Changed, Current, hostile);
+        Assert.DoesNotContain("SECRET", hostileLine);
+        Assert.DoesNotContain("forged", hostileLine);
+        Assert.True(hostileLine.Length < 1000);
+        Assert.True(hostileLine.Split("fieldSample=[")[1].Split(']')[0].Split(',').Length <= 3);
+    }
+
+    [Fact]
+    public void ConfirmedTransformedWriteLeavesNoWarningAndAMatchingProofReadsTrue()
+    {
+        var proof = new ProfileProof(ProfileProofMode.Pipeline, Current, "transformed", "true", Current, Changed);
+        var diagnostic = new SessionSaveDiagnostics();
+        // RAM equals the captured input and the output equals the disk: accepted, nothing to report.
+        ArenaRewardReturnListener.RequireSavedProfile(Current, Changed, Current, diagnostic, Selected, Selected, proof);
+        var lines = new List<string>();
+        diagnostic.WarnRefusal(true, Refusal, true, lines.Add);
+        Assert.Contains("profile=unavailable", Assert.Single(lines));
+
+        // A pipeline proof that RAM then fails (it changed meanwhile) reports true/true for input/output.
+        string line = PipelineWarning(Current, Changed, Changed, proof);
+        Assert.Contains("pipeline=transformed; ramInputMatch=true; outputDiskMatch=true;", line);
+    }
+
+    [Fact]
+    public void RaidEndWarningUsesFixedOperationWordsOnceAndNeverThrows()
+    {
+        var diagnostic = Capture(Current, Changed, Current, Selected);
+        var lines = new List<string>();
+        diagnostic.WarnNotConfirmed(lines.Add, "raid-end");
+        diagnostic.WarnNotConfirmed(lines.Add, "raid-end");
+        string line = Assert.Single(lines);
+        Assert.StartsWith("[ArenaMode] Restored profile not confirmed after saving: operation=raid-end;", line);
+        Assert.DoesNotContain("Session switch refused", line);
+        Assert.Contains($"profile={RewardIdentity.Hash(Selected)[..8]} (selected)", line);
+        Assert.DoesNotContain(Selected, line);
+        Assert.Contains("ramDiskMatch=false; ramStableDuringReadback=true; fieldSample=[disk:", line);
+        Assert.DoesNotContain("pipeline=", line);
+
+        // Free text never reaches the line, and the pipeline facts appear when they matter.
+        var other = new SessionSaveDiagnostics();
+        Assert.Throws<RewardDataException>(() => ArenaRewardReturnListener.RequireSavedProfile(Current, Changed, Current, other,
+            Selected, Selected, ProfileProof.Strict(Changed, "opaque")));
+        var more = new List<string>();
+        other.WarnNotConfirmed(more.Add, "SECRET free text");
+        string unknown = Assert.Single(more);
+        Assert.Contains("operation=unknown;", unknown);
+        Assert.DoesNotContain("SECRET", unknown);
+        Assert.Contains("pipeline=opaque; ramInputMatch=n/a; outputDiskMatch=n/a;", unknown);
+        new SessionSaveDiagnostics().WarnNotConfirmed(_ => throw new IOException(), "failed-start");
+    }
+
     private static readonly RewardReturnReply Refusal = new(false, "return-not-ready", false, true,
         "preflight-save", "return-profile-save-not-confirmed");
 

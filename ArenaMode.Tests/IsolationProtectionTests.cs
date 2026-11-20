@@ -140,6 +140,21 @@ public sealed class IsolationProtectionTests
         Assert.Contains("_persistence.RunAsync", service, StringComparison.Ordinal);
     }
 
+    // The operation word and the warning sink are optional parameters of the shared helper: a call site that drops
+    // them would silently log nothing (or the wrong word), so both call sites and the pass-through are pinned.
+    [Fact]
+    public void RestoredProfileSaveCallSitesPassTheirOperationWordAndTheWarningSink()
+    {
+        string service = File.ReadAllText(Path.Combine(RepoFiles.Root,
+            "ArenaMode.Server", "Services", "ArenaProtectedRaidEndService.cs")).Replace("\r\n", "\n");
+        Assert.Contains("await SaveRestoredProfileAsync(sessionId, \"raid-end\", transactionTimeout.Token);", service, StringComparison.Ordinal);
+        Assert.Contains("await SaveRestoredProfileAsync(sessionId, \"failed-start\", transactionTimeout.Token);", service, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(service, @"SaveRestoredProfileAsync\(sessionId, ").Count);
+        int helper = service.IndexOf("private Task SaveRestoredProfileAsync(", StringComparison.Ordinal);
+        string body = service[helper..service.IndexOf("internal static async Task SaveAndConfirmRestoredAsync", helper, StringComparison.Ordinal)];
+        Assert.Contains("ct, m => logger.Warning(m), operation);", body, StringComparison.Ordinal);
+    }
+
     private static void InArenaRaid(
         bool liveSaveServer,
         Action<ArenaSessionService, ProfileSnapshotService, string> body)

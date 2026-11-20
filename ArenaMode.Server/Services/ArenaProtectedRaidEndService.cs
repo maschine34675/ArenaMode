@@ -82,7 +82,7 @@ public sealed class ArenaProtectedRaidEndService(
                 // Background callbacks are drained before the actual swap,
                 // including when the out-of-raid update interval is restored.
                 ResetNonProfileLifecycle();
-                await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
+                await SaveRestoredProfileAsync(sessionId, "raid-end", transactionTimeout.Token);
                 await backupService.InitializeAsync(transactionTimeout.Token);
 
                 if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity,
@@ -134,7 +134,7 @@ public sealed class ArenaProtectedRaidEndService(
         await RestoreAndPersistAsync(sessionId, async () =>
         {
             ResetNonProfileLifecycle();
-            await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
+            await SaveRestoredProfileAsync(sessionId, "failed-start", transactionTimeout.Token);
             ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
             snapshots.CompleteRestoredPersistence(sessionId);
         }, transactionTimeout.Token);
@@ -148,20 +148,29 @@ public sealed class ArenaProtectedRaidEndService(
             () => snapshots.RestoreSnapshot(sessionId), persist, ct);
     }
 
-    private Task SaveRestoredProfileAsync(MongoId sessionId, CancellationToken ct)
+    private Task SaveRestoredProfileAsync(MongoId sessionId, string operation, CancellationToken ct)
         => SaveAndConfirmRestoredAsync(snapshots, sessionId, token => saveServer.SaveProfileAsync(sessionId, token),
             profile => json.Serialize(profile) ?? throw new InvalidOperationException("Could not serialize restored profile."),
-            () => ReadPersistedProfile(sessionId), ct);
+            () => ReadPersistedProfile(sessionId), ct, m => logger.Warning(m), operation);
 
     internal static async Task SaveAndConfirmRestoredAsync(ProfileSnapshotService snapshots, MongoId sessionId,
-        Func<CancellationToken, Task> save, Func<SptProfile, string> serialize, Func<string> readDisk, CancellationToken ct)
+        Func<CancellationToken, Task> save, Func<SptProfile, string> serialize, Func<string> readDisk, CancellationToken ct,
+        Action<string>? warning = null, string operation = "raid-end")
     {
         if (!snapshots.HasPendingPersistence(sessionId))
             throw new InvalidOperationException("Arena restored-profile persistence witness is unavailable");
         await Routers.ArenaRewardReturnListener.SaveWithoutAborting(save, ct);
         // Native save can skip after caching a hash for a prior failed write.
         // This must gate native-end completion even with rewards disabled.
-        snapshots.RequireRestoredPersistence(sessionId, readDisk(), serialize);
+        // A refusal here used to leave only the exception text. The diagnostics name, in fixed words, whether
+        // the readback failed on the strict comparison or on a profile-write pipeline (raid-end / failed-start).
+        var diagnostics = new SessionSaveDiagnostics();
+        try { snapshots.RequireRestoredPersistence(sessionId, readDisk(), serialize, diagnostics); }
+        catch (RewardDataException exception) when (exception.Message == "return-profile-save-not-confirmed")
+        {
+            if (warning is not null) diagnostics.WarnNotConfirmed(warning, operation);
+            throw;
+        }
     }
 
     private static string ReadPersistedProfile(MongoId sessionId)

@@ -146,14 +146,26 @@ public class ProfileSnapshotService(
         lock (_lock) return _pendingPersistence.ContainsKey(sessionId.ToString());
     }
 
-    internal void RequireRestoredPersistence(MongoId sessionId, string disk, Func<SptProfile, string> serialize)
+    internal void RequireRestoredPersistence(MongoId sessionId, string disk, Func<SptProfile, string> serialize,
+        Rewards.SessionSaveDiagnostics? diagnostics = null)
     {
         lock (_lock)
         {
             if (!_pendingPersistence.TryGetValue(sessionId.ToString(), out var expected))
                 throw new InvalidOperationException("Arena restored-profile persistence witness is unavailable");
             var restored = saveServer.GetProfile(sessionId);
-            Routers.ArenaRewardReturnListener.RequireSavedProfile(serialize(expected), disk, serialize(restored));
+            // Under a profile-write mod (Pack A Punch) the file legitimately differs from RAM. The proof accepts
+            // that only through the captured write pipeline (RAM equals its input, its output equals this disk
+            // text); without a transformation Resolve returns Strict and the rule is the old one.
+            string id = sessionId.ToString();
+            var proof = Rewards.ProfileWriteProof.Resolve(id, disk);
+            string expectedJson = serialize(expected);
+            string restoredJson = serialize(restored);
+            if (diagnostics is null)
+                Routers.ArenaRewardReturnListener.RequireSavedProfile(expectedJson, disk, restoredJson, proof);
+            else
+                Routers.ArenaRewardReturnListener.RequireSavedProfile(expectedJson, disk, restoredJson,
+                    diagnostics, id, id, proof);
             // A transient optional metadata failure at the actual swap can be
             // retried now, while the independent full native witness is still
             // present. This does not infer a restore from empty reward RAM.

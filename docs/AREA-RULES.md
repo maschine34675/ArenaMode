@@ -119,6 +119,12 @@ Native end and failed/stale-start recovery must drain native update callbacks
 before the actual profile swap. Use the protected end service's owned persistence
 window through save/readback/completion; never restore directly in a router or
 resume the session-return owner's update hold. Read docs/reviews/RAID-END-PERSISTENCE-20261027.md.
+Profile-writing mods such as Pack A Punch change the text on its way to the disk, so "disk equals RAM"
+is proven through the captured write pipeline (RAM equals the write's input, its output equals the file exactly, the output is
+a pure removal that leaves the reward ledger and identity blocks untouched; docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md,
+docs/PACK-A-PUNCH-COMPAT.md). This does not weaken the readback: without a transforming mod the rule is identical,
+and failed, skipped and foreign writes still fail it. Use `ExactSameProfile` for profile comparisons, never the patchable
+`SameProfile`; startup recovery stays strict; a startup write of a profile goes through `PapSideFileGuard`.
 
 The legacy schema 1/2 private map-menu consent relay uses a normal-server-issued, expiring control
 grant, pinned loopback TLS and explicit revision-checked settings. Keep the
@@ -148,7 +154,8 @@ Schema 3 reuses the same native drain/save proof at entry, independently of rewa
 a lost or mismatching reward authority yields a lease without authority and never
 leaves the stopped normal server paused (docs/REWARDS-RUNTIME.md, "Lost reward authority").
 Keep the separate process-bound return capability, request/update drain, native
-save plus full disk/RAM readback, exact process exit and no forced normal-server kill.
+save plus full disk/RAM readback (through the captured write pipeline when another mod transforms the write,
+see above), exact process exit and no forced normal-server kill.
 A failed final save retains the quiesced process/RAM for an explicit retry; never
 resume native StartAsync, clear native save hashes or replace its live profiles.
 

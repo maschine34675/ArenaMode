@@ -128,11 +128,26 @@ stay silent. The original `stage/reason` remains searchable; the warning adds:
 
 - `operation=enter|return` and, for `return-profile-save-not-confirmed`, an eight-character
   hash alias of the failing loaded profile plus `selected|other-loaded`.
-- `ramDiskMatch`: the first RAM snapshot matches the saved file; and
+- `ramDiskMatch`: the first RAM snapshot matches the saved file (when another mod
+  transforms the profile write, see the pipeline tokens below: this stays the plain
+  RAM-against-file result); and
   `ramStableDuringReadback`: RAM is unchanged between the two snapshots. **Both RAM
   snapshots are after the native save.** Either or both comparisons can fail.
+- `pipeline`, `ramInputMatch`, `outputDiskMatch`: printed directly after `diagnostics=`
+  and only when `pipeline` is not `none`, so a setup without a profile-writing mod keeps
+  the lines it always had. `pipeline` is one of `transformed` (another mod, for example
+  Pack A Punch, changes the text on its way to the disk and Arena captured it),
+  `opaque` (no usable capture: a direct byte writer, a skipped write, a limit),
+  `unsafe` (the capture is not a pure removal or touches Arena's reward/identity data),
+  `unavailable` (the capture hook is not active), or `none`.
+  `ramInputMatch`: RAM equals the text handed to the write; `outputDiskMatch`: the bytes
+  the write produced equal the file. Both are `true|false|unknown|n/a`. Mod names,
+  assembly names, paths and counts never appear. See
+  [PACK-A-PUNCH-COMPAT.md](PACK-A-PUNCH-COMPAT.md).
 - `fieldSample`: at most three fixed schema section labels, prefixed `disk:` or
-  `ram:`. This is a sample, not a complete diff. Unknown extension fields stay
+  `ram:`; with a transformed write the prefixes are `input:` (RAM against the write's
+  input), `output:` (the write's output against the file) and `ram:`, and `disk:` is
+  left out because it would only list the other mod's expected edit. This is a sample, not a complete diff. Unknown extension fields stay
   `unclassified-section` or their nearest known parent; values, dynamic dictionary
   keys, array items, full profile IDs and paths are never included.
 - `updateStopStarted`: native update stopping has begun, not necessarily completed.
@@ -149,7 +164,26 @@ guidance in the same warning. Logging failures cannot change the reply or holds.
 
 These observations do **not** prove profile corruption or identify the writer.
 For a report, request the surrounding server log and matching `helper.log` section.
-Save/readback protection, helper replies and lease formats are unchanged.
+The save/readback rule is the exact comparison, extended for a transforming mod by
+the captured write pipeline: RAM must equal the write's input and the write's output
+must equal the file, the output must only remove data and leave Arena's reward and
+identity blocks alone (`docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md`). Without such a
+mod nothing changes. Helper replies and lease formats are unchanged.
+
+The raid end and the failed-start restoration have no session switch to refuse. When their
+readback is not confirmed, one Warning is written per failed attempt:
+`Restored profile not confirmed after saving: operation=raid-end|failed-start; profile=<alias> (<role>);
+ramDiskMatch=...; ramStableDuringReadback=...; fieldSample=[...]; diagnostics=...;` plus the pipeline
+tokens above when they apply. Other operation words print as `unknown`.
+
+Other lines of the profile write capture: Warning once per start if the capture hook cannot be
+installed ("Profile write proof unavailable; Arena keeps the strict save comparison"), Warning once per
+process if the Pack A Punch side file time cannot be kept ("Could not keep the Pack A Punch side file ..."; the
+flag is only spent by a line that was written, and during Arena's startup writes the line goes through the logger of
+`ArenaRewardStartup`, because `ArenaContext.Logger` is assigned later).
+Debug: the hook enabled (number of foreign prefixes on the two write methods, no names); one fact per process
+that a profile write is transformed (profile alias only); one line per process when a captured write had no
+output; the side file kept fresh (alias only); an unsupported Pack A Punch version. None of them is Info.
 `SessionSaveDiagnosticsTests` exercises the production comparison and sequence,
 including privacy sentinels, limits, retries, held failures and a throwing logger;
 run it as part of `tools/Run-ArenaVerification.ps1` without deploying.

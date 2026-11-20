@@ -871,6 +871,13 @@ Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
   home menu. [Session artwork](reviews/SESSION-MENU-ART-20261109.md)
 - The private home menu hides its beta banner. Arena raids hide the SPT
   version line in the lower-left corner until the raid ends.
+- Entry, return and the raid end work with profile-writing mods such as Pack A Punch: Arena
+  captures what SPT's write path does to the profile text and accepts the readback only when RAM
+  equals the write's input, its output equals the file, and the change is a pure removal that leaves
+  the reward ledger and identity untouched. Without such a mod the check is exactly the old
+  exact comparison, and failed, skipped or foreign writes still fail it. A fresh Pack A Punch side
+  file is kept fresh across Arena's startup profile writes.
+  [Contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md), [compatibility](PACK-A-PUNCH-COMPAT.md).
 - Native update callbacks drain before profile restoration and saved readback,
   preventing the observed round-end hang. Missing disposable data after a stopped
   session can be discarded safely during ordinary startup. Uncertain old rewards

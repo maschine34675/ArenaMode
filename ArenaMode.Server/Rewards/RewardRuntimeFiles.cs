@@ -96,7 +96,13 @@ internal static class RewardRuntimeFiles
         Write(root, path, value);
     }
 
-    internal static bool SameProfile(string expected, string actual)
+    // Another mod can patch SameProfile (a foreign postfix forcing it to true is a real compat case), so
+    // every profile-versus-profile proof calls ExactSameProfile. NoInlining keeps the JIT from folding the
+    // body into callers.
+    internal static bool SameProfile(string expected, string actual) => ExactSameProfile(expected, actual);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    internal static bool ExactSameProfile(string expected, string actual)
     {
         using var a = JsonDocument.Parse(expected);
         using var b = JsonDocument.Parse(actual);

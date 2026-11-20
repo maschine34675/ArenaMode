@@ -305,28 +305,50 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             if (input.Length is <= 0 or > 64 * 1024 * 1024) throw new RewardDataException("return-profile-size");
             using var reader = new StreamReader(input);
             string actual = await reader.ReadToEndAsync(ct);
-            string after = Serialize(saves.GetProfile(pair.Key));
-            RequireSavedProfile(expected, actual, after, diagnostics, id, selectedProfileId);
+            VerifySavedProfile(id, expected, actual, () => Serialize(saves.GetProfile(pair.Key)), diagnostics, selectedProfileId);
         }
         if (!profiles.Keys.ToHashSet().SetEquals(saves.GetProfiles().Keys))
             throw new RewardDataException("return-profile-set-changed");
     }
 
+    // The strict comparison: RAM equals the disk text and is still the same afterwards. The unpatched
+    // ExactSameProfile, never SameProfile: another mod's postfix on SameProfile must not decide a save proof.
     internal static void RequireSavedProfile(string before, string disk, string after)
     {
-        if (!RewardRuntimeFiles.SameProfile(before, disk) || !RewardRuntimeFiles.SameProfile(before, after))
+        if (!RewardRuntimeFiles.ExactSameProfile(before, disk) || !RewardRuntimeFiles.ExactSameProfile(before, after))
+            throw new RewardDataException("return-profile-save-not-confirmed");
+    }
+
+    // With the captured write pipeline: RAM equals the disk text, or RAM equals what SPT was about to write and
+    // that write's output equals the disk (ProfileWriteProof.Resolve checked it on this disk text).
+    internal static void RequireSavedProfile(string before, string disk, string after, ProfileProof proof)
+    {
+        if (!ProfileWriteProof.Confirms(before, disk, proof) || !RewardRuntimeFiles.ExactSameProfile(before, after))
             throw new RewardDataException("return-profile-save-not-confirmed");
     }
 
     internal static void RequireSavedProfile(string before, string disk, string after,
-        SessionSaveDiagnostics diagnostics, string profileId, string selectedProfileId)
+        SessionSaveDiagnostics diagnostics, string profileId, string selectedProfileId, ProfileProof? proof = null)
     {
-        try { RequireSavedProfile(before, disk, after); }
+        try
+        {
+            if (proof is null) RequireSavedProfile(before, disk, after);
+            else RequireSavedProfile(before, disk, after, proof);
+        }
         catch (RewardDataException exception) when (exception.Message == "return-profile-save-not-confirmed")
         {
-            diagnostics.Capture(profileId, selectedProfileId, before, disk, after);
+            diagnostics.Capture(profileId, selectedProfileId, before, disk, after, proof);
             throw;
         }
+    }
+
+    // The per-profile proof of SaveAndVerify, extracted so it can be run against a real SaveServer. It runs after
+    // the disk read and after the native save, for entry and return alike.
+    internal static void VerifySavedProfile(string id, string expected, string actualDisk, Func<string> readAfter,
+        SessionSaveDiagnostics diagnostics, string selectedProfileId)
+    {
+        var proof = ProfileWriteProof.Resolve(id, actualDisk);
+        RequireSavedProfile(expected, actualDisk, readAfter(), diagnostics, id, selectedProfileId, proof);
     }
 
     internal static async Task SaveWithoutAborting(Func<CancellationToken, Task> save, CancellationToken ct)

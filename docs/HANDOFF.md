@@ -506,6 +506,20 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Pack A Punch save pipeline, 2026-11-20 (branch `feature/pap-save-pipeline-v070`, based on master `0d596980`, local commits
+only, not pushed; [contract](reviews/PROFILE-WRITE-PIPELINE-20261120.md)):** Forge issue 3 (entry declined under Pack A Punch,
+raid end failing in a normal session) is fixed in two parts. Part 1: `ProfileWriteProof` captures SPT's profile write
+(`ArenaProfileWriteCapturePatches`) and the readback at entry/return, raid end/failed start and the checkpoint accepts RAM
+equal to the write's input and the write's output equal to the file, with a subtractive projection and unchanged protected
+subtrees; startup recovery stays strict; all profile comparisons use `ExactSameProfile`. Part 2: `PapSideFileGuard`
+keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. Offline: xunit and ten mutants in
+`tools/OfflineStartupChecks/Mutations.ps1`. Native on GPU-2 with PaP 2.2.1 and Hideout Uncensored 1.3.0
+([report](reports/2026-11/PAP-NATIVE-20261120.md)): issue 3 reproduced on 0.6.0, entry/return and the normal-session match
+end pass with the fix; Part 2 shown on a copied install against a control build without the carry. Not native: a payout at
+the return (the GPU-2 test profile reports `invalid-result-history` at every start since at least 2026-11-17, before PaP).
+[User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
+retired (the owner's decision; the Forge reply is the owner's too). The Forge description line about Pack A Punch belongs to the 0.7.0 description (it is not in the 0.6.0 draft in `FORGE-DESCRIPTION.md`, since 0.6.0 does not contain the fix).
+
 **Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
 commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
 decision of 2026-11-19 reverses "Tactical gets no build-up" of the difficulty model: the enemy squad of solo Tactical

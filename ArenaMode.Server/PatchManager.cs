@@ -1,5 +1,6 @@
 using ArenaMode.Server.Patches;
 using ArenaMode.Server.Compat;
+using ArenaMode.Server.Rewards;
 using ArenaMode.Server.Services;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
@@ -47,6 +48,15 @@ public sealed class PatchManager(
         {
             logger.Warning(
                 $"[ArenaMode] Arena session probe failed; this server is treated as a normal one: {ex.Message}");
+        }
+
+        // Independent of the PitFireTeam file patches below: a capture failure only leaves the strict save
+        // comparison in place and must neither depend on nor change their rollback group.
+        try { ArenaProfileWriteCapturePatches.TryEnable(); }
+        catch (Exception ex)
+        {
+            ProfileWriteProof.MarkReady(false);
+            logger.Warning($"[ArenaMode] Profile write proof unavailable; Arena keeps the strict save comparison ({ex.GetType().Name}).");
         }
 
         ArenaSettingsRequestLogPatch.TryEnable();
