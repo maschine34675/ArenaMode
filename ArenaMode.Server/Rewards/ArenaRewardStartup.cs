@@ -4,6 +4,7 @@ using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Servers;
 using SPTarkov.Server.Core.Utils;
@@ -30,6 +31,7 @@ namespace ArenaMode.Server.Rewards;
 public sealed class ArenaRewardStartup(
     SaveServer saves,
     IReadOnlyList<DependencyInjectionContainer> containers,
+    IReadOnlyList<SptMod> loadedMods,
     ISptLogger<ArenaRewardStartup> logger) : IOnLoad, IDisposable
 {
     // Tests: the coordinator this start informs; null is the process-wide one.
@@ -46,6 +48,9 @@ public sealed class ArenaRewardStartup(
     public async Task OnLoadAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _entered, 1) != 0) return;
+        // Before any profile write below: the startup writes must be able to keep a Pack A Punch side file fresh.
+        // The mod list is injected here (not taken from PatchManager, which runs later than this callback).
+        PapSideFileGuard.Configure(loadedMods);
         var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
         var admission = await AdmitAsync(root, cancellationToken);
         _offlineOwner = admission.Owner;

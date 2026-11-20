@@ -45,7 +45,7 @@ public sealed partial class RewardOfflineSessionTests
         var logger = DispatchProxy.Create<ISptLogger<ArenaRewardStartup>, ArenaServerInstanceTests.RecordingLogger>();
         var log = (ArenaServerInstanceTests.RecordingLogger)(object)logger;
         var coordinator = new RewardRuntimeCoordinator(f.Root);
-        using var startup = new ArenaRewardStartup(null!, [], logger)
+        using var startup = new ArenaRewardStartup(null!, [], [], logger)
         { LoadedProfiles = loaded, Coordinator = coordinator, RecoveryRetryDelay = TimeSpan.Zero };
         string previous = Environment.CurrentDirectory;
         try

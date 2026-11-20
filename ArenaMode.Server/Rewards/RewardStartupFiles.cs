@@ -89,6 +89,9 @@ internal static class RewardStartupFiles
     internal static void WriteAtomic(string root, string path, string json)
     {
         RequireLocalPath(root, path, allowMissingLeaf: true);
+        // Pack A Punch: a fresh side file is carried to the new profile time (PapSideFileGuard says why). Prepare
+        // never throws and returns null for everything that is not a runtime profile.
+        var papSideFile = PapSideFileGuard.Prepare(root, path);
         var temporary = Path.Combine(Path.GetDirectoryName(path)!, ".arena-reward-" + Guid.NewGuid().ToString("N") + ".tmp");
         try
         {
@@ -100,6 +103,10 @@ internal static class RewardStartupFiles
                 stream.Flush(flushToDisk: true);
             }
             RequireLocalPath(root, path, allowMissingLeaf: true);
+            // Before the move, so a crash between the two leaves a side file NEWER than the old profile (fresh to
+            // PaP), never a profile newer than its side file. The move preserves the staged file's time, which the
+            // side file now carries exactly.
+            if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(temporary));
             File.Move(temporary, path, overwrite: true);
         }
         finally
