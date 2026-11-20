@@ -483,7 +483,7 @@ internal sealed class RewardRuntimeCoordinator
             if (!_snapshots.TryGetValue(id, out var snapshot)) return;
             var restored = serialize();
             RewardRestorationCheckpoint.ObserveRestored(_root, id, snapshot.Generation, restored);
-            if (!RewardRuntimeFiles.SameProfile(snapshot.Json, restored)) throw new RewardDataException("reward-restored-snapshot-mismatch");
+            if (!RewardRuntimeFiles.ExactSameProfile(snapshot.Json, restored)) throw new RewardDataException("reward-restored-snapshot-mismatch");
             snapshot.Restored = true;
         }
     }
@@ -500,7 +500,7 @@ internal sealed class RewardRuntimeCoordinator
             if (!snapshot.Restored)
                 throw new RewardDataException("reward-recovery-restoration-unproven");
             RewardRestorationCheckpoint.Persisted(_root, id, snapshot.Generation, persistedJson);
-            if (!RewardRuntimeFiles.SameProfile(snapshot.Json, persistedJson))
+            if (!RewardRuntimeFiles.ExactSameProfile(snapshot.Json, persistedJson))
                 throw new RewardDataException("reward-recovery-restoration-unproven");
             RewardRestorationCheckpoint.Complete(_root, id, snapshot.Generation, snapshot.Authority);
             _runs.Remove(id);
@@ -518,7 +518,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (run.NativeEnd != nativeEndIdentity || !run.Snapshot.Restored)
                     throw new RewardDataException("reward-durable-restoration-unproven");
                 RewardRestorationCheckpoint.Persisted(_root, id, run.Snapshot.Generation, persistedJson);
-                if (!RewardRuntimeFiles.SameProfile(run.Snapshot.Json, persistedJson))
+                if (!RewardRuntimeFiles.ExactSameProfile(run.Snapshot.Json, persistedJson))
                     throw new RewardDataException("reward-durable-restoration-unproven");
                 var evaluation = RewardRestorationCheckpoint.Complete(_root, id, run.Snapshot.Generation, run.Authority);
                 if (run.Final is null) throw new RewardDataException("reward-final-report-missing");
