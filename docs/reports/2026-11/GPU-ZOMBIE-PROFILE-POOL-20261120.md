@@ -17,7 +17,7 @@ what the pool already holds (`ArenaBackupProfileDuplicatePatch`).
 | Was every reload a duplicate? | **Yes**: 17 reloads in run A, 1530 profiles, every one `N of N` |
 | Does the final reviewed build behave the same? | **Yes** in run C (waves 1 to 5, 4 reloads all `N of N`, no Error line) |
 | A played match with kills, the PMC modes, memory | **not shown** (see "Not shown") |
-| Audio exception | **seen in run A only (five bursts), not caused by anything shown, open** (see "Seen on the way") |
+| Audio exception | **seen in run A only (five bursts)**; a game bug, traced the same day (see "Seen on the way") |
 
 ## Setup
 
@@ -125,10 +125,11 @@ the player's body swap of the kit refill).
 - The profile patch touches no audio code. Whether the exception needs the sustained throughput that the correction
   makes possible, the raid's length, or something else is open, and so is whether it can happen in a played match (it
   was never seen in one). The watchdog also exists in normal play (100 s without a kill). Nothing was changed for it.
-- Followed up the same day from the decompile and this log, without a run:
-  [AUDIO-OCCLUDER-EXCEPTION-20261120.md](AUDIO-OCCLUDER-EXCEPTION-20261120.md) (an infected's spine container that
-  the game's audio limiter resumed is returned to the pool twice at its death; the exception ends with the death of
-  the bot that drew the second copy).
+- Followed up the same day from the decompile, this log and a native check of the pool in three raids:
+  [AUDIO-OCCLUDER-EXCEPTION-20261120.md](AUDIO-OCCLUDER-EXCEPTION-20261120.md) (a game bug: an infected's spine
+  container that the game's audio limiter resumed is returned to the pool twice at its death, seen natively; the
+  exception ends with the death of the bot that drew the second copy; the exception itself did not come again in 39
+  retirements on the build without the profile correction).
 
 ## Restore
 

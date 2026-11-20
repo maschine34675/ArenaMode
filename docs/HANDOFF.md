@@ -556,7 +556,10 @@ either. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT
 report); the branch builds are not installed. EFT and the SPT server on the host are not running. Open: (1) the
 owner's decision whether the alive limit should grow at all, given the measured frame-time ceiling of 32 (the earlier
 point that it depends on the supply is void); (2) the audio exception `Can't handle not proposed occlusion test :
-Combined` that appeared in five bursts in one raid and is unexplained (report, "Seen on the way"); (3) a played match
+Combined` that appeared in five bursts in one raid: a game bug, the audio pool handing one container out twice, with
+the double return seen natively the same day
+([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); an Arena-only guard
+only on the owner's word; (3) a played match
 with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline
 harness for the prefix is `tools/BackupProfileDuplicateChecks` (commit `5a0863aa`, registered in
 `tools/verification-steps.txt`). The owner's open decisions from the entries above

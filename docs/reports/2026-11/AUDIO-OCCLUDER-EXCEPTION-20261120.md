@@ -4,8 +4,9 @@ Follow-up to "Seen on the way" in [GPU-ZOMBIE-PROFILE-POOL-20261120.md](GPU-ZOMB
 of that check (Factory, Zombies, 32 alive, waves 50 +20, no player kills, `Zombie/StuckWaveTimeoutSeconds` 5) the game
 threw `Exception: Can't handle not proposed occlusion test : Combined` from
 `Audio.SpatialSystem.MultiSourceSpatialAudioOccluder.GetTargetOcclusionType` once per frame, in five bursts, 5259
-times in all. This report reads the decompile (`../_decompiled`, EFT 0.16.9.5) and the saved logs. **No game was run
-for it**, and nothing was built or changed in the code. Paths below are relative to `_decompiled`; line numbers are
+times in all. This report first read the decompile (`../_decompiled`, EFT 0.16.9.5) and the saved logs (sections 1, 2
+and 4); a native check on SPT-GPU-2 later the same day then watched the game's container pool in three Zombie raids
+(section 3). Nothing was built or changed in the code. Paths below are relative to `_decompiled`; line numbers are
 those of the decompiled files.
 
 ## Result in one table
@@ -13,15 +14,16 @@ those of the decompiled files.
 | Question | Answer |
 | --- | --- |
 | What throws | The main multi-source occluder still lists a one-shot container under its old id after the container went back to the game's pool and was handed out again as a bot's `Combined` container. **Confirmed** by the code and by the shape of the log (no `OnLateUpdate` stack, end two frames after the holder's death). |
-| Where the second owner comes from | A pool that holds one container twice. The only path found: the spine container of an **infected** bot that the game's audio source limiter paused and resumed is returned twice at its death. **Decompile only**, not yet observed in memory. |
-| One death or many | One death of such an infected arms the pool. The exception then needs a one-shot sound and a bot's first audio registration to draw the two copies in one frame. Many deaths in one frame are not required; they multiply both. |
+| Where the second owner comes from | A pool that holds one container twice. The only path found: the spine container of an **infected** bot that the game's audio source limiter paused and resumed is returned twice at its death. **Observed natively** (section 3): all 6 containers that were seen in both registries lay in two pool slots after their holder died. |
+| One death or many | One death of such an infected arms the pool. The exception then needs a one-shot sound and a bot's first audio registration to draw the two copies in one frame. Many deaths in one frame are not required; they multiply both. Natively, 6 of about 1,140 retired infected were armed: a rare first step. |
+| Does it accumulate | **Yes, natively.** A pooled-twice container is usually drawn by two new infected, which then share it; both return it at their deaths, so it is pooled twice again, wave after wave, for the rest of the raid. Up to three such containers at once, one of them in three slots. |
 | Zombie mode only? | Only bots with the simplified (infected) skeleton enter the limiter, so PMCs and scavs never arm the pool. It is a game bug: a normal raid with infected has the same path. Arena touches no audio container code. |
 | What it does while it throws | From the code, not listened to: one-shot sounds that the occluder lists after the stale entry stay silent (mostly other players' shots, shell casings, bullet impacts from another room); occlusion of bots' footsteps and voices is not re-evaluated. |
 | Cost | Frame time: no difference beyond noise. Log: about 890 bytes per exception, 85 to 120 per second; 61 % of run A's client log (4.7 of 7.6 MB). |
 | What ends it | The death of the bot that holds the container: the game returns that bot's container in the next frame (later only if the bot was speaking). In a played match: when that infected is killed, at the latest when the raid ends. |
-| Reproducible on purpose | The exception, no (it depends on the pool's slot order). The precondition, yes: a procedure that reads the pool after one infected death is below; **not run** (two other ArenaMode sessions were active). |
+| Reproducible on purpose | The precondition, yes: in each of three raids the pool held a container twice after the first armed death. The exception, no: none in 39 retirements (about 1,140 infected), on the installed build without the profile fix, so the third raid's waves filled more slowly than run A's. The stale occluder key itself was seen six times, each time with a second one-shot as the other owner, which does not throw. |
 | With player kills at high waves | Same game path; not observed, not excluded. |
-| Recommendation | Confirm the duplicate with one inspect run, then, if the owner wants a guard, a prefix on `AudioSourceContainerData.ReturnContainer` that does not pool a container twice (exact Arena raid). Not the watchdog change, not a finalizer. Low priority: audio only, a game bug, never seen in a played match. |
+| Recommendation | If the owner wants a guard: a prefix on `AudioSourceContainerData.ReturnContainer` that does not pool a container twice (exact Arena raid). It removes the first double return, from which the shared containers that follow all come. Not the watchdog change, not a finalizer. Low priority: audio only, a game bug, never seen in a played match. |
 
 ## Evidence
 
@@ -30,6 +32,9 @@ those of the decompiled files.
   (`artifacts/opening-rounds-20261119/native/acceptance/zombie-full-wave10-rerun/`, `.../zombie-mid-baseline-72273354/`)
   for the comparisons.
 - The decompile, files named in each step.
+- The native check (git-ignored): `artifacts/audio-occluder-20261120/`, with `monitor*.jsonl` (one line per poll),
+  the scripts that wrote them (`monitor*.mjs`, `probe*.mjs`, `summarize.py`) and `host2-bepinex.log` (the client log
+  of the three raids).
 - Arena's own code: no reference to `SpatialAudio*`, `AudioSourceContainer*`, `ObservedPlayerAudioSourceLimiter` or
   `ProcessSourceOcclusion` (searched over every `.cs` of the repository). The only audio patch near infected,
   `ZombieVoiceBudget`, prefixes `Player.OnPhraseTold` of living infected and leaves the containers alone. The profile
@@ -130,7 +135,7 @@ have a bot's persistent source released by `ApplyOcclusionToSource`, `:208-217`)
   duplicate, so duplicates may accumulate during a raid. The bursts began 3.1, 8.6, 8.9, 11.0 and 11.8 minutes into
   the 12.7-minute match of run A; none came in runs B and C (about 4 minutes each) nor in the two logs of the night
   before, whose full run filled its waves at about a quarter of run A's rate from wave 5 on (fewer deaths per minute).
-  That is consistent with accumulation and does not show it.
+  The log alone is consistent with accumulation and does not show it; the native check (section 3) does.
 
 ## 2. While it throws
 
@@ -161,23 +166,77 @@ have a bot's persistent source released by `ApplyOcclusionToSource`, `:208-217`)
   until the watchdog retires it (100 s without a kill while the wave is saturated) or the raid ends. A holder that
   walks into the listener's indoor room pauses the throwing without removing the entry.
 
-## 3. Reproducing it
+## 3. Reproducing it: the native check
 
-- **The exception on demand: no.** It needs the two copies drawn in one frame in the right order.
-- **The precondition: yes, deterministically**, in one Zombie raid with a handful of infected that spawn out of
-  hearing range and walk in, using `uibridge_inspect` (read-only):
-  1. Open `Audio.SpatialSystem.SpatialAudioSystem` and read its singleton (`MonoBehaviourSingleton` `Instance`).
-  2. Armed containers: items of `_activeSoundContainers` whose `OcclusionTest` is `Combined` (only the limiter's resume
-     puts one there). Expect some within a minute of infected approaching.
-  3. Kill one infected that was in that list; one frame later read `_containerData._audioContainersPool.gparam_0`:
-     two occupied slots with the same non-zero `ID` are one object pooled twice (ids are unique per `GetContainer`;
-     fresh objects carry 0).
-  4. During a burst, if one comes: an entry of `_multiSourceOccluder._activeContainersByID` whose key differs from
-     its value's `ID`.
-- Not run: two other ArenaMode sessions were active in this hour, and AGENTS.md wants a free host before a game start.
+Run on SPT-GPU-2 on 2026-11-20 between 11:02 and 11:34 (VM time), after the owner asked for it, with no other session
+on the host. Installed and unchanged: client and server `0.6.0+72273354` (client DLL `978B32CB...`, server DLL
+`69A60D06...`), the build **without** the branch's profile correction. EFT 0.16.9.5, UiBridge 0.10.1. Factory, Zombies,
+Arena kits, 32 alive, no player kills; godmode re-applied every 1.5 s.
+
+### Method
+
+A script (`monitor*.mjs`, built on `tools/ZombiePerformanceChecks/bridge.mjs`, read-only apart from godmode) polled
+the singleton `Audio.SpatialSystem.SpatialAudioSystem.Instance` about every 0.65 s with `uibridge_inspect`:
+
+- the pool array `_containerData._audioContainersPool.gparam_0` in one `collection` call (one main-thread work item,
+  so one frame). The inspector returns the same handle for the same object, so **one handle in two slots is one object
+  pooled twice**; its `ID`, `OcclusionTest` and `_initialized` were read at once;
+- `_activeSoundContainers` and the player containers (`_registeredPlayerContainers.Values`). A container in both is
+  **armed** (step 4). The same handle twice among the player containers means two players own one object;
+- the main occluder's `_activeContainersByID` (keys and values, then each value's `ID` and `OcclusionTest`) whenever
+  it was not empty: an entry whose key differs from its container's `ID` is the stale key of step 9.
+
+The lists come from separate calls, so from different frames: a container seen both held and pooled during a spawn
+can be a return and a draw between two calls; it counts only when it holds over several polls in a quiet stretch.
+
+### Results
+
+| Raid | Settings (persist=false where not a menu row) | Retirements | Armed containers | Pooled twice after the holder's death | Exceptions |
+| --- | --- | --- | --- | --- | --- |
+| 1 | waves 32 +0, `StuckWaveTimeoutSeconds` 20, `IntermissionSeconds` 30 | 6 of 32 | 1 | 1 of 1 | 0 |
+| 2 | waves 64 +0, 20 s, 30 s | 6 of 32 | 2 | 2 of 2 | 0 |
+| 3 | run A's: waves 50 +20, 5 s, 2 s | 27 (21 of 32) | 3 | 3 of 3 | 0 |
+
+- **The double return.** Raid 1, wave 1: the first infected's container (id 70) was armed while the wave filled; at
+  the first retirement its holder died, and as soon as the dead players' containers had gone back (about 2.5 s,
+  the speakers' remaining phrases) the pool held that object in slots 26 and 34, uninitialised, id 70. It stayed so
+  for the whole 30 s intermission. Raids 2 and 3 showed the same for every armed container.
+- **The pause and resume.** Once caught between two polls (raid 1, wave 2): `_pausedContainers` went from 2 to 1 in
+  the poll in which the holder's container became armed. A second paused entry (key 15, from before the first wave)
+  stayed for the whole raid; it is a different leak and was not followed.
+- **What the copies did next** (the "other orders" of step 8, now seen):
+  - two new infected drew both copies and shared one container (the same object under two player ids), in all three
+    raids. Their two deaths put it back in two slots, and the next wave shared it again: the duplicate kept itself
+    alive for the rest of each raid;
+  - an infected held the object while another copy lay in the pool: through all of raid 1's wave 6 (slot 64, two
+    infected sharing the object meanwhile). Wave 2 of raid 1 ended the way this allows: the object came back from the
+    retirement in three slots carrying id 188, an id handed out to a one-shot during that retirement, so a one-shot had
+    drawn the pooled copy and re-initialised the container of a bot that still lived;
+  - two one-shots drew both copies (raid 3, six times): the occluder kept the first one's key (378, 1043, 1119, 1194,
+    1287, 1548) for a container that carried the next id (379, 1044, 1121, 1195, 1299, 1549) and a one-shot test. This
+    is step 9's stale key with a one-shot as the second owner, which does not throw; each was gone within about 2 s.
+- **Accumulation.** Up to three containers were pooled twice at the same time (raid 3), and one object lay in three
+  slots (raid 1).
+- **No exception.** For the throw a bot has to be the second owner of a container that the occluder lists under an
+  older key. That order did not come in 39 retirements. Raid 3 does not reproduce run A's load: on this build the
+  waves filled slowly from about wave 5 on, as the night before, and the 21 retirements of 32 took 13.8 minutes
+  against 55 in 12.7 minutes in run A. The branch build was not installed for this check.
+
+### What the check does not show
+
+- That the bursts of run A came from this path. It is the only path the code offers, and every intermediate state of
+  it was seen, but no burst came under observation.
+- Why so few infected are armed (6 of about 1,140 retired): the limiter pauses a container only out of hearing range,
+  and the polls did not catch most transitions.
 - **Player kills at high waves.** Every infected death that was armed arms the pool, killed or retired. One-shots are
   plentiful in a fight (the player's own bullet impacts count), and in Zombies a spawn follows the kills. The same
   coincidence is possible; it was never seen in a played match, and how often it would come is unknown.
+
+Restored after the check: EFT and the SPT server on SPT-GPU-2 stopped as before; `com.maschine.ArenaMode.cfg` on the VM
+and the host (the raid recipe had written mode, own gear and wave sizes) and the server's mirror `client-settings.json`
+(it had taken the test values) put back from `D:\SPT41-Backups\audio-occluder\20261120-110123\` and checked by
+SHA-256 (`F9AF829F...`, `1F29D2C9...`). The host's test profile differs from that backup only in `Health/UpdateTime` and
+`Hideout/sptUpdateLastRunTimestamp`.
 
 ## 4. Options
 
@@ -186,22 +245,23 @@ Non-negotiable 2 governs all of them: a patch starts with `ArenaSession.IsActive
 
 | Option | What it changes | Cause addressed | Risk | Verdict |
 | --- | --- | --- | --- | --- |
-| Leave it | Nothing | No | None to normal raids. Silent one-shots and frozen bot occlusion while one infected lives; log growth of about 90 KB/s | Acceptable; the honest default until the duplicate is confirmed |
+| Leave it | Nothing | No | None to normal raids. Silent one-shots and frozen bot occlusion while one infected lives; log growth of about 90 KB/s. Natively also: infected that share one container for the rest of the raid (silent; consequences not traced) | Acceptable; the default while nobody hears a difference |
 | Spread the watchdog's retirements over several frames | Fewer deaths per frame | No: one armed death arms the pool, and a spawn follows almost every retirement anyway | Changes the watchdog's timing (wave completion, alive count, reward withholding) for a correlation; a rate of 5 in 55 cannot show an effect in a few runs | Not recommended |
 | Finalizer on `GetTargetOcclusionType` | Swallows the exception, returns a value | No | The exception is still thrown each frame; the stale entry stays; a returned `Obstruction` or `Propagation` makes the occluder calculate and apply occlusion to a bot's spine source, and `ApplyOcclusionToSource` may `Release()` that persistent source (`:208-217`) | Not recommended |
 | Prefix on `MultiSourceSpatialAudioOccluder.OnUpdate` | Queues every key whose container's `ID` differs from the key into `_containersToRemove`; the original's `ProcessPendingRemovals` (`:110`) returns the calculators and drops the entry before its loop | The symptom only: the double ownership stays (bot containers shared, silent consequences of the other orders) | Small: a scan over a few entries per frame on the main occluder; the condition is exact because ids are unique per draw | Acceptable as the minimal guard |
-| Prefix on `AudioSourceContainerData.ReturnContainer` | Skips the return when the pool array already holds this object | Yes for the path found: the second return of step 7 is the skipped one, and `UnregisterSourceContainer` has already removed the container from both lists | A linear scan of the pool (50 and more slots) per return, a few returns per frame. The method is tiny (two calls), so check natively that the patch is hit (a Debug counter): an inlined copy in a caller compiled before the patch would bypass it. Never patch `PoolWithoutAlloc<T>.PutObject` itself: a generic over a reference type shares its code with every other such pool | **Recommended**, after the inspect run |
+| Prefix on `AudioSourceContainerData.ReturnContainer` | Skips the return when the pool array already holds this object | Yes for the path found: the second return of step 7 is the skipped one, and `UnregisterSourceContainer` has already removed the container from both lists. The shared containers of section 3 all start from such a double return, so they do not arise | A linear scan of the pool (50 and more slots) per return, a few returns per frame. The method is tiny (two calls), so check natively that the patch is hit (a Debug counter): an inlined copy in a caller compiled before the patch would bypass it. Never patch `PoolWithoutAlloc<T>.PutObject` itself: a generic over a reference type shares its code with every other such pool | **Recommended**, if a guard is wanted |
 
 The two prefixes can be combined: the return guard removes the cause found, the occluder prefix catches an alias of
 any other origin. Each needs an offline harness with mutants for its pure rule (already pooled; stale key) and a
-native run that reads the pool after infected deaths. A remaining hole of the return guard: `method_26` returns a
-bot's container while the bot still owns it only if all of the bot's sources are gone, which the step and gear
-sources prevent while the bot lives.
+native run that reads the pool after infected deaths; the monitor of section 3 is that reading, and with the return
+guard it must show no object in two slots and no two players on one container. A remaining hole of the return guard:
+`method_26` returns a bot's container while the bot still owns it only if all of the bot's sources are gone, which the
+step and gear sources prevent while the bot lives. The guard does not undo a duplicate that already exists, so it
+must be active from the raid's start (it is, when it is a Harmony patch bound to the Arena session).
 
 ## Not shown
 
-- No run for this report: the duplicate in the pool, the limiter's pause and resume of the holder, and the one-shot
-  that drew the first copy were not observed in memory.
-- What a burst sounds like.
-- Whether duplicates accumulate during a raid, and how often the coincidence comes in a played match.
+- A burst under observation, and so the stale key with a bot as its second owner (section 3).
+- What a burst sounds like, and what two infected sharing one container do to their sounds.
+- How often the coincidence comes in a played match.
 - Frame times with the exception and without it under the same load.

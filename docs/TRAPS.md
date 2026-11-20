@@ -51,9 +51,11 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   twice, a one-shot and a bot's first audio registration can draw the two copies in one frame, and the occluder then
   throws from `OnUpdate` every frame (and skips the rest of `SpatialAudioSystem.Update`, muting later one-shots) until
   the bot that holds it dies. Confirmed by the code and the log shape (no `OnLateUpdate` stack; the bursts end two
-  frames after the holder's death). The double return found, from the decompile only and not yet seen in memory: the
-  audio limiter (infected only, `IsAiUseSimpleSkeleton`) pauses and resumes a bot's spine container, and the resume
-  adds it to `_activeSoundContainers`, so at the bot's death the dead-player coroutine and `method_26` both return it.
+  frames after the holder's death). The double return: the audio limiter (infected only, `IsAiUseSimpleSkeleton`)
+  pauses and resumes a bot's spine container, and the resume adds it to `_activeSoundContainers`, so at the bot's death
+  the dead-player coroutine and `method_26` both return it. Seen natively the same day (each of 6 such containers lay in
+  two pool slots after its holder died), and the duplicate then lives on: two new infected share the object, both
+  return it, and so on to the raid's end. The throw itself did not come in 39 retirements of that check.
   It is a game bug that a normal raid with infected shares; Arena touches no audio container code, and the watchdog's
   mass retirements only make the coincidence likelier. Do not chase it in Arena code, and do not "fix" it by spreading
   retirements or with a finalizer; the options are argued in
