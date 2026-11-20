@@ -104,7 +104,7 @@ public sealed class LadderGeneratorTests
     /// A weapon with several vanilla presets, none of them named "default", plus one injected preset of it that
     /// IS named "default" (so Plainer picks it) and carries a part whose parent is in no node. That is the
     /// failure the guard exists for: before it, the build of this one preset threw inside the generator's single
-    /// try and the server fell back to the shipped 24-entry ladder.
+    /// try and the server fell back to the shipped ladder.json.
     /// </summary>
     private static (Dictionary<MongoId, Preset> Presets, MongoId Weapon) WithBrokenDefaultPreset(
         Dictionary<MongoId, TemplateItem> items, Dictionary<MongoId, Preset> vanilla, HashSet<string> pooledWeapons)

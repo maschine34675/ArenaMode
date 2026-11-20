@@ -255,9 +255,10 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The PMC levels worth pooling at raid start, a subset of <see cref="PmcRequestLevels"/>.
     /// The server builds a profile with the gear band of the moment it is asked, and only
-    /// Gun Game's band moves with the clock (solo Tactical's moves with the round: the pool made
-    /// at raid start carries the round 1 band, the round it is used in, and
-    /// ArenaTacticalFreshGearPatch drops what is left of it at a stage change). A level pooled at second 0 would reach the field minutes later
+    /// Gun Game's band moves with the clock (solo Tactical's moves with the round: the first pool
+    /// carries the round 1 band, the round it is used in, and ArenaTacticalFreshGearPatch drops
+    /// what is left of a faction's pool when that faction is next requested after the stage
+    /// changed). A level pooled at second 0 would reach the field minutes later
     /// in start-level gear, so in Gun Game only the opening level is warmed (its AI level is
     /// requested while the band is still near the start, and later refills use the live band);
     /// the step's level is requested fresh once progress reaches its threshold. Nothing is

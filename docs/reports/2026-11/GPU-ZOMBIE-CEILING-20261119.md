@@ -199,7 +199,8 @@ The decision does not rest on this: all cells were collected the same way, every
 horde present, the ordering of the cells agrees with ModProfiler's own 30 s intervals (which do not use the ring), and the
 misses of 36, 40 and 48 are run-to-run effects far above the shift. The figures above are quoted as measured and must be read
 as "about 150 s (240 s) of horde, shifted by about 30 s from the labelled phase". The collector in the repository was ported to the real
-ring semantics on the same day (`tools/ZombiePerformanceChecks/README.md`); that port has not run against the game yet.
+ring semantics on the same day (`tools/ZombiePerformanceChecks/README.md`); that port had not run against the game when this report was written (it did on 2026-11-20 and passed its smoke check:
+[GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md](GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)).
 
 ## Restore proof
 

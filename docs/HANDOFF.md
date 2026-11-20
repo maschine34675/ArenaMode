@@ -516,11 +516,14 @@ and seq, reset where a raid starts); `TacticalOpeningBandGate` (reports, the cap
 stage changes, resend, both failure shapes); `ArenaTacticalFreshGearPatch` (sibling of the Gun Game purge, two purges per
 centre); the buy-screen line (`TacticalOpeningText`); new harnesses `TacticalOpeningChecks` and
 `TacticalFreshGearChecks`, xunit `TacticalOpeningPolicyTests`, `TacticalRoundReportTests`, `TacticalRoundStatusTests`,
-`TacticalOpeningTextTests`. **Not run natively**: the acceptance plan is in the contract (levels per round and step,
-both failure shapes, a protected PitFireTeam raid, other modes, the buy line, the cost of the first fresh batch).
-Client and server DLL must be installed together. Open: that native run; scav squads get the server band but no purge
-and no line (their batch of 45 can serve many rounds); the eager purge at the ack (only if the first fresh batch is
-slow); the BEAQO add-on's Tactical cap (level 20) would override these stages if its reflection call were repaired (it
+`TacticalOpeningTextTests`. **Accepted natively on GPU-2 on 2026-11-20**
+([report](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)): levels per round at both steps, the buy line,
+the purge (per faction, so a purge line also comes in round 4) and its cost (one round 1.8 s slower from request to
+live than round 1 of its raid, the others faster); not run: both failure shapes of the report, a protected PitFireTeam
+raid, a scav squad, a custom map. The test build was removed again: the build installed before is back.
+Client and server DLL must be installed together. Open: the owner has not confirmed the values (centres 25 and 45,
+the derived Reduced centres, the gap of 10 levels, the wording of the buy line); scav squads get the server band but no
+purge and no line (their batch of 45 can serve many rounds); the BEAQO add-on's Tactical cap (level 20) would override these stages if its reflection call were repaired (it
 passes 5 arguments to a 7-parameter method today). The Tactical start money text said 180k to 590k and "the bottom
 third"; the shipped kits cost 180k to 669k and 250k buys the five cheapest (text corrected).
 
@@ -528,9 +531,20 @@ third"; the shipped kits cost 180k to 669k and 250k buys the five cheapest (text
 stays 32, the growth is not built ([report](reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md)); the performance collector in
 `tools/ZombiePerformanceChecks` was ported to the UiBridge 0.10.1 frame ring and the 100 % shooter share no longer takes a
 theme. Open: (1) the owner's decision whether a softer frame-time criterion is acceptable (40 alive is about 71 to 74 fps
-mean with p95 17.5 to 21 ms on that host) or another escalation after wave 11 is wanted that costs no frame time; (2) the
-native smoke run of the ported collector (60 s Dauerlast; `frameCountMatches`, `frameTimeMatchesWall` and no discontinuity,
-README "Smoke check"), before any figure from it is quoted; what stalled the game for 2.4 to 12 s in some runs is unknown.
+mean with p95 17.5 to 21 ms on that host) or another escalation after wave 11 is wanted that costs no frame time; (2) what
+stalled the game for 2.4 to 10.4 s in some runs of 2026-11-19 is unknown (the smoke run of the ported collector on
+2026-11-20 passed every integrity gate and saw no such stall in its one minute).
+
+**Native acceptance of the branch, 2026-11-20 ([report](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)):**
+Tactical opening rounds, the Zombie special waves with small waves, the menu row, Gun Game with the generated pool and
+the collector's smoke run passed on GPU-2. **Found, also on the build before, and the owner's decision:** the supply of
+infected profiles. The loading and the first minute bring 26 batches of 30, after that the server log shows about one
+batch a minute (never less than 50 s apart); a spawn request for an empty pair comes back without a profile. With the
+default sizes and no kills (godmode, the watchdog removes the living) the first requests are dropped in wave 4 and
+waves 5 to 7 fill at 0.6 to 0.7 infected per second. The build before shows the same fall with waves of 40; a themed
+wave reaches it sooner because it draws one difficulty only. Wave 10 at the default size was not reached, and no match
+with kills was played at that size. The alive-limit growth depends on it (a higher limit asks more of the same supply).
+Options are listed in docs/reviews/ZOMBIE-ESCALATION-20261119.md ("The profile pool is not changed").
 
 **Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
 pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,
@@ -544,7 +558,7 @@ settings with a one-time migration, of `ArenaBotDifficultyClockPatch`, `TimedWav
 and the prewarm readiness gate. Seen natively: both steps in Deathmatch, Tactical and Zombies, Maximum in Team DM,
 Domination, Gun Game and a protected PitFireTeam raid, an ordinary raid, the frozen step, the old `.cfg`, the bot
 speed at both steps, the 60-minute raid timer on a ported map, `impossible` against `hard` and `hard` against
-`normal` value by value. Not run natively: Zombie waves beyond the first (fade, shooter growth and, since 2026-11-19, the special waves are harness-only; the ALIVE AT ONCE row now shows the effective value first at Reduced, stage Z1 of docs/reviews/ZOMBIE-ESCALATION-20261119.md on `feature/opening-rounds-zombie-waves`; stage Z2, the alive-limit growth, was measured on SPT-GPU-2 on 2026-11-19 and is not built, the ceiling stays 32: docs/reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md),
+`normal` value by value. Zombie waves beyond the first were played on 2026-11-20 on `feature/opening-rounds-zombie-waves` (special waves, fade and shooter growth read from the composition lines, the ALIVE AT ONCE row with the effective value first at Reduced: stage Z1 of docs/reviews/ZOMBIE-ESCALATION-20261119.md, record in docs/reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md; stage Z2, the alive-limit growth, was measured on SPT-GPU-2 on 2026-11-19 and is not built, the ceiling stays 32: docs/reports/2026-11/GPU-ZOMBIE-CEILING-20261119.md). Not run natively:
 Gun Game at Reduced and its scav switch, a long Team DM or Domination match with the full reserve per request,
 loading time with the raid-start preload left in, the position-report factor, a second host. Left for the
 maintainer to decide, nothing built: the F9 `Difficulty` line sits below the scoreboard and needs scrolling in a

@@ -194,7 +194,8 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   acknowledged band (two purges per level). The buy screen shows its own line (`Enemy squad this round:
   light gear` / `medium gear`, once `Enemy squad from now on: full gear`) when the feature applies, the
   squad is PMC and the round's report is acknowledged. Protected PitFireTeam Tactical keeps native
-  gear. Scav squads get the server band but no purge and no line. Not yet played natively.
+  gear. Scav squads get the server band but no purge and no line. Played natively on 2026-11-20 at both
+  steps ([report](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)).
 - Doors a round left open are shut at the next round start (`CloseDoorsAtRoundStart`,
   default on); doors the map itself starts open, locked, broken and blocked doors and doors
   with map-script triggers are left alone.

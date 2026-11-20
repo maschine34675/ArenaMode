@@ -12,8 +12,8 @@ namespace ArenaMode.Server.Services;
 ///
 /// Why it exists. LadderGenerator builds the whole pool inside one try block, so
 /// one preset it cannot build used to cost the whole pool: the server logged
-/// "Weapon pool generation failed" and served the 24-entry shipped ladder instead
-/// of about 140 weapons. A weapon mod that changes a weapon's slots without
+/// "Weapon pool generation failed" and served the shipped ladder.json (a static list)
+/// instead of the pool built from the live database. A weapon mod that changes a weapon's slots without
 /// repairing the vanilla preset is enough. Worse, some defects do not throw at
 /// all: the client builds such a preset as an incomplete gun (an AK without gas
 /// tube and handguard) and only logs a warning. A weapon mod author reported

@@ -6,11 +6,11 @@ and a dedicated, idle **SPT-GPU-2** test profile. Run from the ArenaMode root;
 `UIBRIDGE_GPU_RUN` can point at another checkout of the same official tool.
 Credentials stay in the existing private `.claude.json`/token files.
 
-**Status: ported offline on 2026-11-19, native smoke run pending.** `run.mjs`, the poller and the analyzer
+**Status: ported offline on 2026-11-19, native smoke run passed on 2026-11-20.** `run.mjs`, the poller and the analyzer
 were rewritten for the UiBridge 0.10.1 frame ring from the plugin source and from the operator's stand-in collector
-of the 2026-11-19 ceiling measurement, which did run natively. The rewritten collector itself has only run against a
-simulated ring (`frame-stats-sim.mjs`, a port of `FrameStats.cs`); nobody has run it against the game yet. The first
-native run must be a short smoke check (see "Smoke check") before any figure from it is quoted.
+of the 2026-11-19 ceiling measurement. The rewritten collector first ran against a simulated ring
+(`frame-stats-sim.mjs`, a port of `FrameStats.cs`) and then once against the game (see "Smoke check"). No measurement
+has been made with it yet: the smoke run's own figures are not for quoting.
 
 ## Requirements
 
@@ -159,14 +159,23 @@ shape in the recorded data. `Verify-Collector.ps1` runs them (a no-game step reg
 `-ChangedSince` selects it); `Verify.ps1` / `Verify-NativeContract.ps1` of this folder check the compiled performance patches,
 not the collector.
 
-## Smoke check (pending, native)
+## Smoke check (passed natively on 2026-11-20)
 
-Before quoting a figure from this collector: one raid on SPT-GPU-2, a 60 s Dauerlast at the default population, and then
-`analyze.mjs` must show `integrity.frameCountMatches` and `integrity.frameTimeMatchesWall` true, no discontinuity and
+The check: one raid on SPT-GPU-2, a 60 s Dauerlast at the default population, and then `analyze.mjs` must show
+`integrity.frameCountMatches` and `integrity.frameTimeMatchesWall` true, no discontinuity and
 `frameCountRatio` (recorded frames of the interval over `engineFrames`, the `Time.frameCount` advance of the same interval)
 within 2 % of 1; with the exact cursor it should be 1. A failing `frameCountMatches` means the cursor reading of
-the source is wrong somewhere; do not fix the tolerance, read the poll records. Open for that run: whether the 2.4 to
-10 s hitches reappear at the time they happen (with the new cursor they are no longer 30 s late) and what causes them.
+the source is wrong somewhere; do not fix the tolerance, read the poll records.
+
+The run of 2026-11-20 (Factory, 32 alive, UiBridge 0.10.1, ArenaMode `0.6.0+0efe818f`): `frameCountMatches` and
+`frameTimeMatchesWall` true, `integrity.passed` and `qualifiedPass` true, one segment, `discontinuities` empty,
+`frameCountRatio` 1 (6666 of 6666 engine frames), 61,667 ms of recorded frame time against 61.674 s of wall time, no entry
+above 2 s and no spike above 100 ms. So the cursor reading of the source held, with a tolerance of 0, in this run (one
+minute, one host). The summary's verdict fields are `integrity.passed` and `qualifiedPass`; `runIntegrity`, named above, is
+the function that computes them, not a field. The summary's `errors` list held 20 `look` calls without a visible target
+and no capture error. The 2.4 to 10 s
+stalls of 2026-11-19 did not appear in this one minute; what caused them is still open. Record:
+`docs/reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md`.
 
 Raw JSONL/profile/log evidence can contain private identifiers. Keep it ignored;
 commit only reviewed aggregate results and hashes. `compare-profile.mjs` reports

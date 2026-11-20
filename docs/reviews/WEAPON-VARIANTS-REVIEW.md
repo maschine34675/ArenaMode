@@ -104,8 +104,9 @@ mutation or new bundle-loading mechanism is introduced.
 
 The Gun Game pool is built by `LadderGenerator` from the item database's weapon presets, inside one try. Before
 the guard, ONE preset it could not build (a part whose parent is in no node, a duplicate part id, a slot a weapon
-mod removed from the weapon) threw there and the server fell back to the shipped 24-entry ladder instead of about
-140 weapons; other defects did not throw and gave the player an incomplete gun (the client logs `Kit: no slot`
+mod removed from the weapon) threw there and the server fell back to the shipped `ladder.json` (a static list of 139
+entries) instead of the pool built from the live database (155 weapons on the test installation of 2026-11-20; a
+Gun Game ladder is 24 rungs drawn from whichever pool is in use); other defects did not throw and gave the player an incomplete gun (the client logs `Kit: no slot`
 and skips the part). The credit for the failure analysis belongs to Sankese's BEAQO add-on (THIRD-PARTY-NOTICES).
 
 - **First net: `ArenaPresetGuard.Problem`**, pure, on the RAW preset BEFORE `Plainer` picks one preset per weapon

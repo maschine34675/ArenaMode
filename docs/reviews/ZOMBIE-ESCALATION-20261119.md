@@ -140,7 +140,9 @@ the shown text into the slider, showing it writes nothing, and the cfg keeps the
 ## The profile pool is not changed (a finding, no remedy built)
 
 The all-shooter wave goes through the native miss path almost entirely; this is stated here so nobody counts on
-the pool.
+the pool. **Measured natively on 2026-11-20: a miss is not refilled at once either, and the build before the
+special waves shows the same limit** (the paragraph "Native result" below and
+[the report](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)).
 
 - `BotSpawner.AddToTargetBackup` is first-write-wins (`BotProfileBackuploader.cs:257-263`): a later call for the
   same (role, difficulty) is ignored, so a pool target cannot be raised mid-raid; it is set once at match start
@@ -150,21 +152,40 @@ the pool.
   load is then clamped to 1. The default targets are 12 pairs x 25 = 300, so the loader adds about one profile
   per pair per 30 s (the first check 60 s after creation, and only when the deficit exceeds 3) and never reaches
   the 25 per pair the plan assumes. At wave 10 the Hard pool is close to empty.
-- A miss goes through `BotProfileClient.CreateProfile`, which requests a batch; SPT rounds a request up to
-  `presetBatch`, 30 for each of the four infected roles in the installed `bot.json` (the rounding rule itself is
-  assumed to apply unchanged to infected). Wave 10 at the default size (230 infected, all `hard`) therefore means
-  roughly four misses for assault, two for pmc and one each for civil and laborant, about 8 x 30 profiles at about
-  2.9 ms each, spread over frames by the profile build budget (default 3 ms per frame). One miss costs the awaiting
-  spawn slot about a third of a second; nothing else stalls. Bundle loads for the pistol and ammunition of each new
-  hard profile add to that (assumed, not run).
+- **Assumed before the native run, and wrong in its cost and timing:** that a miss goes through
+  `BotProfileClient.CreateProfile`, requests a batch of `presetBatch` (30 for each infected role in the installed
+  `bot.json`) and costs the awaiting spawn slot about a third of a second, so that wave 10 at the default size would
+  mean about eight extra batches and nothing else.
+- **Native result (2026-11-20, GPU-2, no player kills: godmode, and the no-kill watchdog removes the living
+  infected).** In the default-size raid the server generated 12 batches of 30 infected profiles with the loading
+  (one per pair of role and difficulty), 14 more about a minute into the match, and after that 11 batches in 10
+  requests, never less than 50 s apart: 1110 profiles in 14 minutes, of which 510 `normal`, 330 `easy` and 270
+  `hard`, while the waves drew 627 times `normal`, 229 times `hard` and 152 times `easy`. A spawn request for a pair
+  whose pool is empty comes back without a profile (`Arena burst spawn: no profiles for <role> — request
+  dropped.`, a Warning that the logs of the build before hold too) and the slot is drawn again later; that no
+  fresh batch follows at once is inferred from 251 dropped requests against 10 later requests (the decompiled
+  backup loader sends at most every 50 s, which fits; no log line ties the two together). The first request was
+  dropped after about 230 arrived infected (wave 4), and waves 5, 6 and 7 filled at 0.68, 0.72 and 0.61 infected
+  per second (2.2 to 2.8 in waves 1 to 3), the Runners wave and the ordinary waves alike. Frame times stay flat: it
+  is supply, not load. Wave 10 at the default size was not reached in a reasonable time.
+- **The build before shows the same.** Waves of 40 under the same procedure, one run per build, cut by arrival
+  count: both fall from 1.5 per second to about 0.7 by wave 9. With the special waves the first dropped request
+  comes earlier (after 178 arrived infected against 248) and the themed wave itself is the slowest block (the
+  Shooters wave 10: 0.54 per second against 0.84 for the same wave on the build before), because a themed wave
+  takes all its profiles from one difficulty. The spawn, pool and loader code is the same on both builds.
 - Composition-only themes need no pool change: a Runners wave needs the `normal` pair (present whenever the
   shooter share is below 100, which is where a Runners wave applies) and a Shooters wave the `hard` pair (present
   whenever it is above 0, where it applies below 100); a test pins it for every shooter setting.
-- If the miss storm hurts in the native run, the options are owner decisions, not built: (a) accept the miss path;
-  (b) cap `BackupCountForWaveStartSize` so that pairs x count is at most 100 (12 pairs x 8 = 96 is loaded in full;
-  this touches the pinned `ZombieProfilePlan` checks); (c) pre-build the Hard pool in the intermission before the
-  themed wave. A larger target is not a remedy: it is ignored when a target exists and only enlarges the collapsed
-  sum.
+- **Open, the owner's decision, nothing built:** at the default plan the first requests are dropped after about 180
+  to 250 spawned infected and the refill settles at 0.6 to 0.7 per second after about 320 to 450, in ordinary and
+  themed waves. With nothing killed the limit of 32 was still reached again and again; a player who kills faster
+  than the refill for long could not keep 32 alive (an extrapolation: no match with kills was played at that size).
+  Options read from the code, none of them tried: (a) accept it; (b) cap
+  `BackupCountForWaveStartSize` so that pairs x count is at most 100 (12 pairs x 8 = 96 is loaded in full; this
+  touches the pinned `ZombieProfilePlan` checks, and whether the loader then keeps up is unmeasured); (c) refill the
+  pools of the next wave's difficulties in the intermission; (d) ask the server for a batch ourselves when a pair
+  runs low. A larger target is not a remedy: it is ignored when a target exists and only enlarges the collapsed
+  sum. The alive-limit growth below depends on this: a higher limit asks for more profiles from the same supply.
 
 ## The alive-limit growth (measured on 2026-11-19, not built)
 
@@ -218,7 +239,27 @@ meaning); the native bot cap following the limit (otherwise it clips the growth 
 pin that `limit + 2 + companions` stays within the server floor of 104; no menu hint. The measurement plan was Factory at
 32, 40 and 48 alive, one small ported map, 56 as the known-bad control, with the thresholds above.
 
-## Native acceptance of stage Z1 (not run)
+## Native acceptance of stage Z1 (run on 2026-11-20)
+
+Run on SPT-GPU-2 with the build `0.6.0+0efe818f`; the record with every figure is
+[GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md).
+
+- **Shown:** the composition lines of waves 5 and 10 with waves of 6 (`easy 0, normal 6, hard 0 (size 6, theme
+  Runners)` and `easy 0, normal 0, hard 6 (size 6, theme Shooters)`), every other wave `theme None`; the callouts
+  `NEXT: ALL SHOOTERS` and `WAVE 10: ALL SHOOTERS` and the status line in screenshots (the 21 characters are not
+  cut; the fading callout over a bright background is hard to read); the Runners texts as the operator's reads;
+  the Reduced control (ten waves `theme None`, `max alive 24`); a shooter share of 100 (waves 5 and 10 ordinary, all
+  `hard`) and of 0 (wave 5 Runners, wave 10 ordinary); the menu row `24 (setting 32, Reduced)` in a screenshot and
+  the raid recipe reading it.
+- **Found:** the profile supply (above). It decides what the special waves look like at the default size; the
+  build before has the same limit, and a themed wave reaches it sooner.
+- **Not run:** wave 10 at the default size, a match with kills at the default size, the shooters' hit rate against
+  the player, PitFireTeam with a companion, the optional Crowd pass, the whole-profile comparison. The status line
+  shows the match clock on both sides (`03:24 WAVE 10 (ALL SHOOTERS) | 6 LEFT | 03:24`, in a screenshot); the build
+  before does the same (one read by the orchestrator), so the examples in the table above leave the leading clock
+  out.
+
+The plan the run followed:
 
 All values with `uibridge_config_set ... persist=false` before the raid (they die with a restart of EFT; the three
 sliders go through the recipe options `--zombie-max-alive/--zombie-wave-start/--zombie-wave-growth`, which write and

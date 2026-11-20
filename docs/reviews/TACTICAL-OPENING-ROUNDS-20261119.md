@@ -4,8 +4,9 @@ Contract for the lighter enemy gear of the first two rounds of **solo Tactical**
 **built**, in three stages on the branch `feature/opening-rounds-zombie-waves`: the shared policy, the wire and
 the server (T1), the client gate, the reports and the squad hold (T2), and the pool purge, the buy-screen line
 and the documents (T3). It corrects [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md), which decided
-the opposite one day earlier. **Nothing here has been played natively yet**; "Native acceptance" lists what a
-GPU run has to show, and every claim about the game is a claim about source and offline harnesses until then.
+the opposite one day earlier. It was **accepted natively on SPT-GPU-2 on 2026-11-20**
+([report](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)); "Native acceptance" says what was shown
+and what was not run.
 
 Read [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md) first (the step, the gear band, the stale pool
 of Gun Game) and [SOLO-TACTICAL-SPAWN-REVIEW.md](SOLO-TACTICAL-SPAWN-REVIEW.md) (the squad request and its
@@ -121,7 +122,11 @@ message can make a round softer or cost a purge; it cannot make anything harder 
 
 The raid-start preload and the prewarm run before any report can exist and feed round 1, so the server's
 **default without a report is round 1**, not the full band: defaulting to the full band would make the preload the
-one source of full-gear opponents in round 1, the thing being removed.
+one source of full-gear opponents in round 1, the thing being removed. In the native raids of 2026-11-20 the
+default was in force first (the round 1 band line precedes the first report by 14 s), but no PMC batch was
+generated under it: the first PMC batches came when round 1's squad was requested, after the round 1 report. Those
+raids therefore do not show a pool fed by the default alone; the default stays as the safe side for a raid in
+which it is.
 
 ## The wire and the server (T1)
 
@@ -211,8 +216,20 @@ raid reset calls beside the pinned Gun Game reset together with `ArenaTacticalOp
 for the picture where the server does **not** write the stage (the bot system's adapter is off): every fresh
 batch is then outside the band again, so without it every spawn would cost a 15-profile server round trip. A
 skipped purge is one Debug line per pair and centre and one Warning per raid ("the server's gear band does not
-match the round"). Latency of the first fresh batch is unmeasured (the 45 s assembly window absorbs it; an
-eager purge at the ack is the planned fix if a native run shows more than a few seconds).
+match the round").
+
+**When the purge runs (native, 2026-11-20).** The purge is made on a demand for the pair, so a pool is purged when
+its role is next requested, not at the moment the stage changes. The first pool (made when round 1's squad is
+requested) holds both factions at the round 1 band, and in the three native raids the squad was pmcUSEC in rounds 1
+and 3 and pmcBEAR in rounds 2 and 4. Round 2 therefore dropped the BEAR pool (15 profiles), round 3 the USEC pool
+(26 to 28 profiles, still at the round 1 band) and round 4 the BEAR pool again (27 or 28 profiles, what the two
+fresh BEAR batches of round 2 left over: 30 profiles, 5 used); from round 5 on both pools hold the full band. A
+purge line in round 4 is expected. The levels the operators noted on the field were inside the band in every round.
+
+**Cost (native, 2026-11-20).** From "requesting the squad" to "round N live", one round with a purge was slower
+than round 1 of its raid, by 1.8 s; every other one was faster (three raids, figures in the report). Round 1
+contains the first creation of the pool, so this bounds the cost of a purge without isolating it. The eager purge
+at the ack is not built.
 
 ## What the player sees
 
@@ -259,38 +276,48 @@ call avoids the SPT wrapper's two Info lines per call.
   round, with probes; `tools/SoloTacticalSpawnChecks` pins the gate between the guard and the request.
 - `GunGameFreshGearChecks` and `DurationDifficultyChecks` stay green (Gun Game and `Describe()` untouched).
 
-## Native acceptance (not run)
+## Native acceptance (run on 2026-11-20)
 
-On a GPU host (SPT-GPU-2 preferred), dev build of both DLLs, loaded hashes equal to disk, `Tactical > BuySeconds`
-5, `SquadSize` 3, short rounds, `Objective` on with a short delay or kill the squad, Factory or Bay 5. Read each
-bot's `Profile.Info.Level` once per round (`uibridge_bots`, `uibridge_inspect`).
+SPT-GPU-2, build `0.6.0+0efe818f` of both DLLs, loaded hashes equal to disk, Factory, squad of 5, `Tactical >
+BuySeconds` 20 (25 in the third raid), every round ended by killing the player. In the first two raids an operator
+read each bot's `Profile.Info.Level` and difficulty once per round and noted them (the raw tool answers were not
+saved; server band lines and purge lines agree with the notes). Full record: [GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md).
 
-- Maximum, rounds 1 to 4: levels 20..30, 40..50, 61..71, 61..71; AI `impossible`; server Debug `Bot gear band`
-  lines `20-30`, `40-50`, `61-71` with `round=1/2/3`; the client's purge lines at the stage changes only, none in
-  round 1 (the round 1 pool is fed by the default stage); `/status` `tacticalRound` follows the round.
-- Reduced: 10..20, 22..32, 35..45; AI `hard`.
-- Both failure shapes (block the request; block only the response), a round of under 20 s (the stage change
-  still purges), a protected PitFireTeam Tactical raid (refused, no purge, native levels), the other modes and an
-  ordinary raid (no request at all), the buy line in rounds 1 to 4 and on a custom map, the cost of the first
-  fresh batch at round 3.
-- A native run also settles what offline checks cannot: that the stage-1 default really feeds the preload, that
-  the rolled levels stay in the band and the APBS tier of the bots is the one above the centre, and the order
-  report, hold, request in the real client log.
+- **Maximum, rounds 1 to 4:** levels 24..30 within 20..30, 43..50 within 40..50, 63..71 and 64..68 within 61..71;
+  all `impossible`; server `Bot gear band` lines `20-30`, `40-50`, `61-71` with `round=1/2/3` and none for round 4.
+- **Reduced, rounds 1 to 4:** 12..20, 25..32, 39..45, 42..45 within 10..20, 22..32, 35..45; all `hard`; band lines
+  `10-20`, `22-32`, `35-45` with `step=reduced`.
+- **Round 1 is fed at the round 1 band:** no purge in round 1, and the pools dropped in rounds 2 and 3 held round 1
+  levels only. Whether the default alone would do that was not shown: the PMC profiles were first generated after
+  the round 1 report (see "What the problem was").
+- **Buy line:** the three texts in rounds 1 to 3 at both steps, no line in round 5 (a round after the first full one).
+- **Order in the real log:** the report right after the previous round ended, the squad request at the end of the
+  buy phase (20 s and more later), and the server's new band line on that request. No hold line was written: in
+  rounds 2 and 3 the acknowledgement had arrived when the request was due, rounds 1 and 4 never wait. No Warning of this feature. Zombie and Gun Game raids of the
+  same night sent no report.
+- **Purge:** per role, one round later for the faction that was not asked at the stage change (see "The pool
+  purge"); one such round was 1.8 s slower than round 1 of its raid, the others were faster.
+
+Not run: both failure shapes (block the request; block only the response), a round of under 20 s, a protected
+PitFireTeam Tactical raid, a scav squad, a custom map with other numbers, `/status` `tacticalRound`, the gear tier
+the bot system gave the opponents, an ordinary raid, a raid in which PMC profiles are generated before round 1 is
+reported.
 
 ## Open
 
-- **The one unproven dependency of the purge (release gate):** that a miss makes the server answer with a batch at
-  the band it holds **now**. Gun Game's native run measured it for its clock-driven band
-  ([DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md)); Tactical changes the band by event and has no
-  native run yet. The native level read of rounds 2 and 3 (acceptance above) is therefore a release gate, as is the
-  measured latency of the first fresh batch after a purge (the eager purge is built only if it exceeds a few
-  seconds).
-- Native acceptance (above) is outstanding; the server and client halves are installed together only after it.
+- **The two release gates are met (2026-11-20):** after a purge the server answered with a batch at the band it held
+  then (every noted level of rounds 2, 3 and 4 inside the band, at both steps), and a round with a purge was at
+  most 1.8 s slower from request to live than round 1 of its raid. The server and client halves must be installed
+  together; neither is installed at the moment (the test build was removed after the acceptance).
+- **The values are not confirmed by the owner:** the centres 25 and 45, the derived Reduced centres 15 and 27, the
+  gap of 10 levels and the wording of the buy line (see "The numbers").
+- Not run natively: the failure shapes of the report, a protected PitFireTeam raid, a scav squad, a custom map (see
+  "Native acceptance").
 - **Scav squads**: the server writes the stage band for them, the client neither purges nor announces
   (their gear barely follows the level and a batch is 45); a pooled scav batch can serve many rounds. Accepted
   and documented; an opt-in setting.
-- The eager purge at the ack (rebuilds the pool during the buy phase) is not built; do it only if the first
-  fresh batch is slow natively.
+- The eager purge at the ack (rebuilds the pool during the buy phase) is not built and, by the native figures, not
+  needed.
 - The BEAQO add-on (`ArenaTacticalBalance`) caps every Tactical round at level 20 by reading the server's result
   back and would override these stages from round 2 on; it is already inert because its reflection call passes
   5 arguments to a 7-parameter method. Its cap should be retired once opening rounds ship (the author's

@@ -41,7 +41,7 @@ namespace ArenaMode.Server.Services;
 /// checked by <see cref="ArenaPresetGuard"/> before the generator picks one per
 /// weapon, and each preset, candidate and entry is built inside its own try, so
 /// a weapon mod that breaks one weapon's slots no longer drops the whole pool to
-/// the shipped 24-entry ladder. What was left out is reported once, as a
+/// the shipped ladder.json. What was left out is reported once, as a
 /// Warning, with the details at Debug. Global failures (the ammunition index,
 /// the exclusion index, an empty pool) still keep the shipped file.
 /// </summary>
