@@ -120,6 +120,7 @@ TacticalCorpseChecks
 TacticalObjectiveChecks
 TacticalOpeningChecks
 TacticalFreshGearChecks
+BackupProfileDuplicateChecks
 TacticalPolishChecks
 TdmMatchMenuChecks
 TdmMonitorChecks
