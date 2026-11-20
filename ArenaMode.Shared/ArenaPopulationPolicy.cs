@@ -84,7 +84,8 @@ public static class ArenaPopulationPolicy
     /// narrow case where the armed map matches but the server then refuses the
     /// arm token, or Fika is present: that raid falls back to ordinary with an
     /// empty profile pool. It is not a broken raid — a pool miss asks the
-    /// server for three more and carries on — but it IS one of the two things
+    /// server for three more (SPT answers with a whole presetBatch) and
+    /// carries on — but it IS one of the two things
     /// in the mod that can act on a raid which does not become an arena raid
     /// (the other is the loading-screen kit preload,
     /// KitBundlePreloader.BeginRaidStart), and both are recorded in AGENTS.md

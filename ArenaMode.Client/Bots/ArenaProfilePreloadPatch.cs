@@ -48,7 +48,7 @@ namespace ArenaMode.Bots;
 /// TryLoadBotsProfilesOnStart sets StartProfilesLoaded and sends nothing, and
 /// the only readers of that flag merely delay a spawn while it is false. A
 /// later miss is not fatal either — CreateProfile asks the server for three of
-/// whatever it wanted and carries on.
+/// whatever it wanted (SPT answers with a whole presetBatch) and carries on.
 ///
 /// One thing an empty pool does NOT do is stay empty by itself.
 /// BotProfileBackuploader is built with six standing orders of its own —

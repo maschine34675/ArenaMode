@@ -132,12 +132,16 @@ internal static class ZombieProfilePlan
     /// infectedAssault weighted 50% of ZombieRoleMix's table, a 30-strong
     /// wave 1 draws ~15 of that one role alone; BotProfileBackuploader only
     /// tops its cache up once the deficit against the registered target
-    /// exceeds 3, one outstanding fetch at a time (decompile-verified,
+    /// exceeds 3, at most two fetches at a time (decompile-verified,
     /// BotProfileBackuploader.cs). A target left at the old flat
     /// MinimumBackupCount=4 would empty almost immediately into
-    /// BotProfileClient.CreateProfile's synchronous 3-profile-at-a-time miss
-    /// path, visibly stalling spawns even though ZombieWavePolicy itself
-    /// never pauses (the "no pause" requirement). Scaling by the heaviest
+    /// BotProfileClient.CreateProfile's miss path (an awaited server request
+    /// per empty pair: 3 wanted, SPT answers with a whole presetBatch, 30 for
+    /// an infected role), delaying those spawns even though ZombieWavePolicy
+    /// itself never pauses (the "no pause" requirement). Until 2026-11-20 the
+    /// loader also stored every profile it reloaded twice, which is what
+    /// really stalled the later waves (ArenaBackupProfileDuplicatePatch).
+    /// Scaling by the heaviest
     /// weight share and applying that SAME count to every pair (not a
     /// per-role split) errs generous for the lighter roles — a few unused
     /// cached profiles, never a few too few — which is the safe direction

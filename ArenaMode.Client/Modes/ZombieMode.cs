@@ -298,9 +298,9 @@ public sealed partial class ZombieMode : IArenaMode
         // countPerPair scales with WaveStartSize (see its own doc comment):
         // the fixed MinimumBackupCount=4 default left the native backup
         // cache for the heaviest-weighted role (infectedAssault, 50%) far
-        // below a 30+ wave 1's own consumption, serializing most of it
-        // through BotProfileClient's synchronous miss path (research note
-        // "spawnThrottles").
+        // below a 30+ wave 1's own consumption, sending most of it through
+        // BotProfileClient's miss path (one awaited server request per empty
+        // pair: 3 wanted, SPT answers with a whole presetBatch).
         ZombieSpawnService.RegisterBackupTargets(
             ZombieProfilePlan.BackupTargets(_shooterPercent, ZombieProfilePlan.BackupCountForWaveStartSize(_config.WaveStartSize)));
         // So this raid's own log states which path (reverse patch/fallback)
