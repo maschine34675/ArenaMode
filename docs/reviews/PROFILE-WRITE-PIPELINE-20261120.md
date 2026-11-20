@@ -8,7 +8,8 @@ side (Pack A Punch, the Forge symptom, recovery steps) is in [PACK-A-PUNCH-COMPA
 
 Arena proves every profile save by reading the file back: the text SPT was asked to save (RAM) must equal what is on disk.
 Pack A Punch (PaP) 2.x transforms SPT's write: a Harmony prefix on `FileUtil.WriteFileAsync(string, string, ...)` strips
-PaP's own data (the hideout area 115, one quest, its fragments) out of the profile text and keeps it in a side file.
+PaP's own data out of the profile text and keeps it in a side file: the hideout area 115, the "115 Riddles" quest entry and
+its `TaskConditionCounters`, the fragment items (inventory and Mechanic's mail) and the fragment Encyclopedia marks.
 So disk never equals RAM, and with PaP loaded in the normal session the readback fails at every site that uses it:
 
 - entry and return of an Arena session (`SaveAndVerify`): the helper dialog says `preflight-save/save-not-confirmed`
@@ -133,8 +134,9 @@ Content of the side file and `.stale` files are never touched. Up to four profil
 ## Logging
 
 Debug: hook enabled with foreign-prefix counts (no names); one transforming-write fact per process (alias only);
-"captured without output"; side-file carry (alias only); unsupported PaP version. Warning once: hook enable failure;
-`Carry` failure; the session refusal line with the new tokens; `WarnNotConfirmed`. Nothing is Info.
+"captured without output"; side-file carry (alias only); unsupported PaP version. Warning once per start: hook enable failure. Warning once per process: `Carry` failure (the flag is spent only by a line
+that is written; at startup the line uses the `ArenaRewardStartup` logger). Warning per failed attempt: the session refusal
+line with the new tokens; `WarnNotConfirmed` (a new diagnostics object per call). Nothing is Info.
 See [LOGGING.md](../LOGGING.md).
 
 ## Tests

@@ -9,7 +9,8 @@ mechanism, what Arena does about it and what is still not covered. The contract 
 ## How PaP stores its data
 
 - A Harmony prefix on `FileUtil.WriteFileAsync(string, string, ...)` strips PaP's data out of the profile text before it is
-  written: the hideout area 115, one quest and its fragments. The stripped data goes to a side file
+  written: the hideout area 115, the "115 Riddles" quest entry and its `TaskConditionCounters`, the fragment items (in the
+  inventory and in Mechanic's mail) and the fragment Encyclopedia marks. The stripped data goes to a side file
   `<PaP server folder>/profiles/<profile id>.json`.
 - At the next start PaP restores the data into the loaded profile, but only when the side file is **not older than the
   profile by more than two minutes**. A profile saved without the mod since then could overlap whatever took its place, so an
@@ -48,8 +49,10 @@ never a `.stale` file, and never creates or revives a side file.
   (`pipeline=transformed` with `outputDiskMatch=false`, or `pipeline=unsafe`).
 - **Private server.** The Arena session does not load PaP by default (it is left out by the whitelist), so the private
   server writes profiles unchanged. If you admit PaP into the session through the whitelist, both servers then run it.
-- **PaP's own deletion.** PaP removes its side file when it writes a profile that has no PaP data in it
-  (`PaPProfileStore.cs:147-152` in the reviewed source). A profile written by something else after that is not carried back.
+- **PaP's own deletion.** PaP removes its side file when it writes a profile that has no PaP data in it, but only when the
+  profile was restored by PaP this session or no side file exists; with an unrestored profile and an existing side file it
+  leaves both files untouched (`PaPProfileStore.cs:140-152` in the reviewed source). A profile written by something else
+  after that is not carried back.
 - **Only PaP major version 2** is carried. For another major version Arena leaves the side file as the mod left it and logs
   one Debug line. The save proof is independent of the version.
 - Arena cannot restore PaP data that PaP already set aside before this fix; see Recovery.

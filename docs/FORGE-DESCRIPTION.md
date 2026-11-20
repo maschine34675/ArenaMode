@@ -256,9 +256,6 @@ Optional integration targets:
   ordinary raids retain those rules. Other SVM settings remain effective.
 - **Tarkova Cola 2.2.1+:** temporary perks and protected Zombie research/achievement
   transfer; requires both parts and matching lifecycle/catalog contracts.
-- **Pack A Punch 2.x:** Arena entry, return and raid end work with it (it removes its own
-  data from the saved profile, and Arena now accounts for that when it checks the save);
-  Arena also keeps its side file fresh across its startup profile writes.
 - **Fontaine FOV Fix 4.1.0 / Manimal 2.0.0:** the shared Core handles camera and
   ammo-loading visual ownership after player replacement.
 - **Increase Look Direction 1.3.0:** tested through respawns. With FOV Fix present,

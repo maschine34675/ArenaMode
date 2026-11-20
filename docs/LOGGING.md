@@ -171,14 +171,16 @@ identity blocks alone (`docs/reviews/PROFILE-WRITE-PIPELINE-20261120.md`). Witho
 mod nothing changes. Helper replies and lease formats are unchanged.
 
 The raid end and the failed-start restoration have no session switch to refuse. When their
-readback is not confirmed, one Warning is written once per process:
+readback is not confirmed, one Warning is written per failed attempt:
 `Restored profile not confirmed after saving: operation=raid-end|failed-start; profile=<alias> (<role>);
 ramDiskMatch=...; ramStableDuringReadback=...; fieldSample=[...]; diagnostics=...;` plus the pipeline
 tokens above when they apply. Other operation words print as `unknown`.
 
 Other lines of the profile write capture: Warning once per start if the capture hook cannot be
 installed ("Profile write proof unavailable; Arena keeps the strict save comparison"), Warning once per
-process if the Pack A Punch side file time cannot be kept ("Could not keep the Pack A Punch side file ...").
+process if the Pack A Punch side file time cannot be kept ("Could not keep the Pack A Punch side file ..."; the
+flag is only spent by a line that was written, and during Arena's startup writes the line goes through the logger of
+`ArenaRewardStartup`, because `ArenaContext.Logger` is assigned later).
 Debug: the hook enabled (number of foreign prefixes on the two write methods, no names); one fact per process
 that a profile write is transformed (profile alias only); one line per process when a captured write had no
 output; the side file kept fresh (alias only); an unsupported Pack A Punch version. None of them is Info.

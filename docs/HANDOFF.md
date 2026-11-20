@@ -516,7 +516,7 @@ keeps a fresh PaP 2.x side file fresh across `RewardStartupFiles.WriteAtomic`. O
 `tools/OfflineStartupChecks/Mutations.ps1`. Native test (GPU host 2, throwaway profile, scenarios A, B and the first-start
 enrollment control run) and its report under `docs/reports/2026-11/` are the orchestrator's and may still be open: check the
 branch log. [User guide](PACK-A-PUNCH-COMPAT.md). Sankese's ArenaMode-WeaponPoolFix add-on is inert after this and should be
-retired (the owner's decision; the Forge reply is the owner's too).
+retired (the owner's decision; the Forge reply is the owner's too). The Forge description line about Pack A Punch belongs to the 0.7.0 description (it is not in the 0.6.0 draft in `FORGE-DESCRIPTION.md`, since 0.6.0 does not contain the fix).
 
 **Tactical opening rounds, 2026-11-19 (branch `feature/opening-rounds-zombie-waves`, built in three stages, local
 commits only, not merged, not pushed; [contract](reviews/TACTICAL-OPENING-ROUNDS-20261119.md)):** the owner's
