@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <!-- Every production file the checks compile or read is a property so a mutant can point the build at a copy. -->
+    <PatchSource Condition="'$(PatchSource)' == ''">../../ArenaMode.Client/Audio/ArenaAudioContainerReturnGuardPatch.cs</PatchSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Audio/AudioContainerReturnPolicy.cs</PolicySource>
+    <PluginText Condition="'$(PluginText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Plugin.cs</PluginText>
+    <DriverText Condition="'$(DriverText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Respawn/ArenaRespawnDriver.cs</DriverText>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/AudioContainerReturnPolicy.cs" />
+    <Compile Include="$(PatchSource)" Link="Production/ArenaAudioContainerReturnGuardPatch.cs" />
+    <!-- Real Harmony (the package the game's own copy is built from), so that the stand-in method is really patched. -->
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="PluginText" Value="$([System.IO.Path]::GetFullPath('$(PluginText)'))" />
+    <AssemblyMetadata Include="DriverText" Value="$([System.IO.Path]::GetFullPath('$(DriverText)'))" />
+  </ItemGroup>
+</Project>

@@ -135,6 +135,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaGunGameFreshGearPatch.EnablePatch();
         Bots.ArenaTacticalFreshGearPatch.EnablePatch();
         Bots.ArenaBackupProfileDuplicatePatch.EnablePatch();
+        Audio.ArenaAudioContainerReturnGuardPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
         Bots.ZombiePerformancePatches.EnablePatch();
         ZombiePftFastPath.EnablePatch();

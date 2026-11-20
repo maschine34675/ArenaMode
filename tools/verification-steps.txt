@@ -121,6 +121,7 @@ TacticalObjectiveChecks
 TacticalOpeningChecks
 TacticalFreshGearChecks
 BackupProfileDuplicateChecks
+AudioContainerGuardChecks
 TacticalPolishChecks
 TdmMatchMenuChecks
 TdmMonitorChecks

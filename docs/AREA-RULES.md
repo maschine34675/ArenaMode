@@ -1227,6 +1227,18 @@ contour. See docs/reviews/BOT-EFFECT-OUTLINES-20261019.md before changing render
 camera/lease cleanup. Never clone native player components, mutate pooled meshes
 or materials, add a positive depth bias, or draw an unchecked through-wall halo.
 
+The game's sound container pool takes a container twice when an infected's spine container that its audio limiter
+resumed is returned at the bot's death (dead-player coroutine, then `method_26`); two owners then share one container,
+and a bot sharing one with a stale one-shot entry makes the multi-source occluder throw every frame.
+`ArenaAudioContainerReturnGuardPatch` is a prefix on `AudioSourceContainerData.ReturnContainer` that skips a return
+whose container the pool array already holds, by object reference, in every mode and only in the exact active Arena
+raid (`ArenaSession.IsActive` first, then the exact-raid check). It fails open (Warning once per raid, native call
+unchanged) and is not a loading-time exception. Keep it independent of `ArenaBackupProfileDuplicatePatch`; never patch
+`PoolWithoutAlloc<T>.PutObject` (shared generic code of every such pool) and never add a finalizer on
+`GetTargetOcclusionType`. A copy of the two-call target inlined into a caller would bypass it silently, so its Debug
+line is the native proof. Read docs/reviews/AUDIO-CONTAINER-GUARD-20261120.md and
+docs/reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md before changing it.
+
 `docs/reviews/HUD-MUTATORS-REVIEW.md` documents the scoped ARENA HUD switch: preserve individual
 HUD preferences, essential match notices and the separate audio controls.
 

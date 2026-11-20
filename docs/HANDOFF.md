@@ -558,8 +558,10 @@ owner's decision whether the alive limit should grow at all, given the measured 
 point that it depends on the supply is void); (2) the audio exception `Can't handle not proposed occlusion test :
 Combined` that appeared in five bursts in one raid: a game bug, the audio pool handing one container out twice, with
 the double return seen natively the same day
-([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); an Arena-only guard
-only on the owner's word; (3) a played match
+([AUDIO-OCCLUDER-EXCEPTION-20261120.md](reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md)); the Arena-only guard
+`ArenaAudioContainerReturnGuardPatch` is built on the branch `feature/zombie-audio-container-guard` (stacked on this
+one, local, offline-verified, [contract](reviews/AUDIO-CONTAINER-GUARD-20261120.md)), its native acceptance is open;
+(3) a played match
 with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline
 harness for the prefix is `tools/BackupProfileDuplicateChecks` (commit `5a0863aa`, registered in
 `tools/verification-steps.txt`). The owner's open decisions from the entries above

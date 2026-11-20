@@ -56,10 +56,12 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   the dead-player coroutine and `method_26` both return it. Seen natively the same day (each of 6 such containers lay in
   two pool slots after its holder died), and the duplicate then lives on: two new infected share the object, both
   return it, and so on to the raid's end. The throw itself did not come in 39 retirements of that check.
-  It is a game bug that a normal raid with infected shares; Arena touches no audio container code, and the watchdog's
-  mass retirements only make the coincidence likelier. Do not chase it in Arena code, and do not "fix" it by spreading
-  retirements or with a finalizer; the options are argued in
-  docs/reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md.
+  It is a game bug that a normal raid with infected shares; Arena's other code touches no audio container, and the
+  watchdog's mass retirements only make the coincidence likelier. Do not chase it in Arena code, and do not "fix" it by
+  spreading retirements or with a finalizer; the options are argued in
+  docs/reports/2026-11/AUDIO-OCCLUDER-EXCEPTION-20261120.md. The guard that was built, `ArenaAudioContainerReturnGuardPatch`
+  (contract docs/reviews/AUDIO-CONTAINER-GUARD-20261120.md), skips a return whose container the pool already holds,
+  in the exact Arena raid only; a normal raid keeps the bug.
 - **A test double or seam that replaces a Config-derived value turns an anchored mutant equivalent
   (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
   `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A

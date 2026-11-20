@@ -68,6 +68,7 @@
     <Compile Include="..\ArenaMode.Client\Performance\BotHotPathPolicy.cs" Link="ClientRules\BotHotPathPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Performance\ProfileBuildBudgetPolicy.cs" Link="ClientRules\ProfileBuildBudgetPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Bots\BackupProfileDuplicatePolicy.cs" Link="ClientRules\BackupProfileDuplicatePolicy.cs" />
+    <Compile Include="..\ArenaMode.Client\Audio\AudioContainerReturnPolicy.cs" Link="ClientRules\AudioContainerReturnPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ArenaEquipmentChoice.cs" Link="ClientRules\ArenaEquipmentChoice.cs" />
     <Compile Include="..\ArenaMode.Client\Session\ArenaEquipmentChoiceState.cs" Link="ClientRules\ArenaEquipmentChoiceState.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ArenaAnnouncerGate.cs" Link="ClientRules\ArenaAnnouncerGate.cs" />

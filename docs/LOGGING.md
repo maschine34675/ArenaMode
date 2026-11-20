@@ -238,6 +238,17 @@ reloaded bot profiles are pooled twice as in the game: <message>` at plugin load
 and `Arena backup profile correction skipped; this reload is pooled as in the game: <message>`, at most once per raid,
 when the prefix threw and the native call ran unchanged. Nothing is written at Info.
 
+## Sound containers pooled twice (all modes, in practice Zombies)
+
+The audio container guard (`ArenaAudioContainerReturnGuardPatch`) logs at Debug, once per skipped return: `Arena audio
+container guard: sound container <id> is already in the pool and was not pooled a second time.` The line is the native
+proof that the patch is reached (a copy of its small target inlined into a caller would bypass it). A missing line proves
+nothing by itself: no armed infected may have died. Two Warnings: `Arena audio container guard unavailable; a sound
+container returned twice is pooled twice as in the game: <message>` at plugin load, when the patch could not be enabled,
+and `Arena audio container guard skipped; this sound container is returned as in the game: <message>`, at most once per
+raid, when the prefix threw and the native method ran. Nothing is written at Info. The game's own
+`Can't handle not proposed occlusion test : Combined` exception is Unity's, not Arena's.
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five

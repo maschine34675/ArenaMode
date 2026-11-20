@@ -63,7 +63,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (211)
+## Feature reviews and contracts (212)
 
 Sorted by file name.
 
@@ -97,6 +97,7 @@ Sorted by file name.
 - [Arena session: solution, deployment and packaging](reviews/ARENA-SESSION-DEPLOY-20261021.md)
 - [Killfeed and scoreboard graphics from extracted EFT images (replaced 2026-10-16)](reviews/ARENA-UI-ASSETS-REVIEW.md) *(superseded)*
 - [Match-local damage assists: rules, native HP capture and lifecycle](reviews/ASSIST-SCORING-REVIEW.md)
+- [Audio container return guard: no sound container pooled twice in an Arena raid (the game's double return of a resumed infected container), contract, limits and native acceptance](reviews/AUDIO-CONTAINER-GUARD-20261120.md)
 - [Audio folders and consolidated package notices](reviews/AUDIO-LAYOUT-20261018.md)
 - [Arena reload from a backpack: Mono-safe non-generic magazine scan](reviews/BACKPACK-RELOAD-REVIEW.md)
 - [Bay5 map admission, per-map availability and revision-2 saved-map migration](reviews/BAY5-MAP-REVIEW.md) *(superseded)*

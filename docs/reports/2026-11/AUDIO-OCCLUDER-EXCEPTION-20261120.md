@@ -243,6 +243,11 @@ SHA-256 (`F9AF829F...`, `1F29D2C9...`). The host's test profile differs from tha
 Non-negotiable 2 governs all of them: a patch starts with `ArenaSession.IsActive`, fails open, and a normal raid
 (which has the same game bug when it has infected) stays as the game makes it.
 
+Built the same day on the owner's word, on the branch `feature/zombie-audio-container-guard`: the return guard of the
+last row (`ArenaAudioContainerReturnGuardPatch`, contract [AUDIO-CONTAINER-GUARD-20261120.md](../../reviews/AUDIO-CONTAINER-GUARD-20261120.md)).
+Its review found one more case the prefix cannot see (a return nested in another return of the same container at the
+raid's end); the contract records it.
+
 | Option | What it changes | Cause addressed | Risk | Verdict |
 | --- | --- | --- | --- | --- |
 | Leave it | Nothing | No | None to normal raids. Silent one-shots and frozen bot occlusion while one infected lives; log growth of about 90 KB/s. Natively also: infected that share one container for the rest of the raid (silent; consequences not traced) | Acceptable; the default while nobody hears a difference |
