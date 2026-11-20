@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
+using SPTarkov.Common.Models.Logging;
+using ArenaMode.Server;
 using ArenaMode.Server.Rewards;
 using SPTarkov.Server.Core.Models.Spt.Mod;
 using Xunit;
@@ -353,13 +355,95 @@ public sealed class PapSideFileGuardTests : IDisposable
     public void CarryRunsBeforeTheMoveAndTakesTheStagedFilesTime()
     {
         string source = File.ReadAllText(FindRepoFile("ArenaMode.Server", "Rewards", "RewardStartupFiles.cs")).Replace("\r\n", "\n");
-        int carry = source.IndexOf("PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(temporary));", StringComparison.Ordinal);
+        int carry = source.IndexOf("PapSideFileGuard.Carry(papSideFile, temporary);", StringComparison.Ordinal);
         int move = source.IndexOf("File.Move(temporary, path, overwrite: true);", StringComparison.Ordinal);
         int prepare = source.IndexOf("PapSideFileGuard.Prepare(root, path)", StringComparison.Ordinal);
         int create = source.IndexOf("FileMode.CreateNew", StringComparison.Ordinal);
         Assert.True(prepare >= 0 && prepare < create, "Prepare comes before the staged file is created");
         Assert.True(create < carry && carry < move, "Carry comes after the staged file is closed and before the move");
         Assert.DoesNotContain("UtcNow", source[carry..(carry + 100)]);
+    }
+
+    // ---- startup wiring, logging and the staged-file time read
+
+    private sealed class Captured
+    {
+        internal readonly ISptLogger<ArenaRewardStartup> Logger;
+        internal readonly ArenaServerInstanceTests.RecordingLogger Log;
+        internal Captured()
+        {
+            Logger = DispatchProxy.Create<ISptLogger<ArenaRewardStartup>, ArenaServerInstanceTests.RecordingLogger>();
+            Log = (ArenaServerInstanceTests.RecordingLogger)(object)Logger;
+        }
+    }
+
+    // A failing staged-file time query is a guard failure like any other: swallowed, never failing the caller.
+    [Fact]
+    public void CarryReadsTheStagedFileTimeInsideItsTryAndNeverThrows()
+    {
+        var (id, _) = Seed(TimeSpan.Zero);
+        PapSideFileGuard.Carry(SidePath(id), "bad\0path"); // File.GetLastWriteTimeUtc throws ArgumentException
+        Assert.Equal("{\"side\":true}", File.ReadAllText(SidePath(id)));
+    }
+
+    [Fact]
+    public void GuardLinesReachTheStartupLoggerWhileArenaContextLoggerIsStillNull()
+    {
+        var oldLogger = ArenaContext.Logger;
+        ArenaContext.Logger = null; // PatchManager assigns it later than ArenaRewardStartup runs
+        try
+        {
+            var captured = new Captured();
+            PapSideFileGuard.Configure([], captured.Logger);
+            var (id, _) = Seed(TimeSpan.FromSeconds(30));
+            Write(id);
+            Assert.Contains(captured.Log.Lines, l => l.Level == "Debug" && l.Text.Contains("kept fresh"));
+
+            PapSideFileGuard.SetWriteTime = (_, _) => throw new UnauthorizedAccessException();
+            var (second, _) = Seed(TimeSpan.FromSeconds(30));
+            Write(second);
+            Write(second);
+            Assert.Single(captured.Log.Lines, l => l.Level == "Warning" && l.Text.Contains("Could not keep the Pack A Punch side file"));
+            Assert.DoesNotContain(captured.Log.Lines, l => l.Text.Contains(id) || l.Text.Contains(second));
+        }
+        finally { ArenaContext.Logger = oldLogger; }
+    }
+
+    // With no logger at all the once-flag is not spent, so a later write with a logger still warns.
+    [Fact]
+    public void AWarningIsNotSpentWhileNoLoggerExists()
+    {
+        var oldLogger = ArenaContext.Logger;
+        ArenaContext.Logger = null;
+        try
+        {
+            PapSideFileGuard.SetWriteTime = (_, _) => throw new UnauthorizedAccessException();
+            var (first, _) = Seed(TimeSpan.FromSeconds(30));
+            Write(first); // no logger: silent, flag kept
+            var captured = new Captured();
+            PapSideFileGuard.Configure([], captured.Logger);
+            var (second, _) = Seed(TimeSpan.FromSeconds(30));
+            Write(second);
+            Assert.Single(captured.Log.Lines, l => l.Level == "Warning");
+        }
+        finally { ArenaContext.Logger = oldLogger; }
+    }
+
+    // The only link between SPT's injected mod list and the guard: Configure runs first in OnLoadAsync, before
+    // anything that can write a profile, and hands over both the mod list and the startup logger.
+    [Fact]
+    public void StartupConfiguresTheGuardBeforeAnyProfileWrite()
+    {
+        string source = File.ReadAllText(FindRepoFile("ArenaMode.Server", "Rewards", "ArenaRewardStartup.cs")).Replace("\r\n", "\n");
+        int entered = source.IndexOf("Interlocked.Exchange(ref _entered, 1)", StringComparison.Ordinal);
+        int configure = source.IndexOf("PapSideFileGuard.Configure(loadedMods, logger);", StringComparison.Ordinal);
+        int admit = source.IndexOf("await AdmitAsync(", StringComparison.Ordinal);
+        Assert.True(entered >= 0 && entered < configure, "Configure follows the single-entry guard");
+        Assert.True(configure < admit, "Configure comes before admission and every recovery write");
+        int onLoad = source.IndexOf("public async Task OnLoadAsync", StringComparison.Ordinal);
+        string beforeConfigure = source[onLoad..configure];
+        Assert.DoesNotContain("WriteAtomic", beforeConfigure);
+        Assert.DoesNotContain("Recover", beforeConfigure);
     }
 
     private static string FindRepoFile(params string[] parts)

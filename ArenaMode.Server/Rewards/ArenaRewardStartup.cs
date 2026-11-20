@@ -50,7 +50,7 @@ public sealed class ArenaRewardStartup(
         if (Interlocked.Exchange(ref _entered, 1) != 0) return;
         // Before any profile write below: the startup writes must be able to keep a Pack A Punch side file fresh.
         // The mod list is injected here (not taken from PatchManager, which runs later than this callback).
-        PapSideFileGuard.Configure(loadedMods);
+        PapSideFileGuard.Configure(loadedMods, logger);
         var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
         var admission = await AdmitAsync(root, cancellationToken);
         _offlineOwner = admission.Owner;

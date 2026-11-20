@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using SPTarkov.Common.Models.Logging;
 using SPTarkov.Server.Core.Models.Spt.Mod;
+using SPTarkov.Server.Core.Models.Utils;
 
 namespace ArenaMode.Server.Rewards;
 
@@ -29,6 +31,7 @@ internal static class PapSideFileGuard
     private static bool _resolved;
     private static int _warned;
     private static int _noted;
+    private static ISptLogger<ArenaRewardStartup>? _startupLogger;
 
     // Tests: the PaP server folder. The default finds the loaded PaP mod (cached per process, reset by Configure).
     internal static Func<string?> PapDirectory = DefaultPapDirectory;
@@ -39,9 +42,10 @@ internal static class PapSideFileGuard
 
     // Called by ArenaRewardStartup before it writes anything. The mod list is the one SPT injected, so a similarly
     // named assembly that is not the PaP mod can never stand in for it.
-    internal static void Configure(IReadOnlyList<SptMod> mods)
+    internal static void Configure(IReadOnlyList<SptMod> mods, ISptLogger<ArenaRewardStartup>? startupLogger = null)
     {
         _mods = mods ?? [];
+        _startupLogger = startupLogger;
         _directory = null;
         _resolved = false;
     }
@@ -106,20 +110,39 @@ internal static class PapSideFileGuard
 
     // Sets the side file to the time the staged profile will carry after the move (the move preserves it, so the
     // two end up exactly equal). Never moves a side file backwards; never throws.
-    internal static void Carry(string sidePath, DateTime tempWriteUtc)
+    // The staged file's time is read in here, inside the try, so that even a failing time query cannot fail the write.
+    internal static void Carry(string sidePath, string stagedPath)
     {
         try
         {
+            DateTime tempWriteUtc = File.GetLastWriteTimeUtc(stagedPath);
             if (File.GetLastWriteTimeUtc(sidePath) >= tempWriteUtc) return;
             SetWriteTime(sidePath, tempWriteUtc);
-            ArenaContext.Logger?.Debug($"[ArenaMode] Pack A Punch side file kept fresh for profile {Alias(sidePath)}.");
+            Debug($"[ArenaMode] Pack A Punch side file kept fresh for profile {Alias(sidePath)}.");
         }
         catch (Exception e)
         {
-            if (Interlocked.Exchange(ref _warned, 1) == 0)
-                ArenaContext.Logger?.Warning($"[ArenaMode] Could not keep the Pack A Punch side file of profile {Alias(sidePath)} "
-                    + $"fresh ({e.GetType().Name}); PaP may set its data aside at the next start.");
+            // The once-flag is only consumed by a line that is actually written (see Warn).
+            Warn($"[ArenaMode] Could not keep the Pack A Punch side file of profile {Alias(sidePath)} "
+                + $"fresh ({e.GetType().Name}); PaP may set its data aside at the next start.");
         }
+    }
+
+    // ArenaContext.Logger is assigned by PatchManager, which loads after ArenaRewardStartup, so during the startup
+    // writes only the logger handed to Configure exists.
+    private static void Debug(string message)
+    {
+        var logger = ArenaContext.Logger;
+        if (logger is not null) logger.Debug(message);
+        else _startupLogger?.Debug(message);
+    }
+
+    private static void Warn(string message)
+    {
+        if (ArenaContext.Logger is null && _startupLogger is null) return;
+        if (Interlocked.Exchange(ref _warned, 1) != 0) return;
+        if (ArenaContext.Logger is { } logger) logger.Warning(message);
+        else _startupLogger!.Warning(message);
     }
 
     private static string Alias(string sidePath)
@@ -130,7 +153,8 @@ internal static class PapSideFileGuard
 
     private static void Note(string message)
     {
-        if (Interlocked.Exchange(ref _noted, 1) == 0) ArenaContext.Logger?.Debug("[ArenaMode] " + message);
+        if (ArenaContext.Logger is null && _startupLogger is null) return;
+        if (Interlocked.Exchange(ref _noted, 1) == 0) Debug("[ArenaMode] " + message);
     }
 
     internal static void ResetForTests()
@@ -140,6 +164,7 @@ internal static class PapSideFileGuard
         _resolved = false;
         _warned = 0;
         _noted = 0;
+        _startupLogger = null;
         PapDirectory = DefaultPapDirectory;
         LocationOf = a => a.Location;
         SetWriteTime = File.SetLastWriteTimeUtc;

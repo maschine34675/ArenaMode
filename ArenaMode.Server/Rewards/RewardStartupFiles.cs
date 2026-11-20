@@ -106,7 +106,7 @@ internal static class RewardStartupFiles
             // Before the move, so a crash between the two leaves a side file NEWER than the old profile (fresh to
             // PaP), never a profile newer than its side file. The move preserves the staged file's time, which the
             // side file now carries exactly.
-            if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(temporary));
+            if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, temporary);
             File.Move(temporary, path, overwrite: true);
         }
         finally
