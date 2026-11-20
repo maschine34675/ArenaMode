@@ -167,8 +167,12 @@ pruned automatically. Even zero-payment runs use a slot; retention/rollover is a
 later explicit design task.
 
 Atomic sibling staging uses the existing file helper. Exact unpublished
-`.arena-reward-<guid>.tmp` leftovers are ignored; other unexpected history files,
-path traversal and reparse points are refused. Startup locks and path/revision
+`.arena-reward-<guid>.tmp` leftovers are ignored; path traversal and reparse points
+are refused. Any other entry of `decisions/` that is not `<runId>.json` (a sync tool's
+conflict copy, a backup, `desktop.ini`, a directory) is refused by name with
+`result-history-foreign-entry`, never read and never skipped, and the next sequence
+comes from the validated history, not from a file count (see
+[foreign files in the reward history](REWARDS-RUNTIME.md#foreign-files-in-the-reward-history)). Startup locks and path/revision
 checks retain the cooperative-writer limitations in [REWARDS-SERVER.md](REWARDS-SERVER.md).
 External file editors or joint rollback of profile, journal and authority are not
 made tamper-proof. No claim of independent combat verification or universal

@@ -877,3 +877,22 @@ Traps met while building it:
   ArenaMapPort deploys assets several times a day, and Syncthing mirrors both from the GPU hosts. A key over whole
   installed folders went stale every few minutes; the runtime-state pattern above is what was observed
   (`Get-ChildItem -Recurse | Where LastWriteTime -gt ...`), and the verdict of a rerun names the installed part that moved.
+
+## Rewards on the synchronized GPU hosts (2026-11-20)
+
+- **GPU-1 and GPU-2 are one reward installation.** Syncthing mirrors the `installationId` and both run from
+  `C:\SPT41\SPT_Runtime`, so every normal server start on either host settles the reward queue of every enrolled
+  profile, the GPU-2 test profile included. If both settle while Syncthing has not reconciled them, both write the same
+  receipts with their own sequence numbers, and Syncthing keeps one side and renames the other to
+  `*.sync-conflict-*-<device>.json` (the device of the WINNING change, not of the copy). The profile then stops paying:
+  since 2026-11-13 with `invalid-result-history` at Debug only, from the fix on `fix/reward-history-foreign-entry` with
+  `result-history-foreign-entry` and a Warning. Before a reward test, check that no normal server ran on the other host
+  since the last reconcile (`gpu-run server status`, Syncthing completion 100 %), and run normal servers on one host at a
+  time. The profile file gets conflict copies the same way (seven on `6ab7db1c` from 2026-11-13 to 2026-11-15).
+- **Recovery** moves the copies out of the synchronized tree, never deletes them: all servers off, Syncthing idle, backup,
+  then the scoped archive script with a hash check per copy and a canonical sibling required
+  ([report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md),
+  [remedy](REWARDS-RUNTIME.md#foreign-files-in-the-reward-history)). The next start settles the whole queue at once: on
+  2026-11-20 100 receipts, 24 of them paid (433,000 RUB, 43,300 XP) on the test profile.
+- **Host logs are UTC, file times on the VM are local.** The 10:26 and 12:15 writers above appear as 09:26 and 11:15 in
+  the host logs; match on seconds, not on the hour.

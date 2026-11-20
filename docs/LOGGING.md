@@ -24,7 +24,12 @@ silently, a lost weapon would be as invisible as the old `base-invalid` Debug li
 A start whose rewards are paused is not gameplay either: it is one Warning per start that
 names the reason code ("Arena rewards are paused for this start: ...", see
 [Rewards paused at start](REWARDS-RUNTIME.md#rewards-paused-at-start)), never Debug. A
-withheld reward once stayed hidden behind a Debug line for 14 days.
+withheld reward once stayed hidden behind a Debug line for 14 days. The same holds for a
+profile whose reward history holds a foreign file or a damaged decision: one Warning per
+start for that profile (`ArenaRewardStartup.ComposeHistoryWarning`, see
+[foreign files in the reward history](REWARDS-RUNTIME.md#foreign-files-in-the-reward-history));
+the GPU-2 test profile paid nothing for a week behind the Debug line `Reward skipped ...
+(invalid-result-history)`. Other per-profile quarantine codes keep that Debug line.
 
 The difficulty model follows this rule: the server's gear-band line (`Bot gear band on ...`,
 mode, step and level) and the client's per-spawn level lines are Debug. The step is not an
