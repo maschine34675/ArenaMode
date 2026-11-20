@@ -46,6 +46,7 @@ $ArenaPayloadLayoutFiles = @(
 $ArenaArtifactInputs = @(
     'artifacts/pft-100-contracts',                          # PitFireTeam100Checks: PFT 1.0.0 release, legacy builds
     'artifacts/pft-installed',                              # PortedCoverChecks: Decompile-PitFireTeam.ps1 output
+    'artifacts/optional-mod-releases',                      # Exact released DLLs for optional-mod contract checks
     'artifacts/ammo-raid-health-compat-20261019/releases',  # SvmCompatChecks: downloaded SVM release
     'artifacts/compat-seven-20261025/items')                # UseItemsAnywhereChecks: downloaded UseItemsAnywhere
 # Production code runs in the game, or inside a harness against paths the harness hands it; it never

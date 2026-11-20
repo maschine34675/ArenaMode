@@ -730,7 +730,8 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   file); the adversarial review of 2026-11-14 found it wrongly listed as a payload script. Only the xunit sources
   can make every step wide; a shared helper does so for the steps that reach it.
 - **Fixtures under `artifacts/` are inputs only when registered** (`$ArenaArtifactInputs`): PitFireTeam100Checks
-  (the PFT 1.0.0 release), PortedCoverChecks (the decompiled installation), SvmCompatChecks and
+  (the PFT release fixtures), PortedCoverChecks (the decompiled installation),
+  `artifacts/optional-mod-releases` (the exact Cola and VisualAssist release DLLs), SvmCompatChecks and
   UseItemsAnywhereChecks (downloaded releases). Every other `artifacts/` path is output; keying output folders
   that gain a GUID folder per run would make those steps uncacheable. A harness that starts reading a fixture
   from `artifacts/` registers its prefix there.

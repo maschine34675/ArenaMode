@@ -129,6 +129,8 @@ $faults = @(
         Find = "        if (`$fact.Enumerates -and -not `$payload -and -not `$wide)"; Replace = "        if (`$fact.Enumerates -and -not `$payload -and -not `$wide -and `$rel -notlike 'tools/*-*.ps1')" },
     @{ Name = 'artifact-inputs-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a changed fixture under artifacts/ reruns the step'; Cases = @('artifact-input')
         Find = '    foreach ($prefix in @($Scope.ArtifactInputs)) {'; Replace = '    foreach ($prefix in @()) {' },
+    @{ Name = 'optional-releases-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a changed optional mod release reruns the step'; Cases = @('optional-release-input')
+        Find = "    'artifacts/optional-mod-releases',"; Replace = '' },
     @{ Name = 'env-path-by-name'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a changed folder behind a variable reruns the step'; Cases = @('env-path')
         Find = "        `$content = if (`$value -match '^[A-Za-z]:\\' -and -not `$inInstall -and (Test-Path -LiteralPath `$value))"; Replace = "        `$content = if (`$false)" },
     @{ Name = 'env-path-in-install-keyed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'runtime state that mods write keeps the cache'; Cases = @('runtime-state')
@@ -286,7 +288,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Write-Text (Join-Path $repo 'tools/Scan-Toy.ps1') "`$root = Join-Path `$PSScriptRoot '..'`n`$null = & git -C `$root ls-files`n"
     Write-Text (Join-Path $repo 'tools/ScanToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ScanToyChecks'`n& (Join-Path `$PSScriptRoot '../Scan-Toy.ps1')`n'SCAN_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'artifacts/pft-installed/Fixture.cs') "fixture 1`n"
-    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "`$ErrorActionPreference = 'Stop'`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$fixture = Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs'`nif (-not (Test-Path -LiteralPath `$fixture)) { 'ARTIFACT_TOY_MISSING_FIXTURE'; exit 1 }`n`$null = Get-Content -Raw `$fixture`n'ARTIFACT_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'artifacts/optional-mod-releases/Fixture.cs') "release 1`n"
+    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "`$ErrorActionPreference = 'Stop'`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$fixture = Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs'`nif (-not (Test-Path -LiteralPath `$fixture)) { 'ARTIFACT_TOY_MISSING_FIXTURE'; exit 1 }`n`$null = Get-Content -Raw `$fixture`n`$release = Join-Path `$PSScriptRoot '../../artifacts/optional-mod-releases/Fixture.cs'`nif (-not (Test-Path -LiteralPath `$release)) { 'ARTIFACT_TOY_MISSING_OPTIONAL_RELEASE'; exit 1 }`n`$null = Get-Content -Raw `$release`n'ARTIFACT_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/NoRestoreToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n</Project>`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Program.cs') "System.Console.WriteLine(`"NO_RESTORE_TOY_PASSED`");`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'NoRestoreToyChecks'`n& dotnet run --project (Join-Path `$PSScriptRoot 'NoRestoreToyChecks.csproj') -c Release --no-restore`nexit `$LASTEXITCODE`n"
@@ -604,6 +607,13 @@ $cases = [ordered]@{
         Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $false 'a step with an unchanged artifact fixture is cached'
         Add-Content -LiteralPath (Join-Path $s.Repo 'artifacts/pft-installed/Fixture.cs') 'fixture 2'
         Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $true 'a changed fixture under artifacts/ reruns the step' }
+    'optional-release-input' = { param($s)
+        # The baseline shares a sandbox with artifact-input, which already cached this step.
+        Add-Content -LiteralPath (Join-Path $s.Repo 'artifacts/optional-mod-releases/Fixture.cs') 'optional case start'
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $true 'a step with an optional mod release runs'
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $false 'an unchanged optional mod release is cached'
+        Add-Content -LiteralPath (Join-Path $s.Repo 'artifacts/optional-mod-releases/Fixture.cs') 'release 2'
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $true 'a changed optional mod release reruns the step' }
     'env-path' = { param($s)
         $folder = Join-Path $s.Base 'apbs-root'; Write-Text (Join-Path $folder 'config.json') '{"v":1}'
         Assert-Run (Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_TOY_ROOT = $folder }) 'ToyChecks' $true 'a step with a path variable runs'
