@@ -82,10 +82,10 @@ $mutations = @(
        New = 'return previous - sideTime > FreshWindow ? side : null;';
        Test = 'AlreadyStaleSideFileIsNotRevived' },
     @{ Name = 'pap-carry-after-move'; File = 'RewardStartupFiles.cs';
-       Old = 'if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(temporary));';
+       Old = 'if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, temporary);';
        New = '// mutation: no carry before the move';
        Old2 = 'File.Move(temporary, path, overwrite: true);';
-       New2 = 'File.Move(temporary, path, overwrite: true); if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, File.GetLastWriteTimeUtc(path));';
+       New2 = 'File.Move(temporary, path, overwrite: true); if (papSideFile is not null) PapSideFileGuard.Carry(papSideFile, path);';
        Test = 'SideFileIsAlreadyCarriedWhenTheMoveFails' },
     @{ Name = 'pap-carry-uses-now'; File = 'PapSideFileGuard.cs';
        Old = 'SetWriteTime(sidePath, tempWriteUtc);';
