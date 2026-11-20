@@ -244,6 +244,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMenuArt.Shutdown();
         ArenaSessionBanner.Shutdown();
         ArenaTarkovaColaCompat.Shutdown();
+        ArenaVisualAssistCompat.Shutdown();
         ArenaAmandsGraphicsScene.Shutdown();
         ArenaShoulderSwapCompat.Shutdown();
         ArenaEncumbranceBarCompat.Shutdown();

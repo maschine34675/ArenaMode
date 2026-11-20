@@ -51,6 +51,13 @@ namespace ArenaMode.Compat
         internal static int Calls;
         internal static string GetRejectionReason() { Calls++; return Reason; }
     }
+    // VisualAssistThrowChecks covers the real throw guard; this double pins admission and ordering only.
+    internal static class ArenaVisualAssistCompat
+    {
+        internal static string Reason;
+        internal static int Calls;
+        internal static string GetRejectionReason() { Calls++; return Reason; }
+    }
     internal static class PipPreloadCompat
     {
         internal static string Reason;

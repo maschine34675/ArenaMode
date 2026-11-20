@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion><EnableDefaultCompileItems>false</EnableDefaultCompileItems><AssemblyName>VisualAssistThrow.NativeCompile</AssemblyName><AssemblySearchPaths>{HintPathFromItem};{RawFileName};{TargetFrameworkDirectory}</AssemblySearchPaths></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Compat/ArenaVisualAssistCompat.cs;NativeBoundary.cs" />
+    <Reference Include="../../../../EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll" />
+    <Reference Include="../../../../EscapeFromTarkov_Data/Managed/Comfort.dll" />
+    <Reference Include="../../../../EscapeFromTarkov_Data/Managed/Comfort.Unity.dll" />
+    <Reference Include="../../../../EscapeFromTarkov_Data/Managed/UnityEngine.dll" />
+    <Reference Include="../../../../EscapeFromTarkov_Data/Managed/UnityEngine.CoreModule.dll" />
+    <Reference Include="../../../../BepInEx/core/BepInEx.dll" />
+    <Reference Include="../../../../BepInEx/core/0Harmony.dll" />
+  </ItemGroup>
+</Project>

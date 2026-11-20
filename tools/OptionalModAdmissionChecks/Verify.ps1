@@ -79,6 +79,11 @@ $mutants = @(
         After = '?? null'
     },
     @{
+        Name = 'skip-visual-assist-contract'
+        Before = '?? ArenaVisualAssistCompat.GetRejectionReason()'
+        After = '?? null'
+    },
+    @{
         Name = 'skip-pip-contract'
         Before = '?? PipPreloadCompat.GetRejectionReason()'
         After = '?? null'

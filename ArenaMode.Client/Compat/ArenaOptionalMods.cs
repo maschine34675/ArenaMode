@@ -34,6 +34,7 @@ internal static class ArenaOptionalMods
             ?? ArenaShoulderSwapCompat.GetRejectionReason()
             ?? ArenaEncumbranceBarCompat.GetRejectionReason()
             ?? FastGrenadeThrowCompat.GetRejectionReason()
+            ?? ArenaVisualAssistCompat.GetRejectionReason()
             ?? PipPreloadCompat.GetRejectionReason()
             ?? ArenaTarkovaColaCompat.GetRejectionReason();
     }

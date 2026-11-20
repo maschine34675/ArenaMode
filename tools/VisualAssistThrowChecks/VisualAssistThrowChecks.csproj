@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <CompatSource Condition="'$(CompatSource)'==''">../../ArenaMode.Client/Compat/ArenaVisualAssistCompat.cs</CompatSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs;StandIns.cs;$(CompatSource)" />
+    <Reference Include="../../../../BepInEx/core/Mono.Cecil.dll" />
+  </ItemGroup>
+</Project>

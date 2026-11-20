@@ -13,6 +13,7 @@ internal static class Program
         {
             CheckAbsentAndAdapters();
             CheckAdditionalAdapterContracts();
+            CheckVisualAssistAdmission();
             CheckShoulderSwapAndEncumbranceBar();
             CheckTarkovaColaAdmission();
             CheckServerAdmission();
@@ -90,6 +91,58 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
             && ArenaAmandsGraphicsScene.Calls == 0 && FastGrenadeThrowCompat.Calls == 0 && PipPreloadCompat.Calls == 0,
             "Core refusal remains ahead of both newer adapters");
+    }
+
+    private static void CheckVisualAssistAdmission()
+    {
+        Reset();
+        Allowed("Absent or ready VisualAssist allows admission");
+        Require(ArenaVisualAssistCompat.Calls == 1,
+            "Admission consults VisualAssist exactly once per query");
+
+        Reset();
+        ArenaVisualAssistCompat.Reason = "VisualAssist throw guard unavailable";
+        PipPreloadCompat.Reason = "PIP preload ownership unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaVisualAssistCompat.Reason,
+            "VisualAssist rejection reaches admission unchanged ahead of PIP");
+        Require(PipPreloadCompat.Calls == 0 && ArenaTarkovaColaCompat.Calls == 0,
+            "failed VisualAssist contract short-circuits later providers");
+        ArenaVisualAssistCompat.Reason = null;
+        Require(ArenaOptionalMods.GetRejectionReason() == PipPreloadCompat.Reason
+            && ArenaVisualAssistCompat.Calls == 2,
+            "PIP rejection follows the rechecked VisualAssist recovery");
+        PipPreloadCompat.Reason = null;
+        Allowed("recovered VisualAssist is rechecked without a stale refusal");
+        Require(ArenaVisualAssistCompat.Calls == 3,
+            "VisualAssist recovery does not bypass its provider on later queries");
+
+        Reset();
+        FastGrenadeThrowCompat.Reason = "Grenade body handoff unavailable";
+        ArenaVisualAssistCompat.Reason = "VisualAssist throw guard unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == FastGrenadeThrowCompat.Reason
+            && ArenaVisualAssistCompat.Calls == 0,
+            "FastGrenadeThrow refusal stays ahead of VisualAssist");
+
+        Reset();
+        BodyReplacementCompatibility.Reason = "Core unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
+            && ArenaVisualAssistCompat.Calls == 0,
+            "Core refusal short-circuits VisualAssist");
+        Reset();
+        ArenaServerClient.ServerAdmissionFailure = "Server-only blocker";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaServerClient.ServerAdmissionFailure
+            && ArenaVisualAssistCompat.Calls == 0,
+            "Server refusal short-circuits VisualAssist");
+        Reset();
+        ArenaWhitelistAdmission.Reason = "Whitelist blocker";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaWhitelistAdmission.Reason
+            && ArenaVisualAssistCompat.Calls == 0,
+            "Whitelist refusal short-circuits VisualAssist");
+        Reset();
+        ArenaExtractionIsolation.Reason = "Extraction isolation unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaExtractionIsolation.Reason
+            && ArenaVisualAssistCompat.Calls == 0,
+            "Extraction-isolation refusal short-circuits VisualAssist");
     }
 
     private static void CheckShoulderSwapAndEncumbranceBar()
@@ -246,6 +299,8 @@ internal static class Program
         ArenaTarkovaColaCompat.Calls = 0;
         FastGrenadeThrowCompat.Reason = PipPreloadCompat.Reason = null;
         FastGrenadeThrowCompat.Calls = PipPreloadCompat.Calls = 0;
+        ArenaVisualAssistCompat.Reason = null;
+        ArenaVisualAssistCompat.Calls = 0;
         ArenaAmandsGraphicsScene.Reason = null;
         ArenaAmandsGraphicsScene.Calls = 0;
         ArenaShoulderSwapCompat.Reason = ArenaEncumbranceBarCompat.Reason = null;
