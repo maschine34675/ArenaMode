@@ -34,7 +34,7 @@ to `AGENTS.md`.
    `ArenaProfilePreloadPatch` runs inside the loading screen, where `IsActive`
    cannot yet be latched, so it gates on ARMED + the map being loaded instead.
    If the server then refuses the arm token, that raid runs ordinary with an
-   emptied bot-profile pool — not broken (a pool miss fetches three more) but
+   emptied bot-profile pool — not broken (a pool miss asks for three and SPT answers with a whole `presetBatch`) but
    not vanilla either. The loading-screen
    kit preload (`KitBundlePreloader.BeginRaidStart`, started from the armed
    `LocalRaidStarted` continuation) together with the optic guard it engages
@@ -960,6 +960,17 @@ Pooled PMC profiles keep the gear of their generation time (Gun Game since 2026-
 opening rounds, same day): whatever moves the server's gear band during a raid needs a client purge of the pool, a
 sibling patch of `ArenaGunGameFreshGearPatch` / `ArenaTacticalFreshGearPatch` keyed on its own mode; never a
 server-side change and never an edit of the other mode's patch.
+
+The game pools every profile that its backup loader reloads twice (`BotProfileClient.LoadProfiles` stores the answer and
+the callback `LoadedByBackup` stores it again; the second copy is rejected when drawn, so the spawn request comes back
+empty and the Zombie waves stall). `ArenaBackupProfileDuplicatePatch` is a prefix on `LoadedByBackup` that hands the
+callback only the entries the pool does not hold yet, by object reference, in every mode and only in the exact active Arena
+raid (`ArenaSession.IsActive` first, then the exact-raid check and the game's own `_creatorProfile` being that client). It
+is not a loading-time exception: a reload that finishes before the raid start is confirmed runs as in the game. It fails
+open (Warning once per raid, native call unchanged). It is a sibling of the fresh-gear patches above and must stay
+independent of them: it must not read their state, share their file or be merged into either. Read
+docs/reviews/ZOMBIE-ESCALATION-20261119.md ("The profile pool held every reloaded profile twice") before changing it or
+the pool targets.
 
 ### From the handoff (snapshot of 2026-10-29)
 

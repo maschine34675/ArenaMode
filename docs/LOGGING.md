@@ -227,6 +227,16 @@ retained: ...` (an exception while reading the pool) and, at plugin load, `Arena
 unavailable; ...`. The server's `Tactical round N reported (seq S); gear level L ...` and the
 `round=N` suffix of the `Bot gear band` line are Debug too. The buy-screen line is not logged.
 
+## Reloaded bot profiles pooled twice (all modes)
+
+The pool correction (`ArenaBackupProfileDuplicatePatch`) logs at Debug, only when something was left out: `Arena
+profile backup: N of M reloaded bot profile(s) were already in the pool and were not added a second time.` A reload that
+finds nothing to leave out writes no line. So no such line in a raid means either that nothing was a duplicate or that no
+reload finished; it does not show that the patch was off. Two Warnings: `Arena backup profile correction unavailable;
+reloaded bot profiles are pooled twice as in the game: <message>` at plugin load, when the patch could not be enabled,
+and `Arena backup profile correction skipped; this reload is pooled as in the game: <message>`, at most once per raid,
+when the prefix threw and the native call ran unchanged. Nothing is written at Info.
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five

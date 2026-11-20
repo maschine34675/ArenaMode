@@ -537,14 +537,28 @@ stalled the game for 2.4 to 10.4 s in some runs of 2026-11-19 is unknown (the sm
 
 **Native acceptance of the branch, 2026-11-20 ([report](reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md)):**
 Tactical opening rounds, the Zombie special waves with small waves, the menu row, Gun Game with the generated pool and
-the collector's smoke run passed on GPU-2. **Found, also on the build before, and the owner's decision:** the supply of
-infected profiles. The loading and the first minute bring 26 batches of 30, after that the server log shows about one
-batch a minute (never less than 50 s apart); a spawn request for an empty pair comes back without a profile. With the
-default sizes and no kills (godmode, the watchdog removes the living) the first requests are dropped in wave 4 and
-waves 5 to 7 fill at 0.6 to 0.7 infected per second. The build before shows the same fall with waves of 40; a themed
-wave reaches it sooner because it draws one difficulty only. Wave 10 at the default size was not reached, and no match
-with kills was played at that size. The alive-limit growth depends on it (a higher limit asks more of the same supply).
-Options are listed in docs/reviews/ZOMBIE-ESCALATION-20261119.md ("The profile pool is not changed").
+the collector's smoke run passed on GPU-2. It also found that with the default sizes and no kills (godmode, the
+watchdog removes the living) the first Zombie spawn requests were dropped in wave 4 and waves 5 to 7 filled at 0.6 to
+0.7 infected per second, also on the build before. **That night's reading (a profile supply that runs out, one batch a
+minute) was wrong and is superseded, see the next entry.** The numbers stand; wave 10 at the default size was not
+reached that night.
+
+**Zombie profile pool, 2026-11-20 (branch `feature/zombie-profile-supply`, on `master` `0d596980`, the merge of
+`feature/opening-rounds-zombie-waves`; local, not pushed; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
+profile pool held every reloaded profile twice", [native report](reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md)):**
+the game's backup loader stored every reloaded bot profile twice, and the second copy is rejected when drawn, which
+Arena logged as `no profiles for <role> - request dropped`. The branch holds the correction
+(`ArenaBackupProfileDuplicatePatch`, commits `62de29e4` and `fb8bea72`: in the exact active Arena raid, in every mode,
+it leaves out of a reload what the pool already holds; fails open). Checked natively on SPT-GPU-2 on 2026-11-20, not
+merged, not pushed: at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
+request, three raids. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT-GPU-2 (hashes in the
+report); the branch builds are not installed. EFT and the SPT server on the host are not running. Open: (1) the
+owner's decision whether the alive limit should grow at all, given the measured frame-time ceiling of 32 (the earlier
+point that it depends on the supply is void); (2) the audio exception `Can't handle not proposed occlusion test :
+Combined` that appeared in five bursts in one raid and is unexplained (report, "Seen on the way"); (3) a played match
+with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured; (4) the offline
+harness for the prefix, see `tools/BackupProfileDuplicateChecks`. The owner's open decisions from the entries above
+stay as they are.
 
 **Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not
 pushed; [contract](reviews/DIFFICULTY-MODEL-20261118.md) with its implementation notes,

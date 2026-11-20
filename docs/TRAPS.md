@@ -20,17 +20,31 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   every ammunition site on a weapon holding the same cartridge. A revolver whose camoras
   disagreed with its chamber shipped once and threw nothing.
 
-- **`AddToTargetBackup` is first-write-wins, and the backup loader's top-up collapses (2026-11-19)** —
-  `BotSpawner.AddToTargetBackup` adds a (role, difficulty) target only when none exists
-  (`BotProfileBackuploader.cs:257-263`), so a pool cannot be raised mid-raid and a second call is
-  ignored without a sign; the target is whatever the match start registered. And
-  `CacheSimpleProfilesChecker` computes `int num4 = 100 / num3;` after summing the pending loads: with
-  more than 100 profiles wanted that is integer division and 0, and every pair's load is clamped to 1.
-  Arena's default Zombie targets are 12 pairs x 25 = 300, so the loader adds about one profile per pair
-  per 30 s (and only when the deficit exceeds 3) and never reaches 25. A wave that draws a pair in bulk
-  (the all-shooter wave) goes through the native miss path (`BotProfileClient.CreateProfile`, batches of
-  `presetBatch` 30). Do not plan on a pool being full, and a bigger target is no remedy; 12 pairs x 8 would
-  be loaded in full. Argued in docs/reviews/ZOMBIE-ESCALATION-20261119.md.
+- **`AddToTargetBackup` is first-write-wins, and the game pools every reloaded bot profile twice (2026-11-19,
+  rewritten 2026-11-20)** — `BotSpawner.AddToTargetBackup` adds a (role, difficulty) target only when none
+  exists (`BotProfileBackuploader.cs:257-263`), so a pool cannot be raised mid-raid and a second call is
+  ignored without a sign; the target is whatever the match start registered. That part stands. The backup
+  loader's stock check (`CacheSimpleProfilesChecker`) computes `int num4 = 100 / num3;`, which is 0 for more
+  than 100 wanted profiles and clamps every pair's `Limit` to 1; that changes only the `Limit` field, because
+  SPT rounds every requested pair up to `presetBatch` (30 for an infected role, 15 for a PMC, 45 for assault).
+  It is not why Zombie waves stalled. The real cause: `BotProfileClient` builds its loader with `LoadProfiles`
+  as the load delegate and `LoadedByBackup` as the callback, `LoadProfiles` already appends the answer to
+  the pool and the callback appends it again, so every reloaded profile is in the pool twice as the same object.
+  The second copy, when drawn, is found in the static `BotCreationData._generatedHash` and left out: the creation
+  data comes back with Count 0, no exception and no request, which Arena logs as `no profiles for <role> ...
+  request dropped` and, in Zombies, handles as a failed dispatch with a pause. The symptom looks like an empty
+  pool, and the stock count of the loader counted both copies. `ArenaBackupProfileDuplicatePatch` removes the
+  second copy in the exact active Arena raid. Also true: a real miss (no entry for the pair) asks the server at
+  once for three and SPT answers with a whole `presetBatch`; `AddProfileForBackup` has no 50 s gate (only the
+  loader's `Update` has); at most two loads run at a time; `_loadsProcess` is not decremented when a load
+  throws, so two failed loads stop the loader for the raid while the miss path keeps working. Do not plan on a
+  pool being larger than its target, and a bigger target is no remedy. Argued in
+  docs/reviews/ZOMBIE-ESCALATION-20261119.md and docs/reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md.
+- **An absent managed Unity log line proves nothing until the line is known to arrive (2026-11-20)** — the
+  game's `Debug.LogError` was assumed to reach the BepInEx log, and the absence of `generate profile with same id`
+  there was used as an argument in the first doc comment of the patch. Managed exceptions and engine warnings do reach that
+  log; whether `Debug.LogError` does was never checked. Before an absent line is evidence, make the game write
+  one on purpose and look for it.
 - **A test double or seam that replaces a Config-derived value turns an anchored mutant equivalent
   (2026-11-19)** — `ZombieCompositionChecks` kills `alive-limit-ignores-step` by replacing the line
   `ArenaDifficultyPolicy.ZombieMaxAlive(_step, Settings.ZombieMaxAlive.Value)` in `ZombieMode`. A
