@@ -295,8 +295,11 @@ public sealed class RewardRestorationCheckpointTests
         Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
         Assert.False(File.Exists(f.CheckpointFile("complete.json")));
         Assert.False(Directory.Exists(f.Inbox));
-        // The diagnostics describe the compared text by hashes only, never by value.
-        Assert.DoesNotContain("124", File.ReadAllText(f.CheckpointFile("mismatch.json")));
+        // The diagnostics describe the compared text by hashes only, never by value. A bare "124" would also match
+        // inside a hex hash, so look for the property name and the value as they appear in the profile text.
+        string mismatch = File.ReadAllText(f.CheckpointFile("mismatch.json"));
+        Assert.DoesNotContain("progress", mismatch);
+        Assert.DoesNotContain(":124", mismatch);
     }
 
     // Startup holds no captured pipeline (a new process), so it stays strict: a stripped file is left pending and
