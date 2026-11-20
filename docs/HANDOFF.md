@@ -547,17 +547,19 @@ reached that night.
 `feature/opening-rounds-zombie-waves`; local, not pushed; [contract](reviews/ZOMBIE-ESCALATION-20261119.md) section "The
 profile pool held every reloaded profile twice", [native report](reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md)):**
 the game's backup loader stored every reloaded bot profile twice, and the second copy is rejected when drawn, which
-Arena logged as `no profiles for <role> - request dropped`. The branch holds the correction
+Arena logged as `Arena burst spawn: no profiles for <role> — request dropped.` The branch holds the correction
 (`ArenaBackupProfileDuplicatePatch`, commits `62de29e4` and `fb8bea72`: in the exact active Arena raid, in every mode,
 it leaves out of a reload what the pool already holds; fails open). Checked natively on SPT-GPU-2 on 2026-11-20, not
 merged, not pushed: at the default sizes waves 1 to 12 filled at 2.2 to 2.8 infected per second with no dropped
-request, three raids. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT-GPU-2 (hashes in the
+request in run A; two more raids (all shooters in waves of 60, and the reviewed build up to wave 5) dropped none
+either. Installed state: the build `0.6.0+72273354` is back on the VM and on SPT-GPU-2 (hashes in the
 report); the branch builds are not installed. EFT and the SPT server on the host are not running. Open: (1) the
 owner's decision whether the alive limit should grow at all, given the measured frame-time ceiling of 32 (the earlier
 point that it depends on the supply is void); (2) the audio exception `Can't handle not proposed occlusion test :
 Combined` that appeared in five bursts in one raid and is unexplained (report, "Seen on the way"); (3) a played match
-with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured; (4) the offline
-harness for the prefix, see `tools/BackupProfileDuplicateChecks`. The owner's open decisions from the entries above
+with kills, PMC modes with the patch and the memory of unused profiles, none of which was measured. The offline
+harness for the prefix is `tools/BackupProfileDuplicateChecks` (commit `5a0863aa`, registered in
+`tools/verification-steps.txt`). The owner's open decisions from the entries above
 stay as they are.
 
 **Difficulty model, 2026-11-18/19 (branch `feature/difficulty-model`, merged into local `master` on 2026-11-19, not

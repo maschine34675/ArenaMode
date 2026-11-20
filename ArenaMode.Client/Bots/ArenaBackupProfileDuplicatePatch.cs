@@ -33,7 +33,7 @@ namespace ArenaMode.Bots;
 ///
 /// Measured on SPT-GPU-2 on 2026-11-20, Zombies at the default size without player kills
 /// (docs/reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md): without this patch 251 dropped requests
-/// in 13 minutes and waves 5 to 7 filling at 0.6 to 0.7 infected per second; with it every one of 17
+/// in a raid of 14.4 minutes and waves 5 to 7 filling at 0.6 to 0.7 infected per second; with it every one of 17
 /// reloads (1530 profiles) was already in the pool, no request was dropped and waves 5 to 12 filled at
 /// 2.4 to 2.7 per second.
 ///

@@ -143,7 +143,9 @@ isolate it. The eager purge at the acknowledgement stays unbuilt.
 - Two Warnings in these raids were not the watchdog's: `Arena burst spawn: no profiles for infectedAssault —
   request dropped.` in run A (three seconds before the wave 11 line, the slot that was drawn twice) and the same
   for infectedCivil in run B (wave 8). They are the supply finding of the next section at a small scale; with
-  waves of 6 the pool is planned small, and the first one came after about 60 infected.
+  waves of 6 the pool is planned small, and the first one came after about 60 infected. (Superseded on 2026-11-20,
+  see the note at the head of the next section: the supply reading was wrong; whether these two drops had the
+  double-pooling cause was not checked.)
 
 ## Zombies: the profiles of the drawn difficulties run out (also on the build before)
 

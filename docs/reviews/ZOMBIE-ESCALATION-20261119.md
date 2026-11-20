@@ -195,15 +195,18 @@ and the second copy could not be used. This section replaces an earlier reading 
   Error line. The numbers, the frame times and the limits are in
   [the report](../reports/2026-11/GPU-ZOMBIE-PROFILE-POOL-20261120.md).
 - **What the earlier reading got wrong, each statement superseded.** (1) "A spawn request for an empty pair comes
-  back without a profile": the request came back empty because the drawn entry was a second copy, and the pair was not
-  empty; a real miss asks the server at once and gets a batch. (2) "The server refills only about once a minute, the
+  back without a profile": the pair was not empty, the drawn entry was a second copy (that the second copies exist is
+  measured: every reloaded profile was already in the pool when the callback ran; that the game rejects one when it is
+  drawn is read from the decompile, its own log line for it was never seen; with the correction no request was dropped
+  in three raids); a real miss asks the server at once and gets a batch. (2) "The server refills only about once a minute, the
   loader sends at most every 50 s": the 50 s gate belongs to the loader's own `Update`; `AddProfileForBackup` has no
   such gate, and a real miss asks the server at once. (3) "The loader adds about one profile per pair per
   30 s and never reaches the target": the collapse of `100 / num3` to 0 clamps every `Limit` to 1, but SPT rounds every
   requested pair up to `presetBatch`, so the clamp changes nothing on SPT. (4) "It is supply": the profiles were there,
   twice. (5) "A themed wave runs dry sooner because it draws one difficulty": that explanation rested on the supply reading
-  and falls with it; the difference between the two builds in the waves of 40 (one run per build) is not explained and
-  was not examined again. (6) "A
+  and falls with it; the difference between the two builds in the waves of 40 (one run per build; the numbers are in
+  [the acceptance report](../reports/2026-11/GPU-OPENING-ROUNDS-ACCEPTANCE-20261120.md), section "Zombies: the
+  profiles of the drawn difficulties run out") is not explained and was not examined again. (6) "A
   higher alive limit asks more of the same supply": there is no supply limit to ask more of. The options (a) to (d)
   that the earlier text listed answered a supply limit that does not exist, and none of them was built.
 - **What stays true.** `BotSpawner.AddToTargetBackup` is first-write-wins (`BotProfileBackuploader.cs:257-263`): a
@@ -318,7 +321,7 @@ godmode on, no kills; a wave of N at most the alive limit takes about `0.2 x N +
 | Waves 5 and 10 and their announcement | Maximum, ShooterPercent 20, WaveStartSize 6, WaveGrowth 0, MaxAlive 8, IntermissionSeconds 8, SpawnIntervalSeconds 0.2, StuckWaveTimeoutSeconds 4, run on to wave 11 | about 2.5 min |
 | Shares over a larger sample | the same with WaveStartSize 60, MaxAlive 32 | longer |
 | Reduced control | the same with Step Reduced: no theme text | 3 min |
-| Full-size shooter wave and the pool (above) | defaults, StuckWaveTimeoutSeconds 5, IntermissionSeconds 2 | wave 10 after about 8 min |
+| Full-size shooter wave and the pool (the plan of the night before: wave 10 was not reached then; run A of the pool section reached it with the correction) | defaults, StuckWaveTimeoutSeconds 5, IntermissionSeconds 2 | wave 10 after about 8 min |
 
 What to read: the composition line per wave in the client log at Debug (`gpu-run log`): wave 5 `easy 0, normal N,
 hard 0 (..., theme Runners)`, wave 10 `easy 0, normal 0, hard N (..., theme Shooters)`, wave 11 about 40 % hard at

@@ -12,12 +12,12 @@ what the pool already holds (`ArenaBackupProfileDuplicatePatch`).
 
 | Question | Result |
 | --- | --- |
-| Do the default-size Zombie waves still drop requests? | **No** in run A (waves 1 to 12, 1952 arrivals, 0 `no profiles` lines, 0 failed bursts) and in runs B and C |
+| Do the default-size Zombie waves still drop requests? | **No** in run A (default size, waves 1 to 12, 1952 arrivals, 0 `no profiles` lines, 0 failed bursts); runs B (waves of 60, all shooters) and C (reviewed build, waves 1 to 5) dropped none either |
 | Do the waves fill as fast as the first ones? | **Yes** in run A: 2.23 to 2.78 infected per second in every wave; the night before waves 5 to 7 filled at 0.61 to 0.72 |
 | Was every reload a duplicate? | **Yes**: 17 reloads in run A, 1530 profiles, every one `N of N` |
 | Does the final reviewed build behave the same? | **Yes** in run C (waves 1 to 5, 4 reloads all `N of N`, no Error line) |
 | A played match with kills, the PMC modes, memory | **not shown** (see "Not shown") |
-| Audio exception | **seen once in run A, not caused by anything shown, open** (see "Seen on the way") |
+| Audio exception | **seen in run A only (five bursts), not caused by anything shown, open** (see "Seen on the way") |
 
 ## Setup
 
