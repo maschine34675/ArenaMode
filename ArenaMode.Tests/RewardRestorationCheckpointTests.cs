@@ -236,6 +236,86 @@ public sealed class RewardRestorationCheckpointTests
         Assert.Equal(originalGuard, File.ReadAllText(f.Guard));
     }
 
+    // A profile-write mod (Pack A Punch) strips data on its way to disk, so the durable file is the restored profile
+    // run through its write. The pipeline input (validated against that disk text elsewhere) stands in for the disk
+    // when the snapshot is compared; the file itself stays the clean-check subject and the persisted revision.
+    [Fact]
+    public void PersistedAcceptsPipelineInputAndBindsRevisionToDiskText()
+    {
+        using var f = new Fixture();
+        f.Capture();
+        f.Observe();
+        string restored = f.Profile;
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        string stripped = f.Profile;
+        Assert.NotEqual(restored, stripped);
+
+        f.Coordinator.FinalizePersisted(Fixture.Id, f.Report!.NativeEndIdentity, stripped, restored);
+
+        var proof = RewardStartupFiles.Read<RewardCheckpointProof>(f.CheckpointFile("persisted.json"));
+        Assert.Equal(RewardIdentity.Hash(stripped), proof.PersistedRevision);
+        Assert.NotEqual(RewardIdentity.Hash(restored), proof.PersistedRevision);
+        Assert.Equal(RewardRestorationCheckpoint.Fingerprint(restored), proof.ProfileFingerprint);
+        Assert.True(File.Exists(f.CheckpointFile("complete.json")));
+        Assert.Single(Directory.GetFiles(f.Inbox, "*.json"));
+        Assert.Equal(stripped, f.Profile); // the file was never replaced
+    }
+
+    [Fact]
+    public void StrippedDiskStaysRefusedWithoutPipelineInput()
+    {
+        using var f = new Fixture();
+        f.Capture();
+        f.Observe();
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        string stripped = f.Profile;
+
+        var plain = Assert.Throws<RewardDataException>(() =>
+            f.Coordinator.FinalizePersisted(Fixture.Id, f.Report!.NativeEndIdentity, stripped));
+        Assert.Equal("reward-checkpoint-profile-mismatch", plain.Message);
+        Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
+        Assert.False(Directory.Exists(f.Inbox));
+    }
+
+    // A failed finalize drops the run, so the other profile's input needs a fixture of its own.
+    [Fact]
+    public void StrippedDiskStaysRefusedWithAnotherProfilesPipelineInput()
+    {
+        using var f = new Fixture();
+        f.Capture();
+        f.Observe();
+        string restored = f.Profile;
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        string stripped = f.Profile;
+        string other = restored.Replace("\"progress\":123", "\"progress\":124");
+        Assert.NotEqual(restored, other);
+        Assert.Throws<RewardDataException>(() =>
+            f.Coordinator.FinalizePersisted(Fixture.Id, f.Report!.NativeEndIdentity, stripped, other));
+        Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
+        Assert.False(File.Exists(f.CheckpointFile("complete.json")));
+        Assert.False(Directory.Exists(f.Inbox));
+        // The diagnostics describe the compared text by hashes only, never by value.
+        Assert.DoesNotContain("124", File.ReadAllText(f.CheckpointFile("mismatch.json")));
+    }
+
+    // Startup holds no captured pipeline (a new process), so it stays strict: a stripped file is left pending and
+    // nothing is paid. A lost payout, never a wrong one.
+    [Fact]
+    public void StrippedDiskWithoutPipelineInputStaysPendingAtStartup()
+    {
+        using var f = new Fixture();
+        f.Capture();
+        f.Observe();
+        f.EditProfile(p => ((JsonObject)p["foreignMod"]!).Remove("progress"));
+        var before = f.Profile;
+        f.RestartRecovery();
+        Assert.Equal(before, f.Profile);
+        Assert.False(Directory.Exists(f.Inbox));
+        Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
+        Assert.False(File.Exists(f.CheckpointFile("complete.json")));
+        Assert.Equal("pending", f.GuardState);
+    }
+
     [Fact]
     public void NewRaidUsesNewGenerationAfterFailedOldReadback()
     {

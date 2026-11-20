@@ -69,19 +69,22 @@ internal static class RewardRestorationCheckpoint
             new RewardCheckpointObservation(1, Hash(checkpoint), checkpoint.ProfileFingerprint));
     }
 
-    internal static void Persisted(string root, string id, string generation, string profile)
+    // pipelineInput is the text SPT was about to write when a profile-write mod transformed it on the way to disk
+    // (ProfileWriteProof, already validated against this disk text); the restored snapshot may equal it instead of
+    // the disk. The disk text itself stays the one that must be clean and whose hash becomes the persisted revision.
+    internal static void Persisted(string root, string id, string generation, string profile, string? pipelineInput = null)
     {
-        if (!TryPersisted(root, id, generation, profile)) throw new RewardDataException("reward-checkpoint-profile-mismatch");
+        if (!TryPersisted(root, id, generation, profile, pipelineInput)) throw new RewardDataException("reward-checkpoint-profile-mismatch");
     }
 
     // False only when the given profile is not the restored snapshot (mismatch.json then holds the bounded
     // hash diagnostics). A damaged witness or a profile that is not clean still throws.
-    private static bool TryPersisted(string root, string id, string generation, string profile)
+    private static bool TryPersisted(string root, string id, string generation, string profile, string? pipelineInput = null)
     {
         var directory = DirectoryFor(root, id, generation);
         var checkpoint = ReadCheckpoint(root, directory, id, generation);
         var observed = ReadObservation(root, directory, checkpoint);
-        if (!MatchesProfile(root, directory, checkpoint, profile, "durable-readback")) return false;
+        if (!MatchesProfile(root, directory, checkpoint, profile, "durable-readback", pipelineInput)) return false;
         RewardStartupFiles.RequireCleanProfile(profile, checkpoint.Binding);
         if (Exists(root, directory, "persisted.json"))
         {
@@ -531,10 +534,19 @@ internal static class RewardRestorationCheckpoint
     }
 
     // A mismatch records only hashes (expected/actual fingerprint, differing top-level sections) in mismatch.json.
-    private static bool MatchesProfile(string root, string directory, RewardCheckpoint expected, string actual, string phase)
+    // With a pipelineInput the disk text is tried first, then the pipeline input; only when both fail is mismatch.json
+    // written, describing the pipeline input (the text the snapshot was really compared with).
+    private static bool MatchesProfile(string root, string directory, RewardCheckpoint expected, string actual, string phase,
+        string? pipelineInput = null)
     {
         var fingerprint = Fingerprint(actual);
         if (fingerprint == expected.ProfileFingerprint) return true;
+        if (pipelineInput is not null)
+        {
+            actual = pipelineInput;
+            fingerprint = Fingerprint(actual);
+            if (fingerprint == expected.ProfileFingerprint) return true;
+        }
         var sections = Sections(actual);
         var differing = expected.Sections.Keys.Union(sections.Keys, StringComparer.Ordinal)
             .Where(path => expected.Sections.GetValueOrDefault(path) != sections.GetValueOrDefault(path)).Order(StringComparer.Ordinal).Take(16).ToArray();

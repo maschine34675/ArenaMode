@@ -492,15 +492,15 @@ internal sealed class RewardRuntimeCoordinator
     // report closes without reward, after positive restore/durable readback.
     // A stale snapshot can still own an already accepted final report: preserve
     // that exact result and its normal startup-only payment path.
-    internal void RecoverPersisted(string id, string persistedJson)
+    internal void RecoverPersisted(string id, string persistedJson, string? pipelineInput = null)
     {
         lock (_sync)
         {
             if (!_snapshots.TryGetValue(id, out var snapshot)) return;
             if (!snapshot.Restored)
                 throw new RewardDataException("reward-recovery-restoration-unproven");
-            RewardRestorationCheckpoint.Persisted(_root, id, snapshot.Generation, persistedJson);
-            if (!RewardRuntimeFiles.ExactSameProfile(snapshot.Json, persistedJson))
+            RewardRestorationCheckpoint.Persisted(_root, id, snapshot.Generation, persistedJson, pipelineInput);
+            if (!MatchesPersisted(snapshot.Json, persistedJson, pipelineInput))
                 throw new RewardDataException("reward-recovery-restoration-unproven");
             RewardRestorationCheckpoint.Complete(_root, id, snapshot.Generation, snapshot.Authority);
             _runs.Remove(id);
@@ -508,17 +508,23 @@ internal sealed class RewardRuntimeCoordinator
         }
     }
 
-    internal void FinalizePersisted(string id, string nativeEndIdentity, string persistedJson)
+    // The snapshot is the profile that must have reached disk: the disk text, or, under a profile-write mod, the
+    // text SPT was about to write (pipelineInput, null without a validated transforming pipeline).
+    private static bool MatchesPersisted(string snapshotJson, string persistedJson, string? pipelineInput)
+        => RewardRuntimeFiles.ExactSameProfile(snapshotJson, persistedJson)
+            || pipelineInput is not null && RewardRuntimeFiles.ExactSameProfile(snapshotJson, pipelineInput);
+
+    internal void FinalizePersisted(string id, string nativeEndIdentity, string persistedJson, string? pipelineInput = null)
     {
         lock (_sync)
         {
-            if (!_runs.TryGetValue(id, out var run)) { RecoverPersisted(id, persistedJson); return; }
+            if (!_runs.TryGetValue(id, out var run)) { RecoverPersisted(id, persistedJson, pipelineInput); return; }
             try
             {
                 if (run.NativeEnd != nativeEndIdentity || !run.Snapshot.Restored)
                     throw new RewardDataException("reward-durable-restoration-unproven");
-                RewardRestorationCheckpoint.Persisted(_root, id, run.Snapshot.Generation, persistedJson);
-                if (!RewardRuntimeFiles.ExactSameProfile(run.Snapshot.Json, persistedJson))
+                RewardRestorationCheckpoint.Persisted(_root, id, run.Snapshot.Generation, persistedJson, pipelineInput);
+                if (!MatchesPersisted(run.Snapshot.Json, persistedJson, pipelineInput))
                     throw new RewardDataException("reward-durable-restoration-unproven");
                 var evaluation = RewardRestorationCheckpoint.Complete(_root, id, run.Snapshot.Generation, run.Authority);
                 if (run.Final is null) throw new RewardDataException("reward-final-report-missing");

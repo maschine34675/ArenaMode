@@ -45,8 +45,13 @@ internal static class ArenaRewardLifecycle
             if (file.Length > 64 * 1024 * 1024) throw new RewardDataException("profile-too-large");
             using var reader = new StreamReader(file);
             string persisted = reader.ReadToEnd();
-            if (recoveryOnly) RewardRuntimeCoordinator.Current.RecoverPersisted(id, persisted);
-            else RewardRuntimeCoordinator.Current.FinalizePersisted(id, nativeEndIdentity, persisted);
+            // Under a profile-write mod the file is not the restored profile but that profile run through the
+            // mod's write. Resolve validates the captured input/output pair on this very disk text; without a
+            // transformation it is Strict and the checkpoint compares the disk exactly as before.
+            var proof = ProfileWriteProof.Resolve(id, persisted);
+            string? pipelineInput = proof.Mode == ProfileProofMode.Pipeline ? proof.Comparable : null;
+            if (recoveryOnly) RewardRuntimeCoordinator.Current.RecoverPersisted(id, persisted, pipelineInput);
+            else RewardRuntimeCoordinator.Current.FinalizePersisted(id, nativeEndIdentity, persisted, pipelineInput);
         }
         catch (Exception e)
         {
