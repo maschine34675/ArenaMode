@@ -76,7 +76,7 @@ Bot Callsigns Reloaded,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
 and Better BepInEx, plus Use Items Anywhere,
 ImpactCue (client and Web Config server), Enemy Markers, Fast Grenade Throw 2.0.0,
-Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0, PiP Disabler 2.1.0 and VisualAssist 1.2.0, plus the diagnostic tools
+Manimal's Quick Cancel 2.0.0, HUD Breakout 1.4.1, PiP Disabler 2.1.0 and VisualAssist 1.2.0, plus the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
@@ -84,6 +84,11 @@ dependency and protection/API requirements remain mandatory. The list records
 ArenaMapPort 0.6.0 (0.5.0 and 0.4.0 still work without Chop Shop and the added Bot spawn rows, 0.4.0 also
 without Iceberg and the crowd reactions, 0.3.0 also without score monitors, each with a version advisory),
 PitFireTeam 1.1.2, Tarkova Cola 3.0.1 and Redeploy 1.1.3 on both sides. User policy is preserved.
+The [2026-11-21 Forge audit](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md)
+refreshes seven reviewed versions from release binaries and source changes. Cola 4.0.0
+and FOV Fix 5.0.1 are deliberately not marked reviewed: Cola needs new progression/refund
+protection, while FOV now requires the unlisted Realism Common Lib and a body-lifecycle review.
+Source review of the seven updates does not extend prior native-test evidence.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -197,10 +202,17 @@ native observations below predate that migration; see
   cancellation are isolated from Arena bots and retired player bodies. The
   current living player retains Continuous Healing; ordinary raids are unchanged.
   See [healing operations and verification limits](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md).
-- **UIFixes:** the alternative R-key reload path is covered; installed version 6.0.3.
+- **UIFixes:** the alternative R-key reload path is covered. The whitelist now reviews
+  6.0.4; its source delta changes Edit Build UI and the version, not the reload hooks.
 - **Fontaine FOV Fix 4.1.0+:** Core 1.0.11 transfers the persistent camera controller
   to the replacement body and fences retired-body aim/weapon callbacks. Reviewed
   whitelist version: 4.1.0. Newer versions still require the reflected APIs.
+  FOV Fix 5.0.1 additionally needs Realism Common Lib 0.1.0, which is not on the
+  default whitelist. Its retained-body controllers need review before admission;
+  the FOV contract itself has not been shown to reject 5.0.1. An installed hard
+  dependency is automatically pulled in by the existing dependency closure, even
+  when unlisted. Therefore keeping the 4.1.0 review does not block 5.0.1/Common Lib;
+  its body-lifecycle risk remains unresolved until the separate integration.
 - **Manimal Ammo Loading Animations 2.0.0+:** Core 1.0.11 removes retired owned
   player sessions and fences delayed animation/controller/loading work. Reviewed
   client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
@@ -219,7 +231,9 @@ native observations below predate that migration; see
   the new companion-perk and machine-editor writes; repeated body creation does
   not duplicate machines. APEX progression is not exported.
   See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md) and the
-  [3.0.1 review](reviews/MOD-REFRESH-20261120.md).
+  [3.0.1 review](reviews/MOD-REFRESH-20261120.md). Version 4.0.0 adds an unsupported
+  progress catalog and deferred Tombstone offering refunds; the current catalog
+  check rejects that build before Arena. Keep 3.0.1 until those paths are protected.
 - **VisualAssist 1.2.0:** optional grenade preview, with physical-body and owned
   renderer cleanup in Core 1.0.25. Arena refreshes valid ordinary-throw predictions
   and leaves quick throws or invalid predictions to native physics. Ordinary raids
@@ -269,8 +283,9 @@ native observations below predate that migration; see
   old body's pending medical controllers and rejects their late callbacks.
   Actual cancellation and firearm recovery after replacement passed; the rare
   pending-drop/death race is covered offline, not established by that native run.
-- **HUD Breakout 1.2.0:** no new body adapter. Native health, ammunition and
-  grenade displays followed two Arena respawns. Its grenade count uses rig/pockets
+- **HUD Breakout:** the whitelist now reviews 1.4.1 after source/binary inspection;
+  no new body adapter was identified. The native health, ammunition and grenade
+  checks with two Arena respawns remain evidence for 1.2.0 only. Its grenade count uses rig/pockets
   rather than Arena's expanded backpack reach, and its spectator HUD describes
   the local player. Shield, assist, damage-number and killfeed semantics remain
   those of the foreign mod; both HUDs can overlap.
@@ -290,10 +305,11 @@ native observations below predate that migration; see
 - **Amand's Sense Updated 3.1.0:** Core 1.0.22 preserves Sense
   markers and the current inventory across a body replacement. The mod remains
   outside the default Arena whitelist. [Test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
-- **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
+- **Better BepInEx 1.0.4:** normal client mod, not a BepInEx core replacement.
   Its existing ConfigurationManager dependency must remain installed. Other
   mods' stock F12-window patches may be removed by Better BepInEx itself.
-  See [reviewed artifacts and native test scope](reviews/HUD-MOD-COMPAT-20261025.md).
+  The 1.0.4 source review covers menu/input fixes; the earlier
+  [native test scope](reviews/HUD-MOD-COMPAT-20261025.md) remains for 1.0.0.
 - **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.
 - **NotificationFilter:** Arena also suppresses replacement quest popups without
   changing the mod's global configuration.

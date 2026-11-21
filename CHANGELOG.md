@@ -10,6 +10,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. Keep Cola 3.0.1 and FOV Fix 4.1.0 until their newer releases have the required protection/dependency integration. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
+
 - Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
 
 - Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.

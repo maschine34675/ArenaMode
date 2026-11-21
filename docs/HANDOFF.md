@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-21. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-22. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,16 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Source-only Forge whitelist audit, 2026-11-21.** All 68 default entries were
+  accounted for against current Forge publications. Seven runtime-version records
+  were updated after release-binary/source inspection; Cola 4.0.0 and FOV Fix 5.0.1
+  require separate protection/dependency work, so their reviewed baselines remain
+  3.0.1 and 4.1.0. No foreign mods, installed policy or DLLs were replaced; the
+  installed Armory candidate below remains unchanged. No new native acceptance,
+  push or release. Offline verification completed November 22: 4,422 unit tests
+  passed (three known skips); all 52 selected checks have passing evidence after
+  one isolated test-runner infrastructure retry. [Inventory, decisions and checks](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
 
 - **Development, 2026-11-21: WTT review.** The default policy now reviews
   Content Backport 2.0.7, CommonLib 3.0.8 and Armory 2.0.5 on both sides.

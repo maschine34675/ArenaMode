@@ -18,6 +18,8 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ## Living references
 
+- [Full Forge whitelist audit: seven version updates, runtime identities and Cola/FOV follow-ups](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md)
+
 - [WTT Content Backport 2.0.7/CommonLib 3.0.8 review and Armory Hyperburst respawn finding](reports/2026-11/WTT-WHITELIST-20261121.md)
 - [WTT Armory admission, Core 1.0.27 repair and native AN-94 verification](reports/2026-11/WTT-ARMORY-20261121.md)
 

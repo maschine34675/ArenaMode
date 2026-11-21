@@ -76,45 +76,74 @@ warning, and a mod that exists on one side only simply is not installed on the o
 
 | Group | Unit (GUID) | Client | Server |
 |---|---|---|---|
-| mod, bot stack | SAIN (`me.sol.sain`) | 4.5.1 | 4.5.1 |
-| | APBS (`com.acidphantasm.progressivebotsystem`) | - | 2.4.1 |
-| | ABPS (`com.acidphantasm.botplacementsystem`) | 2.1.0 | 2.1.0 |
-| | BigBrain (`xyz.drakia.bigbrain`) | 1.5.0 | - |
-| | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
-| mod, own | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.4.0 | 0.4.0 |
-| | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
-| | Redeploy (`com.maschine.Redeploy`) | 1.1.0 | 1.1.0 |
-| | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
-| | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
-| | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |
-| | LinkedSearchInStash (`com.maschine.LinkedSearchInStash`) | 2.0.1 | - |
-| | LowAmmoCue (`com.maschine.LowAmmoCue`) | 1.0.0 | - |
-| | RaidMenuCleanupFix (`com.maschine.RaidMenuCleanupFix`) | 2.0.0 | - |
-| | StashFilter (`com.maschine.StashFilter`) | 1.0.0 | - |
-| | SurroundAudio (`com.maschine.SurroundAudio`) | 1.0.0 | - |
-| | UnloadAllMagazines (`com.maschine.UnloadAllMagazines`) | 2.2.1 | - |
-| mod, other | PitFireTeam (`xyz.pit.fireteam`) | 1.0.0 | 1.0.0 |
-| | DynamicMaps (`com.mpstark.dynamicmaps`) | 1.2.1 | 1.2.1 |
-| | UIFixes (`com.tyfon.uifixes`) | 6.0.3 | 6.0.3 |
-| | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.8 | 3.0.8 |
-| | WTT-ContentBackport (`com.wtt.contentbackport`) | 2.0.7 | 2.0.7 |
-| | WTT-Armory (`com.wtt.armory`) | 2.0.5 | 2.0.5 |
-| | SVM (`fika.ghostfenixx.svm`) | - | 2.2.3 |
-| | give-ui (`com.agavalda.giveui`) | - | 5.0.0 |
-| | ContinuousHealing (`com.lacyway.ch`) | 1.6.3 | - |
-| | Continuous Load Ammo (`com.ozen.continuousloadammo`) | 1.2.0 | - |
-| | Recoil Rework Legacy (`com.pein.camerarecoilmod`) | 2.0.0 | - |
-| | Freecam (`com.terkoiz.freecam`) | 1.4.8 | - |
-| | DoorDash (`com.tarkin.doordash`) | 1.2.0 | - |
-| | Anvil-WebOverlay (`com.anvil.weboverlay`) | 1.11.0 | - |
-| | ArmorClassIcon (`com.slpf.armorclassicon`) | 1.0.0 | - |
-| | BetterAmmoLoadingList (`katrin0522.betterammoloadinglist`) | 1.1.1 | - |
-| | BrighterInteriors (`7Bpencil.BrighterInteriors`) | 1.1.1 | - |
-| | DevBalaclavaFix (`com.acidphantasm.devbalaclavafix`) | 1.2.0 | - |
-| | HealingAutoCancel (`HealingAutoCancel`) | 1.1.0 | - |
-| | SmajlecLights (`com.smajlec.lights`) | 1.3.0 | - |
-| | Tarkova Cola (`com.tarkovacola.server`) | 2.2.1 | 2.2.1 |
+| mod | Tarkova Cola (`com.tarkovacola.server`) | 3.0.1 | 3.0.1 |
+| mod | SAIN (`me.sol.sain`) | 4.5.1 | 4.5.1 |
+| mod | APBS (`com.acidphantasm.progressivebotsystem`) | - | 2.4.1 |
+| mod | ABPS (`com.acidphantasm.botplacementsystem`) | 2.1.0 | 2.1.0 |
+| mod | BigBrain (`xyz.drakia.bigbrain`) | 1.5.0 | - |
+| mod | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
+| mod | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.6.0 | 0.6.0 |
+| mod | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
+| mod | Redeploy (`com.maschine.Redeploy`) | 1.1.3 | 1.1.3 |
+| mod | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
+| mod | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
+| mod | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |
+| mod | LinkedSearchInStash (`com.maschine.LinkedSearchInStash`) | 2.0.1 | - |
+| mod | LowAmmoCue (`com.maschine.LowAmmoCue`) | 1.0.0 | - |
+| mod | RaidMenuCleanupFix (`com.maschine.RaidMenuCleanupFix`) | 2.0.0 | - |
+| mod | StashFilter (`com.maschine.StashFilter`) | 1.1.0 | - |
+| mod | SurroundAudio (`com.maschine.SurroundAudio`) | 1.0.0 | - |
+| mod | UnloadAllMagazines (`com.maschine.UnloadAllMagazines`) | 2.2.1 | - |
+| mod | PitFireTeam (`xyz.pit.fireteam`) | 1.1.2 | 1.1.2 |
+| mod | DynamicMaps (`com.mpstark.dynamicmaps`) | 1.3.0 | 1.3.0 |
+| mod | UIFixes (`com.tyfon.uifixes`) | 6.0.4 | 6.0.4 |
+| mod | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.8 | 3.0.8 |
+| mod | WTT-ContentBackport (`com.wtt.contentbackport`) | 2.0.7 | 2.0.7 |
+| mod | WTT-Armory (`com.wtt.armory`) | 2.0.5 | 2.0.5 |
+| mod | SVM (`fika.ghostfenixx.svm`) | - | 2.2.3 |
+| mod | give-ui (`com.agavalda.giveui`) | - | 5.0.1 |
+| mod | ContinuousHealing (`com.lacyway.ch`) | 1.6.3 | - |
+| mod | Continuous Load Ammo (`com.ozen.continuousloadammo`) | 1.2.0 | - |
+| mod | Recoil Rework Legacy (`com.pein.camerarecoilmod`) | 2.0.0 | - |
+| mod | Fontaine FOV Fix (`com.fontaine.fovfix`) | 4.1.0 | - |
+| mod | Manimal Ammo Loading Animations (`com.manimal.loadammoanim`) | 2.0.0 | 2.0.0 |
+| mod | Increase Look Direction (`com.flir.increaselookdirection`) | 1.3.0 | - |
+| mod | Auto Shoulder Swap (`hazelify.StanceSync`) | 1.1.1 | - |
+| mod | Dynamic External Resolution Patch (`com.Shibatsu.DynamicExternalResolution`) | 1.1.2 | - |
+| mod | Player Encumbrance Bar (`com.mpstark.PlayerEncumbranceBar`) | 1.3.0 | - |
+| mod | Bot Callsigns Reloaded (`com.harmonyzt.botcallsigns`) | - | 2.0.6 |
+| mod | Magazine Check Interrupt (`com.ozen.magcheckinterrupt`) | 1.1.1 | - |
+| mod | Accurate Circular Radar (`com.leonana69.radar`) | 1.3.4 | - |
+| mod | Simple Crosshair (`com.mpstark.SimpleCrosshair`) | 1.4.0 | - |
+| mod | Better BepInEx (`com.mybutthasarash.betterbepinex`) | 1.0.4 | - |
+| mod | Use Items Anywhere (`com.cj.useFromAnywhere`) | 2.1.6 | - |
+| mod | ImpactCue-UI-MOD (`com.dizzlow.impactcue`) | 2.0.3 | - |
+| mod | ImpactCue Web Config (`com.dizzlow.impactcue.webconfig`) | - | 2.0.3 |
+| mod | Amand's Graphics (`com.Amanda.Graphics`) | 1.8.0 | - |
+| mod | Enemy Markers (`flir.enemymarkers`) | 1.4.0 | - |
+| mod | Fast Grenade Throw (`com.vultify.fastgrenadethrow`) | 2.0.0 | - |
+| mod | VisualAssist (`com.janky.visualassist`) | 1.2.0 | - |
+| mod | Manimal's Quick Cancel (`com.manimal.quickcancel`) | 2.0.0 | - |
+| mod | HUD Breakout (`com.deadwolf.hudbreakout`) | 1.4.1 | - |
+| mod | Picture in Picture Disabler (`com.fiodor.pipdisabler`) | 2.1.0 | - |
+| mod | Freecam (`com.terkoiz.freecam`) | 1.4.8 | - |
+| mod | DoorDash (`com.tarkin.doordash`) | 1.2.0 | - |
+| mod | Anvil-WebOverlay (`com.anvil.weboverlay`) | 1.12.0 | - |
+| mod | ArmorClassIcon (`com.slpf.armorclassicon`) | 1.1.1 | - |
+| mod | Caliber Under Ammo Name (`com.slpf.caliberundername`) | 1.2.0 | - |
+| mod | Compatibility Highlighter (`com.awnova.compatibilityhighlighter`) | 1.3.2 | - |
+| mod | Trader Modding and Improved Weapon Building (`com.choochoo.tradermodding`) | 2.1.2 | 2.1.2 |
+| mod | BetterAmmoLoadingList (`katrin0522.betterammoloadinglist`) | 1.1.1 | - |
+| mod | BrighterInteriors (`7Bpencil.BrighterInteriors`) | 1.1.1 | - |
+| mod | DevBalaclavaFix (`com.acidphantasm.devbalaclavafix`) | 1.2.0 | - |
+| mod | HealingAutoCancel (`HealingAutoCancel`) | 1.1.0 | - |
+| mod | SmajlecLights (`com.smajlec.lights`) | 1.3.0 | - |
 | tool | UiBridge (`com.maschine.UiBridge`), ModProfiler (`com.maschine.ModProfiler`), LogTools (`com.maschine.LogTools`), ConsoleToMonitor (`com.maschine.ConsoleToMonitor`) | any | - |
+
+The [2026-11-21 Forge audit](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md)
+records all default entries, current publications, runtime/package distinctions and
+the newer Cola/FOV releases that still require adaptation. The review above is
+not a claim that every listed release received a new native playtest.
 
 Continuous Load Ammo and Recoil Rework Legacy were added after the shared-Core
 GPU checks on 2026-10-23; ContinuousHealing was already listed. Recoil's server

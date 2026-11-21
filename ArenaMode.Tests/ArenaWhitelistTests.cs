@@ -373,18 +373,18 @@ public sealed class ArenaWhitelistTests
             ("com.maschine.LinkedSearchInStash", "LinkedSearchInStash", ArenaWhitelistTier.Mod, "2.0.1", null),
             ("com.maschine.LowAmmoCue", "LowAmmoCue", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.RaidMenuCleanupFix", "RaidMenuCleanupFix", ArenaWhitelistTier.Mod, "2.0.0", null),
-            ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.1.0", null),
             ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
             ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.1.2", "1.1.2"),
             ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.3.0", "1.3.0"),
-            ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
+            ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.4", "6.0.4"),
             ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.8", "3.0.8"),
             ("com.wtt.contentbackport", "WTT-ContentBackport", ArenaWhitelistTier.Mod, "2.0.7", "2.0.7"),
             ("com.wtt.armory", "WTT-Armory", ArenaWhitelistTier.Mod, "2.0.5", "2.0.5"),
             ("WTT-ContentBackportPatcher.dll", "WTT-ContentBackport patcher", ArenaWhitelistTier.Mod, null, null),
             ("fika.ghostfenixx.svm", "SVM", ArenaWhitelistTier.Mod, null, "2.2.3"),
-            ("com.agavalda.giveui", "give-ui", ArenaWhitelistTier.Mod, null, "5.0.0"),
+            ("com.agavalda.giveui", "give-ui", ArenaWhitelistTier.Mod, null, "5.0.1"),
             ("com.lacyway.ch", "ContinuousHealing", ArenaWhitelistTier.Mod, "1.6.3", null),
             ("com.ozen.continuousloadammo", "Continuous Load Ammo", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.pein.camerarecoilmod", "Recoil Rework Legacy", ArenaWhitelistTier.Mod, "2.0.0", null),
@@ -398,7 +398,7 @@ public sealed class ArenaWhitelistTests
             ("com.ozen.magcheckinterrupt", "Magazine Check Interrupt", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("com.leonana69.radar", "Accurate Circular Radar", ArenaWhitelistTier.Mod, "1.3.4", null),
             ("com.mpstark.SimpleCrosshair", "Simple Crosshair", ArenaWhitelistTier.Mod, "1.4.0", null),
-            ("com.mybutthasarash.betterbepinex", "Better BepInEx", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.mybutthasarash.betterbepinex", "Better BepInEx", ArenaWhitelistTier.Mod, "1.0.4", null),
             ("com.cj.useFromAnywhere", "Use Items Anywhere", ArenaWhitelistTier.Mod, "2.1.6", null),
             ("com.dizzlow.impactcue", "ImpactCue-UI-MOD", ArenaWhitelistTier.Mod, "2.0.3", null),
             ("com.dizzlow.impactcue.webconfig", "ImpactCue Web Config", ArenaWhitelistTier.Mod, null, "2.0.3"),
@@ -406,12 +406,12 @@ public sealed class ArenaWhitelistTests
             ("flir.enemymarkers", "Enemy Markers", ArenaWhitelistTier.Mod, "1.4.0", null),
             ("com.vultify.fastgrenadethrow", "Fast Grenade Throw", ArenaWhitelistTier.Mod, "2.0.0", null),
             ("com.manimal.quickcancel", "Manimal's Quick Cancel", ArenaWhitelistTier.Mod, "2.0.0", null),
-            ("com.deadwolf.hudbreakout", "HUD Breakout", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("com.deadwolf.hudbreakout", "HUD Breakout", ArenaWhitelistTier.Mod, "1.4.1", null),
             ("com.fiodor.pipdisabler", "Picture in Picture Disabler", ArenaWhitelistTier.Mod, "2.1.0", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
-            ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
-            ("com.slpf.armorclassicon", "ArmorClassIcon", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.12.0", null),
+            ("com.slpf.armorclassicon", "ArmorClassIcon", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("com.slpf.caliberundername", "Caliber Under Ammo Name", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.awnova.compatibilityhighlighter", "Compatibility Highlighter", ArenaWhitelistTier.Mod, "1.3.2", null),
             ("com.choochoo.tradermodding", "Trader Modding and Improved Weapon Building", ArenaWhitelistTier.Mod, "2.1.2", "2.1.2"),
@@ -475,7 +475,7 @@ public sealed class ArenaWhitelistTests
     [Theory]
     [InlineData("com.leonana69.radar", "1.3.4")]
     [InlineData("com.mpstark.SimpleCrosshair", "1.4.0")]
-    [InlineData("com.mybutthasarash.betterbepinex", "1.0.0")]
+    [InlineData("com.mybutthasarash.betterbepinex", "1.0.4")]
     public void HudModsAreVersionReviewedModsAndKeepTheStockMenuDependency(string guid, string reviewed)
     {
         const string stock = "com.bepis.bepinex.configurationmanager";
@@ -505,7 +505,7 @@ public sealed class ArenaWhitelistTests
     [InlineData("flir.enemymarkers", "1.4.0", ArenaWhitelistSide.Client)]
     [InlineData("com.vultify.fastgrenadethrow", "2.0.0", ArenaWhitelistSide.Client)]
     [InlineData("com.manimal.quickcancel", "2.0.0", ArenaWhitelistSide.Client)]
-    [InlineData("com.deadwolf.hudbreakout", "1.2.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.deadwolf.hudbreakout", "1.4.1", ArenaWhitelistSide.Client)]
     [InlineData("com.fiodor.pipdisabler", "2.1.0", ArenaWhitelistSide.Client)]
     [InlineData("com.slpf.caliberundername", "1.2.0", ArenaWhitelistSide.Client)]
     [InlineData("com.awnova.compatibilityhighlighter", "1.3.2", ArenaWhitelistSide.Client)]
@@ -3814,7 +3814,7 @@ public sealed class ArenaWhitelistTests
             Unit("com.acidphantasm.botplacementsystem", "ABPS", "2.1.0"),
             Unit("com.maschine.UiBridge", "UiBridge", "0.9.4"),
             Unit("com.maschine.Killcam", "Killcam", "1.0.1"),
-            Unit("com.tyfon.uifixes", "UIFixes", "6.0.3"),
+            Unit("com.tyfon.uifixes", "UIFixes", "6.0.4"),
             Unit("com.chazut.orbit", "ORBIT", "1.0.0"),
             Unit("com.danw.questingbots", "Questing Bots", "1.0.0"),
             Unit("com.example.foreign", "Foreign Mod", "1.0.0"),
@@ -3844,7 +3844,7 @@ public sealed class ArenaWhitelistTests
             Unit("me.sol.sain", "SAIN", "4.5.2", "xyz.drakia.bigbrain"),
             Unit("xyz.drakia.bigbrain", "BigBrain", "1.5.0"),
             Unit("com.maschine.Killcam", "Killcam", "1.0.1"),
-            Unit("com.tyfon.uifixes", "UIFixes", "6.0.3"),
+            Unit("com.tyfon.uifixes", "UIFixes", "6.0.4"),
             Unit("com.chazut.orbit", "ORBIT", "1.0.0"),
             Unit("com.example.foreign", "Foreign Mod", "1.0.0"),
         };
