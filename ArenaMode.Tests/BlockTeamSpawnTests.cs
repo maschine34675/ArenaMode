@@ -12,20 +12,22 @@ public sealed class BlockTeamSpawnTests
     // Block, unrelated to the Customs yard area): USEC = the ten "Usec house" markers of the
     // south pocket (SPAWN_BOUND_FIGHTER), BEAR = the ten "Bear house" markers of the north
     // pocket (SPAWN_BOUND_FIGHTER (1)), each in ascending marker order (5..14). The names say
-    // nothing about the faction; only the containing bound does. One height is not the marker's:
-    // Usec house (8) (the fourth row) is authored at 7.2693 but stands on the entrance floor piece,
-    // whose collision floor was measured at 7.483 on GPU-2 on 2026-11-21; the catalogue carries
-    // that floor, because FloorAndClear (0.15 m) would refuse the authored height.
+    // nothing about the faction; only the containing bound does. Seven south heights are not the
+    // markers': Arena authors the platform's markers 0.10 m under its floor ((5), (6), (9), (10),
+    // (11), (12) at 7.2673 / 7.2653 on a floor of 7.368; (8) at 7.2693 on the entrance floor of
+    // 7.483), measured on GPU-2 on 2026-11-21, and FloorAndClear refuses a floor inside its
+    // clearance capsule (the first native start gave USEC 0 of 10 safe places). The catalogue
+    // carries the measured floors for those seven; X/Z and yaw stay the markers'.
     private static readonly (float X, float Y, float Z, float Yaw)[] OriginalPoints =
     [
-        (-14.2502f, 7.2673f, 4.794f, 345.319f),
-        (-16.3742f, 7.2653f, 9.801f, 28.2439f),
+        (-14.2502f, 7.368f, 4.794f, 345.319f),
+        (-16.3742f, 7.368f, 9.801f, 28.2439f),
         (-22.5742f, 7.5003f, 9.834f, 24.8881f),
         (-19.4762f, 7.483f, 10.224f, 358.2441f),
-        (-14.8642f, 7.2673f, 13.299f, 283.2444f),
-        (-12.6752f, 7.2673f, 9.876f, 283.2444f),
-        (-8.3742f, 7.2673f, 4.824f, 283.2444f),
-        (-11.7552f, 7.2673f, 4.846f, 341.152f),
+        (-14.8642f, 7.368f, 13.299f, 283.2444f),
+        (-12.6752f, 7.368f, 9.876f, 283.2444f),
+        (-8.3742f, 7.368f, 4.824f, 283.2444f),
+        (-11.7552f, 7.368f, 4.846f, 341.152f),
         (-22.8812f, 6.8833f, 12.477f, 14.603f),
         (-19.9562f, 6.8833f, 13.494f, 350.1978f),
         (-5.6512f, 6.1873f, 144.096f, 255f),
@@ -99,7 +101,7 @@ public sealed class BlockTeamSpawnTests
         Assert.Same(formation.Points[12], formation.BoothAnchor(false));
         Assert.Equal("arena-yard-tdm-v1-south-05", formation.BoothAnchor(true).Id);
         Assert.Equal("arena-yard-tdm-v1-north-03", formation.BoothAnchor(false).Id);
-        Assert.Equal((-14.8642f, 7.2673f, 13.299f), (formation.BoothAnchor(true).X, formation.BoothAnchor(true).Y, formation.BoothAnchor(true).Z));
+        Assert.Equal((-14.8642f, 7.368f, 13.299f), (formation.BoothAnchor(true).X, formation.BoothAnchor(true).Y, formation.BoothAnchor(true).Z));
         Assert.Equal((-10.8252f, 6.1773f, 145.085f), (formation.BoothAnchor(false).X, formation.BoothAnchor(false).Y, formation.BoothAnchor(false).Z));
         Assert.True(formation.BoothAnchor(true).Usec);
         Assert.False(formation.BoothAnchor(false).Usec);
@@ -231,7 +233,7 @@ public sealed class BlockTeamSpawnTests
             Assert.True(formation.InsideBooth(-4.75f, 7.3f, 154f, false));
             Assert.True(formation.InsideBooth(-3f, 6.2f, 143f, false));
             // The south pocket's start points are not in the north box.
-            Assert.False(formation.InsideBooth(-14.8642f, 7.2673f, 13.299f, false));
+            Assert.False(formation.InsideBooth(-14.8642f, 7.368f, 13.299f, false));
         }
     }
 

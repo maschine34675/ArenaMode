@@ -369,19 +369,24 @@ public static class ArenaTeamBoxCatalog
     // the raised platform behind the rising gondola), BEAR = the north pocket
     // (SPAWN_BOUND_FIGHTER (1), the ten "Bear house" markers behind the two rotating gate
     // leaves), as MapPort's player-usec/player-bear rows assign them. The twenty points keep
-    // their authored positions and yaws, each pocket in ascending marker order (5..14), with
-    // one height substituted: Usec house (8) (south-04) is authored at the platform's height
-    // (7.2693) but stands on the entrance floor piece (Respawn_entrance_indoor), whose
-    // collision floor is 7.483 (GPU-2, 2026-11-21, ordinary PMC raid, a ray down from the
-    // body standing on the marker; docs/reports/2026-11/GPU-BLOCK-20261121.md). The unchanged
-    // FloorAndClear tolerates 0.15 m and would refuse the authored height (0.214 m under the
-    // floor), leaving nine safe places for ten USEC players, so that one point carries the
-    // measured floor; its X/Z and yaw are the marker's. The same survey put the platform
-    // floor at 7.368 (0.10 m above the other platform markers), the floor under (7) at 7.483,
-    // under (13) and (14) at 6.883 and the north room's floor at 6.134 (0.04 to 0.05 m below
-    // its markers): all inside the tolerance. The height at which the NavMesh sample put the
-    // body on each point was within 0.17 m of the catalogue height (Connected allows 0.3 m).
-    // Do not loosen FloorAndClear for a point.
+    // their authored X/Z and yaws, each pocket in ascending marker order (5..14).
+    //
+    // Seven south heights are not the markers'. Arena authors the platform's markers 0.10 m
+    // under its floor: (5), (6), (9), (10), (11) and (12) at 7.2673 (7.2653 for (6)) on the
+    // floor piece Respawn_Flat, whose collision floor is 7.368, and (8) at 7.2693 on the
+    // entrance piece Respawn_entrance_indoor, whose floor is 7.483 (GPU-2, 2026-11-21, ordinary
+    // PMC raid, a ray down from the body standing on each marker;
+    // docs/reports/2026-11/GPU-BLOCK-20261121.md). FloorAndClear refuses that twice over: its
+    // clearance capsule starts 0.10 m above the point, so a floor 0.101 m above it is already
+    // inside the capsule, and its floor ray tolerates 0.15 m, which (8) misses by 0.064 m. The
+    // first Team DM start on the map failed for it ("Block team-box capacity: USEC 0/10 safe
+    // connected places": the anchor (9) is one of the six, and a held path needs a safe
+    // anchor). Those seven points therefore carry the measured floor, 7.368 and 7.483. The
+    // other three south points stand on their floors as authored ((7) 0.017 m above 7.483,
+    // (13) and (14) on 6.883), and the north room's floor is 6.134, 0.04 to 0.05 m below its
+    // markers. The height at which the NavMesh sample put the body on each point is within
+    // 0.07 m of the catalogue height (Connected allows 0.3 m). Do not loosen FloorAndClear
+    // for a point.
     //
     // Interiors. Both authored bounds have yaw 0, so the boxes are world-aligned (south
     // x -25.4259 .. -4.9974, z 0.7234 .. 16.7244; north x -15.0885 .. 0.2525, z 141.1174 ..
@@ -428,14 +433,14 @@ public static class ArenaTeamBoxCatalog
         new Point("arena_yard-bot-core-04", false, -12.88f, 6.17f, 87.03f),
         new Point("", false, -12.88f, 6.17f, 87.03f), new[]
         {
-            new Point("arena-yard-tdm-v1-south-01", true, -14.2502f, 7.2673f, 4.794f, 345.319f),
-            new Point("arena-yard-tdm-v1-south-02", true, -16.3742f, 7.2653f, 9.801f, 28.2439f),
+            new Point("arena-yard-tdm-v1-south-01", true, -14.2502f, 7.368f, 4.794f, 345.319f),
+            new Point("arena-yard-tdm-v1-south-02", true, -16.3742f, 7.368f, 9.801f, 28.2439f),
             new Point("arena-yard-tdm-v1-south-03", true, -22.5742f, 7.5003f, 9.834f, 24.8881f),
             new Point("arena-yard-tdm-v1-south-04", true, -19.4762f, 7.483f, 10.224f, 358.2441f),
-            new Point("arena-yard-tdm-v1-south-05", true, -14.8642f, 7.2673f, 13.299f, 283.2444f),
-            new Point("arena-yard-tdm-v1-south-06", true, -12.6752f, 7.2673f, 9.876f, 283.2444f),
-            new Point("arena-yard-tdm-v1-south-07", true, -8.3742f, 7.2673f, 4.824f, 283.2444f),
-            new Point("arena-yard-tdm-v1-south-08", true, -11.7552f, 7.2673f, 4.846f, 341.152f),
+            new Point("arena-yard-tdm-v1-south-05", true, -14.8642f, 7.368f, 13.299f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-06", true, -12.6752f, 7.368f, 9.876f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-07", true, -8.3742f, 7.368f, 4.824f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-08", true, -11.7552f, 7.368f, 4.846f, 341.152f),
             new Point("arena-yard-tdm-v1-south-09", true, -22.8812f, 6.8833f, 12.477f, 14.603f),
             new Point("arena-yard-tdm-v1-south-10", true, -19.9562f, 6.8833f, 13.494f, 350.1978f),
             new Point("arena-yard-tdm-v1-north-01", false, -5.6512f, 6.1873f, 144.096f, 255f),
