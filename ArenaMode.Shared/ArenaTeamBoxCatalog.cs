@@ -379,8 +379,9 @@ public static class ArenaTeamBoxCatalog
     // measured floor; its X/Z and yaw are the marker's. The same survey put the platform
     // floor at 7.368 (0.10 m above the other platform markers), the floor under (7) at 7.483,
     // under (13) and (14) at 6.883 and the north room's floor at 6.134 (0.04 to 0.05 m below
-    // its markers): all inside the tolerance, and the NavMesh under every point within 0.17 m
-    // of the catalogue height (0.3 m allowed). Do not loosen FloorAndClear for a point.
+    // its markers): all inside the tolerance. The height at which the NavMesh sample put the
+    // body on each point was within 0.17 m of the catalogue height (Connected allows 0.3 m).
+    // Do not loosen FloorAndClear for a point.
     //
     // Interiors. Both authored bounds have yaw 0, so the boxes are world-aligned (south
     // x -25.4259 .. -4.9974, z 0.7234 .. 16.7244; north x -15.0885 .. 0.2525, z 141.1174 ..

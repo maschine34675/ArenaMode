@@ -717,8 +717,8 @@ public static class ArenaAreaCatalog
         // re-decided.
         // Block (arena_yard, ArenaMapPort's seventh map) carries no refusal, solo or with a
         // PitFireTeam squad, in Tactical or in Zombies. It has 18 Bot/BotPmc rows over a main
-        // walkable component of about 4,500 m² (the size of Iceberg and Bowl, 2.4 times Chop
-        // Shop), and ArenaMapPort's own coverage check on the built mesh found at least 11 of
+        // walkable component of about 4,500 m² on the port's built mesh (Iceberg 4,788, Bowl
+        // 4,987, Chop Shop 1,915.6), and ArenaMapPort's own coverage check on that mesh found at least 11 of
         // them beyond the 25 m floor from every cell outside the two pockets and at least 17
         // from each Player row, so RequestTeamEnemies always finds its five. The installed-data
         // pins in MapModeAdmissionChecks (BLOCK-GRID and the row count) hold that argument.

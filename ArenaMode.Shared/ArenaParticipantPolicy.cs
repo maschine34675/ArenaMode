@@ -29,7 +29,7 @@ public static class ArenaParticipantPolicy
     // preset of a 2,783 m² map, kept as it is until someone decides to change it. The
     // ranges stay generic (2-24 solo, 4-20 through the boxes).
     // Block (arena_yard) joins the 8-group as well: 18 Bot/BotPmc rows (seven bots leave
-    // eleven spare) on a main walkable component the size of Iceberg's and Bowl's.
+    // eleven spare) on a main walkable component of about 4,500 m² (Iceberg 4,788, Bowl 4,987).
     public static int DefaultTotal(string map, string mode)
         => ArenaMapCatalog.IsEquator(map) ? 4
             : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)

@@ -152,7 +152,7 @@ internal static class Program
         // Every Arena map, armed and confirmed. Armed: every identity names the same id, otherwise even the positive case
         // would fail for the wrong reason.
         var ids = CatalogIds();
-        Verify(ids.Length == 11 && ids.All(ArenaMapCatalog.IsSupportedMap), "the catalogue holds exactly the eleven reviewed Arena maps, all supported");
+        Verify(ids.Length == 12 && ids.All(ArenaMapCatalog.IsSupportedMap), "the catalogue holds exactly the twelve reviewed Arena maps, all supported");
         foreach (var id in ids)
         {
             Arm(id);
