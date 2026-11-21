@@ -18,6 +18,8 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ## Living references
 
+- [WTT Content Backport 2.0.7/CommonLib 3.0.8 review and Armory Hyperburst respawn finding](reports/2026-11/WTT-WHITELIST-20261121.md)
+
 - [DynamicMaps 1.3.0 whitelist and Core 1.0.26 body fixes: standalone/Arena native acceptance](reports/2026-11/DYNAMICMAPS-BODY-COMPAT-20261120.md)
 
 - [Domination objectives on DynamicMaps](reviews/DOMINATION-MAP-MARKERS-20261101.md) — live IDs, ownership colours and exact round cleanup; 1.2.1/1.3.0 adapter contracts (updated 2026-11-20).

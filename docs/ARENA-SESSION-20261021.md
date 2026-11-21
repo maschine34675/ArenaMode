@@ -96,8 +96,8 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | mod, other | PitFireTeam (`xyz.pit.fireteam`) | 1.0.0 | 1.0.0 |
 | | DynamicMaps (`com.mpstark.dynamicmaps`) | 1.2.1 | 1.2.1 |
 | | UIFixes (`com.tyfon.uifixes`) | 6.0.3 | 6.0.3 |
-| | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.6 | 3.0.6 |
-| | WTT-ContentBackport (`com.wtt.contentbackport`) | 2.0.5 | 2.0.5 |
+| | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.8 | 3.0.8 |
+| | WTT-ContentBackport (`com.wtt.contentbackport`) | 2.0.7 | 2.0.7 |
 | | SVM (`fika.ghostfenixx.svm`) | - | 2.2.3 |
 | | give-ui (`com.agavalda.giveui`) | - | 5.0.0 |
 | | ContinuousHealing (`com.lacyway.ch`) | 1.6.3 | - |

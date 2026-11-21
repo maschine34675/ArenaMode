@@ -10,6 +10,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.
+
 - Restore Domination objective markers with DynamicMaps 1.3.0 while retaining
   1.2.1 support. Changing DynamicMaps' marker pack keeps the objective diamonds.
   [Integration details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md).

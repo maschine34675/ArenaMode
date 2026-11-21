@@ -64,7 +64,7 @@ Sources: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 Arena runs only with whitelisted mods: the default list allows SAIN, APBS, ABPS, BigBrain and
 Waypoints, ArenaMapPort, Killcam, Redeploy and the other mods of this author (AutoCorpseSearch,
 DefaultAutoFireMode, DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMenuCleanupFix, StashFilter,
-SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport
+SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib 3.0.8, WTT-ContentBackport 2.0.7
 (and its patcher), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 Caliber Under Ammo Name, Compatibility Highlighter, Trader Modding and Improved Weapon Building,

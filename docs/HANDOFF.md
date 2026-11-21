@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-20. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-21. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,17 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Development, 2026-11-21: WTT review.** The default policy now reviews
+  Content Backport 2.0.7 and its installed CommonLib 3.0.8 on both sides. The
+  exact client binaries already ran during the 20 November native test;
+  this change adds no runtime adapter. Armory remains unlisted: its installed
+  runtime metadata is 2.0.5 (Forge package 3.0.0), and its AN-94 Hyperburst state
+  can keep following a retained old body. A Core fix and dedicated weapon test
+  are prerequisites to its proposed admission and are now authorized as the next
+  separate change. The version-only policy is deployed on VM/GPU1/GPU2 with
+  matching hashes; all 51 verification steps passed, xunit 4,422 passed/three
+  known skips. [Review and limits](reports/2026-11/WTT-WHITELIST-20261121.md).
 
 - **Development, 2026-11-20: DynamicMaps 1.3.0 and Core 1.0.26.** The default
   client/server whitelist and corpse-marker advisory review DynamicMaps 1.3.0;
