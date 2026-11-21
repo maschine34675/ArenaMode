@@ -232,7 +232,7 @@ internal sealed class DominationMapLayout
 
     /// <summary>
     /// Domination's own resolution, by (map, area): the whole map (<paramref name="areaId"/> null,
-    /// empty or <see cref="WholeMapAreaId"/>) of Factory, the six ports, The Lab and The Labyrinth, or
+    /// empty or <see cref="WholeMapAreaId"/>) of Factory, the seven ports, The Lab and The Labyrinth, or
     /// one of the three surveyed Customs areas. <see cref="Resolve"/> and <see cref="ControlPointCount"/>
     /// keep their meaning and map list because Tactical's capture point reads them: Tactical gets no
     /// point on The Lab, The Labyrinth or Customs (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).

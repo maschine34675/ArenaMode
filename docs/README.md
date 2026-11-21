@@ -112,7 +112,7 @@ Sorted by file name.
 - [Bay5 original TeamFight boxes for independent Team DM](reviews/BAY5-TEAM-BOXES-REVIEW.md)
 - [Arena-owned BigBrain library and Redeploy server boundary](reviews/BIGBRAIN-LIBRARY-20261018.md)
 - [Retired player body: bleeding registration cleanup (ArenaRetiredBodyEffects)](reviews/BLEEDING-NRE-REVIEW.md)
-- [Block (arena_yard) map admission, original pockets as team boxes, the two-point Domination and the seven measured start heights (decisions unconfirmed by the owner; offline pass and review pending)](reviews/BLOCK-INTEGRATION-20261121.md)
+- [Block (arena_yard) map admission, original pockets as team boxes, the two-point Domination and the seven measured start heights (decisions unconfirmed by the owner; reviewed, final offline pass 109 of 109)](reviews/BLOCK-INTEGRATION-20261121.md)
 - [Bot agility and reduced weight inertia (ArenaBotAgility)](reviews/BOT-AGILITY-REVIEW.md)
 - [Depth-occluded bot effect contours (spawn, shield, double damage)](reviews/BOT-EFFECT-OUTLINES-20261019.md)
 - [Arena bot locomotion speed: walk/sprint displacement bonus and SAIN door guard](reviews/BOT-MOVEMENT-REVIEW.md)

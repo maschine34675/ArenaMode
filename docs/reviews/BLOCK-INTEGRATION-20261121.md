@@ -14,10 +14,11 @@ are named `YardId` and `IsYard` after MapPort's id, and every test, harness and 
 **Status in one line.** Admission, team boxes and Domination are implemented and were accepted natively on GPU-2 on
 2026-11-21 with the installed build `0.6.0+fb2b3af6` ([native report](../reports/2026-11/GPU-BLOCK-20261121.md)):
 Deathmatch, Team DM 4v4 and 10v10 with held gates, Domination, solo Zombies, solo Tactical and an ordinary PMC control
-ran with 0 warnings and 0 errors in each accepted run. The first Team DM start on build `0.6.0+c071cb81` was refused
+ran with no error line and no warning from ArenaMode or ArenaMapPort in each accepted run (Unity's own warnings
+appeared in three of the raids; native report, "Warnings"). The first Team DM start on build `0.6.0+c071cb81` was refused
 (`USEC 0/10 safe connected places`); the cause was the start heights of seven south points, fixed in `fb2b3af6`. The
-first offline pass had 105 of 109 steps green and four red steps with named causes; the final offline pass over the
-last commit is stated under "Verification". What was not run is under "Not claimed". Every decision under "Decisions" is the
+first offline pass had 105 of 109 steps green and four red steps with named causes; the final offline pass has 109
+of 109 green, one of them on a second run ("Verification"). What was not run is under "Not claimed". Every decision under "Decisions" is the
 orchestrator's and has not been confirmed by the owner.
 
 **MapPort requirement and detection.** Block exists only in an ArenaMapPort build that ships `arena_yard`. Today that
@@ -263,7 +264,8 @@ spawn shield and the 20-participant cap follow from `ArenaTeamBoxCatalog.Applies
 
 ### The first Team DM start (build `0.6.0+c071cb81`)
 
-The first Team DM 4v4 start on Block was refused. The log (GPU-2, 2026-11-21, 13:42:46 local):
+The first Team DM 4v4 start on Block was refused. The log (GPU-2, 2026-11-21, 13:42:46 local; the first line was read in the live log, the exported evidence
+`native/tdm-4v4/report.md` holds the two error lines):
 `Block team-box capacity: USEC 0/10 safe connected places, 4 required.`, then `[Error] Team DM box initialization
 failed: Block USEC box has 0/4 safe connected places.` and `[Error] Arena start is invalid; protected exit queued after
 the startup frame`. The protected start aborted and returned to the menu, which is the designed fail-closed behaviour;
@@ -314,8 +316,9 @@ Every decision below is the orchestrator's. **The owner has not confirmed any of
    rows on a main walkable component of 4,548.2 m2 (survey read of the built mesh; Chop Shop 1,915.6, Iceberg 4,788,
    Bowl 4,987 from Chop Shop's contract, methods not confirmed identical); MapPort's own coverage check on the built
    mesh (`spawn_coverage.py --check`, 4,416 cells outside the pockets, 0 violations) found at least 11 Bot rows beyond
-   25 m on every cell (median 15), 100 percent of cells with at least 5, and at least 17 from each Player row. That
-   check is MapPort's tool, not ArenaMode's selector. ArenaMode's own selector was run offline (`BLOCK-GRID`,
+   25 m on every cell (median 15) and 100 percent of cells with at least 5; MapPort's offline model on Arena's own
+   mesh (first layout) gave at least 17 from each Player row. Both
+   are MapPort's tools, not ArenaMode's selector. ArenaMode's own selector was run offline (`BLOCK-GRID`,
    `BurstSpawnPointSelector.CountUsable` at least 5: "Grid minimum 9 near (-11.0, 62.5)", `MapModeAdmissionChecks.log`)
    and natively for solo Tactical and Zombies (see "Values the native run settled"). PitFireTeam on this map did not run;
    if a later `BLOCK-GRID` fails, the PitFireTeam decision in `ArenaAreaCatalog` is to be re-taken, not the number
@@ -345,12 +348,13 @@ Every decision below is the orchestrator's. **The owner has not confirmed any of
     the marker off THE LAB and host-checked the toggle `ARENA: BLOCK` against it (`markers.json` lines 180-186).
 17. **Installed Block data is a harness dependency.** `tools/BlockChecks`, `tools/BlockTeamBoxChecks`,
     `ArenaPickupChecks` and through it every full run read `db/arena_yard/base.json` and fail loudly without it, naming
-    the requirement: "Installed Block data is missing: <path>. Install an ArenaMapPort build that ships arena_yard." No
+    the requirement: the two Block harnesses with "Installed Block data is missing: <path>. Install an ArenaMapPort
+    build that ships arena_yard.", `ArenaPickupChecks` with a message of its own that names itself. No
     silent skip. `SoloTacticalSpawnChecks` lists `arena_yard` among its optional ports and does not require it, so it
     stays green on an ArenaMapPort build that predates the map. `BlockChecks` is registered in
-    `tools/verification-steps.txt`; `BlockTeamBoxChecks` is not, because it runs the whole xunit suite itself (the Chop
-    Shop precedent). The runner printed "UNREGISTERED tools/BlockTeamBoxChecks changed and is not in
-    tools/verification-steps.txt" in the first pass.
+    `tools/verification-steps.txt`, and since the review `BlockTeamBoxChecks` is too, as `IcebergTeamBoxChecks` is
+    (`ChopShopTeamBoxChecks` is not; each of the three runs the whole xunit suite itself). The first pass, before
+    that, still printed "UNREGISTERED tools/BlockTeamBoxChecks changed and is not in tools/verification-steps.txt".
 18. **Announcement.** `README.md`, `docs/FORGE-DESCRIPTION.md` and `assets/arena-whitelist.json` stay untouched (see the
     introduction).
 19. **Monitors and crowd are MapPort-side and need no change.** ArenaMode binds crowd reactions by `ReactionKinds`, not
@@ -404,7 +408,8 @@ figure is not reproduced by these files and was replaced in `fb2b3af6`.)
 | `core-03` (-5.08, 6.15, 57.92) | yes | complete 50.4 m, 8 corners | not run |
 | `south-05` (from `north-03`) | yes | - | complete 138.9 m, 13 corners |
 
-Every target snapped to y 6.2 at distance 0 (the two points: requested y 6.1262 shown as 6.1, snapped 6.2). Each path
+Every target except `south-05` snapped to y 6.2 at distance 0 (the two points: requested y 6.1262 shown as 6.1,
+snapped 6.2); `south-05` snapped to y 7.5 (requested 7.3, 0.2 m). Each path
 was swept with a line at 1.3 m above each corner against static walls and fences: "no wall found" on every stretch (14
 of 14, 13 of 13, 15 of 15, 8 of 8, 7 of 7 from the south; 6, 11, 14 and 12 from the north). The sweep does not see
 terrain, doors, interactive objects or triggers.
@@ -427,8 +432,8 @@ teleport.
 | south-10 | 6.8833 | 6.944 | north-10 | 6.1773 | 6.150 |
 | donor (-12.88, 87.03) | 6.17 | 6.167 | point A / B | 6.1262 | 6.150 / 6.150 |
 
-The body stands 0.03 to 0.06 m above the ray's first hit where both exist (for example `south-04` 7.533 against 7.483,
-`south-01` 7.400 against 7.368, `north-01` 6.150 against 6.134). The reports do not say why; the catalogue uses the ray's
+The body stands 0.016 to 0.063 m above the ray's first hit where both exist (for example `south-04` 7.533 against 7.483,
+`south-05` 7.431 against 7.368, `north-01` 6.150 against 6.134). The reports do not say why; the catalogue uses the ray's
 hit, which is what `FloorAndClear` tests, and not the body's y. The path lengths of the `floors-run` teleports are from
 the previous point; one crosses the map: `south-10` to `north-01` is a complete path of 136.2 m, 15 corners (with both
 gates open in a plain raid). `rays-run` found 136.3 m, 12 corners from `south-10` to `north-03`. Neither run read the
@@ -476,8 +481,8 @@ report](../reports/2026-11/GPU-BLOCK-20261121.md); builds `0.6.0+c071cb81` and `
   `alive=6 ... pending=1` after 30 s. The native facts attribute the empty first start to the server's profile build.
   After the review the scenario was changed to wait for the first bot arrival instead of a fixed 30 s, and it passed
   in that form on build 2 as the first raid after a server start (`native/dm-b2`, 14 steps, 6 expectations): first
-  arrival 38 s after the match start, all seven bots within 3 s of it, `alive=5 ... pending=2` after 60 s, pickups
-  `placed=6/6`, 0 warnings, 0 errors.
+  arrival 38 s after the match start, all seven bots within 3.1 s of it, `alive=5 ... pending=2` after 60 s, pickups
+  `placed=6/6`, 0 errors, no ArenaMode or ArenaMapPort warning.
 - **Label and tile:** the gold **BLOCK** label at MapPort's anchor, toggle box [807,102 129x32] directly above THE LAB,
   clear of the Arena panel (ends x 416) and of the right-hand panels (start x 1264); the tile was offered under all five
   modes that ran.
@@ -492,15 +497,18 @@ report](../reports/2026-11/GPU-BLOCK-20261121.md); builds `0.6.0+c071cb81` and `
 Offline; every dotnet call used `tools/AirPitChecks/NoDeploy.targets` and an absent `SPTUserMods` sentinel, and the
 sentinel `must-not-deploy-xunit` was absent after every xunit run (source: the xunit editor's report).
 
-**Final offline pass over the last commit: FINAL-PASS-PENDING.** The first pass below ran before `fb2b3af6` and before
-the native cycle; it is stated here as the first pass and not as the result for the last commit.
+**Final offline pass: 109 of 109 steps green over `96a51cea`,** the last commit that changes compiled code, tests or
+harnesses. The commit after it holds documents and two code comments ("After the final pass" below). One step
+needed a second run ("Final offline pass" below). The first pass further down ran before `fb2b3af6` and before the native
+cycle and is kept as the first pass.
 
 ### The xunit suite and the red proofs
 
 - xunit with only the production change and the old tests: 21 failed, 4,401 passed, 3 skipped, which shows that the old
   tests pinned revision 6 and six ports. After the test edits: one unfiltered run, **4,565 tests, 4,562 passed, 0
-  failed, 3 skipped**. The three skips are the known environment skips (the APBS test root, the reward recovery
-  baseline, symbolic link privilege). The 99 Block tests and about 758 related filtered tests also passed in their own
+  failed, 3 skipped**. The three skips are the known environment skips: two reward-recovery baseline cases
+  (`SPT_REWARD_RECOVERY_BASELINE`) and the APBS test root (`ARENA_APBS_TEST_ROOT`). The 98 Block tests (`BlockMapTests`
+  41, `BlockTeamSpawnTests` 57) and about 758 related filtered tests also passed in their own
   runs. The first pass's `ArenaMode.Tests (xunit, once)` step reports `total=4565 passed=4562 skipped=3`.
 - New test classes: `BlockMapTests` (the revision-7 theory with 26 rows, idempotence and user-owned entries, a real
   `ConfigStore.Reload`, optional-map identity, every mode admitted solo and with a squad, whole-map Domination,
@@ -510,8 +518,8 @@ the native cycle; it is stated here as the first pass and not as the result for 
   outside both boxes, `BoothExits`, gate timing 0 and 15, `Find`/`Owns`/`Applies` scope, the interior probes named
   above, the margins, the protected clone, the fault theories including `foreign-chopshop`, other modes keeping native
   markers). Ten neighbour files moved their old rules to the new boundary (revision 7, seven ports, Chop Shop no longer
-  last) without weakening them. `fb2b3af6` changed seven literals and one probe in `BlockTeamSpawnTests`; a run of the
-  suite after it is not recorded in the sources.
+  last) without weakening them. `fb2b3af6` changed seven literals and one probe in `BlockTeamSpawnTests`; the
+  final pass ran the suite after it (4,565 tests, 4,562 passed, 3 skipped).
 - **Six red proofs.** Each mutation was made on the production file at the state of `30892f9a`, run with a filter, then
   restored byte-identically (SHA-256 equal before and after, time stamp refreshed; copies in
   `artifacts/yard-20261121/red/`). They were not repeated after `fb2b3af6`.
@@ -529,6 +537,67 @@ Mutation A fails as soon as the top is raised; whether it was the y 9.2 probe or
 not confirmed. All twelve test files and all harness files touched are CRLF with no bare LF (byte counts by the
 editors).
 
+### Final offline pass (over `96a51cea`)
+
+`tools/Run-ArenaVerification.ps1 -ChangedSince master` from the worktree, six worker worktrees, the live installation
+hashed before and after every step. It printed `ARENA_VERIFICATION_CHANGED 80 files since master`,
+`ARENA_VERIFICATION_SELECTION selected=108 of 175 registered` and
+`ARENA_VERIFICATION_SUMMARY passed=108 failed=1 seconds=10292 cached=0`.
+
+- **The one red step was `IcebergTeamBoxChecks`,** which runs the whole xunit suite itself: 4,565 tests, 1 failed,
+  4,561 passed, 3 skipped. The failed test is
+  `OfflineSessionHelperTests.ANoteThatDoesNotNameTheStartedServerNeverExcusesAnUnsettledSession(kind: "other-pid")`
+  (`Expected: 1, Actual: 0`), a third case of the load-dependent class that made two wrappers red in the first pass.
+  The same test passed in the same pass wherever else the whole suite ran: `ArenaMode.Tests (xunit, once)`,
+  `BlockTeamBoxChecks`, `EquatorMapChecks` and `tools/PftTacticalKitChecks/Verify-Integration.ps1`.
+- **The runner was started again at the same head.** The 108 green steps came from its result cache and
+  `IcebergTeamBoxChecks` ran alone: `ICEBERG_TEAM_BOX_CHECKS_PASSED`,
+  `ARENA_VERIFICATION_SUMMARY passed=109 failed=0 seconds=356 cached=108`.
+- The four steps that were red in the first pass are green: `EquatorMapChecks`,
+  `tools/PftTacticalKitChecks/Verify-Integration.ps1`, `ColaReleaseChecks` (the fixture folder
+  `artifacts/optional-mod-releases` was copied into the worktree) and `AmandsGraphicsSceneChecks`
+  (`Source faults rejected: 22`).
+- xunit: `ArenaMode.Tests (xunit, once)` reports `total=4565 passed=4562 skipped=3`. It is the first recorded run of
+  the suite after `fb2b3af6`.
+- Block's harnesses: `BLOCK_INTEGRATION_CHECKS_PASSED`; `BLOCK_TEAM_BOX_CHECKS_PASSED` with
+  `BLOCK_INSTALLED_DONOR arena_yard-bot-core-04 (-12.88, 6.17, 87.03); south=2 north=2 bots=18` and
+  `BLOCK_UNIT total=4565 passed=4562 skipped=3`; `MAP_MODE_ADMISSION_CHECKS_PASSED (1088 assertions)`, 23 more than
+  in the first pass (the pin `BLOCK-POCKETS`: twenty start points and three corridor points), with
+  `Grid minimum 9 near (-11.0, 62.5)` and `MAP_MODE_ADMISSION_FAULTS_PASSED (18 compiled faults)`;
+  `EQUATOR_SPAWN_GATE_CHECKS_PASSED (449 assertions)`; `DOMINATION_RUNTIME_CHECKS_PASSED (1127 assertions)` with
+  `Source faults rejected: 38`; `DOMINATION_ADMISSION_VERIFIED: 20 compiled mutants, 8 wiring controls, installed
+  hashes unchanged`.
+- The runner printed `UNREGISTERED tools/AirPitChecks changed and is not in tools/verification-steps.txt`, as in the
+  first pass. That folder has no step of its own; its `NegativeControls.ps1`, which this branch extended by Block's
+  fault pair, runs through the map harnesses (`BlockChecks` rejected `YardMissingPftSpawnAdapter` and
+  `YardMissingPftCombatAdapter`).
+- Sources: `artifacts/yard-20261121/verify-2.clean.log` (the full run) and `verify-3.clean.log` (the second start).
+
+### After the final pass: the document fact check
+
+Four readers then checked the documents of this change against the code, the logs and the native evidence, and a second
+reader tried to refute each finding: 25 findings, all confirmed (one in part), none about the behaviour of the code. All
+are corrected in the last commit:
+
+- numbers and attributions in this contract (the body-above-ray range, the snapped height of `south-05`, the source of
+  the "17 from each Player row", the three skips, 98 Block tests, which Player rows Zombies and Tactical used);
+- the claim "0 warnings": the exports hold no error line and no ArenaMode or ArenaMapPort warning, but Unity's own
+  warnings appeared in three raids (native report, "Warnings");
+- the profile comparison (which copy was compared with which; the two `StackObjectsCount` entries are back after the
+  last Deathmatch raid and older than this branch);
+- a wrong sentence about GPU-1 (it holds the same ArenaMapPort files and the same build; nothing was run there);
+- stale sentences about the gpu-run commit and about which scenarios ran on the first build, the review count in the
+  hand-off (eight applied, not seven; the message of `96a51cea` has the same slip), and two stale "six ArenaMapPort
+  maps" in `AREA-RULES.md` and `DEPENDENCIES.md`.
+
+Two code comments were corrected with them, without changing the number of lines: `DominationMapLayout.cs` says "the
+seven ports", and `ArenaAreaCatalog.cs` names MapPort's offline model as the source of the 17. After these edits the
+client and the server were built (0 errors) and three harnesses that read those files were run again by hand:
+`DOMINATION_RUNTIME_CHECKS_PASSED (1127 assertions)` with `Source faults rejected: 38`,
+`MAP_MODE_ADMISSION_CHECKS_PASSED (1088 assertions)` with `MAP_MODE_ADMISSION_FAULTS_PASSED (18 compiled faults)`, and
+`DOMINATION_ADMISSION_VERIFIED: 20 compiled mutants, 8 wiring controls, installed hashes unchanged`. The full runner
+was not started again after the comment edits.
+
 ### First offline pass of the harnesses (before `fb2b3af6`)
 
 The runner (`tools/Run-ArenaVerification.ps1`, six worker worktrees) printed `ARENA_VERIFICATION_CHANGED 69 files since
@@ -539,14 +608,16 @@ master`, `ARENA_VERIFICATION_SELECTION selected=107 of 174 registered` and, at t
 and the same for `tools/BlockTeamBoxChecks` (decision 17). Source: `artifacts/yard-20261121/verify-1.clean.log`; commit
 `c071cb81` names the causes.
 
-**The four red steps and their causes.**
+**The four red steps and their causes.** The step logs of the first pass were overwritten by the later runner starts.
+The test names and messages in this table were read from them before that and cannot be re-read; `verify-1.clean.log`
+keeps one shortened line per step.
 
 | Step | Cause |
 |---|---|
 | `EquatorMapChecks` | The wrapper runs the whole xunit suite: 4,565 tests, 1 failed, 4,561 passed, 3 skipped. The failed test is `OfflineSessionHelperTests.NormalReturnUsesOriginalArgumentsAndRequiresCommittedImportAfterListening` (`Expected: 1, Actual: 0`). `c071cb81` calls it a known load-dependent case; the same test passed in the `ArenaMode.Tests (xunit, once)` step. |
 | `tools/PftTacticalKitChecks/Verify-Integration.ps1` | The same kind of wrapper: 4,565 tests, 1 failed, 4,561 passed, 3 skipped. The failed test is `OfflineSessionHelperTests.ALeaveWhoseNormalServerPausedItsRecoveryOpensTheGameOnceAndShowsOneDialog`, another case named load-dependent in `c071cb81`. |
 | `ColaReleaseChecks` | A missing fixture folder in the worktree: the log says `FAIL ColaReleaseChecks: reviewed release DLL is available: TarkovaCola.Client.dll`. Not caused by Block. |
-| `AmandsGraphicsSceneChecks` | The real one: the check pinned eleven catalogue ids, `arena_yard` makes twelve. Fixed in `c071cb81` (the pin and the check text now say twelve); the step has not been re-run on its own in the sources. |
+| `AmandsGraphicsSceneChecks` | The real one: the check pinned eleven catalogue ids, `arena_yard` makes twelve. Fixed in `c071cb81` (the pin and the check text now say twelve); the step passed in the final pass. |
 
 **The harnesses that hold the map, with their PASSED lines from the first pass** (logs under
 `artifacts/run-arena-verification/`):
@@ -558,7 +629,7 @@ and the same for `tools/BlockTeamBoxChecks` (decision 17). Source: `artifacts/ya
 | `MapModeAdmissionChecks` | `minimumRows` 18, `BLOCK-GRID`, `BLOCK-PLAYER-ROWS` (exactly 4 Player rows and five usable distant rows from each), `OPENING-SQUAD` for all four Player rows, `EXIT-NAMES`, three new faults | `Installed arena_yard: 4 player markers, 18 bot markers; opening squad capacity verified. Grid minimum 9 near (-11.0, 62.5).`; `MAP_MODE_ADMISSION_CHECKS_PASSED (1065 assertions)`; `MAP_MODE_ADMISSION_FAULTS_PASSED (18 compiled faults)`, including `BlockPftTacticalRefused`, `BlockSoloTacticalRefused`, `RenamedBlockExitLiteral` rejected |
 | `SpawnGateChecks` | `BlockOpening` (no abort at 14.99 s, fail closed at 15 s), the formation loop for Block | `EQUATOR_SPAWN_GATE_CHECKS_PASSED (449 assertions)`, 26 `NEGATIVE CONTROL PASSED` lines (the log does not print the Block labels separately) |
 | `DominationRuntimeChecks` | the Block layout row with A and B, mutant `block-lifted-point` | `DOMINATION_RUNTIME_CHECKS_PASSED (1127 assertions)`; `Fault rejected: block-lifted-point`; `Source faults rejected: 38` |
-| `DominationAdmissionChecks` | Block among the supported maps, mutant `reject-arena_yard`, the Domination chain mutants moved to the `YardId` link | `DOMINATION_ADMISSION_MUTANT_REJECTED: reject-arena_yard (source pin: False)`; `DOMINATION_ADMISSION_VERIFIED: 19 compiled mutants, 8 wiring controls, installed hashes unchanged` (the printed 19 was a stale literal: twenty ran; corrected after the review). Its README says twenty compiled mutants and the log lists 20 non-pin `MUTANT_REJECTED` lines; the two numbers are not reconciled. |
+| `DominationAdmissionChecks` | Block among the supported maps, mutant `reject-arena_yard`, the Domination chain mutants moved to the `YardId` link | `DOMINATION_ADMISSION_MUTANT_REJECTED: reject-arena_yard (source pin: False)`; `DOMINATION_ADMISSION_VERIFIED: 19 compiled mutants, 8 wiring controls, installed hashes unchanged` (the printed 19 was a stale literal: twenty ran, as its README says and the 20 non-pin `MUTANT_REJECTED` lines of the log show; corrected after the review, and the final pass prints `20 compiled mutants`). |
 | `AreaConfigChecks`, `NativeMenuChecks`, `ParticipantMenuChecks`, `AreaMapPreviewChecks` | migration rows `block-release` / `block-removed` / `future-version` at 8; PFT admission; Tactical offer; default 8; cap 20; label "BLOCK" and the native marker position | `PASS` in the first pass (counts under `BlockChecks` above) |
 | `CompactModeUxChecks`, `DominationPolicyChecks`, `TeamDeathmatchRuntimeChecks`, `EquatorTeamSpawnChecks`, `SpawnShieldScopeChecks`, `ArenaPickupChecks`, `ArenaExtractionChecks`, `ArenaLightingChecks`, `SainExtractGuardChecks`, `PftPortedMapChecks`, `PortedCoverChecks`, `SoloTacticalSpawnChecks` | "Hold 2 points", Block among the ports, shield scope lists, map lists, exit literals, look-alike negatives, Block as an optional port | `PASS` in the first pass |
 
@@ -614,15 +685,17 @@ From the native cycle ([report](../reports/2026-11/GPU-BLOCK-20261121.md)):
 - PitFireTeam on this map (Tactical and Zombies with a squad are admitted by the catalogue; neither ran).
 - Gun Game (it takes the Deathmatch path).
 - The local player on a south formation point: the test profile is BEAR, so in Team DM and Domination the player always
-  started north and the south points were used by USEC bots only. Zombies and Tactical placed the player on the
-  installed south Player row, not on a formation point.
+  started north and the south points were used by USEC bots only. The player did stand in the south pocket: Deathmatch
+  and Zombies started it on the installed south Player rows (Zombies then moved it to the north Bear row), and Tactical
+  placed it on the north "All", the south Usec and the north Bear row in rounds 1 to 3. None of these runs went through
+  the Team DM formation.
 - A match played to its result and its reward; Deathmatch above 8 participants; a held gate walked into by a player; the
   north corridor walked during a hold.
 - Nothing was heard (gate sounds, crowd, announcer) and no monitor was read by a person.
 - Night, weather, a long session, performance (only MapPort's drive-frame lines).
 - The DynamicMaps overlay (no map pack for `arena_yard`), the killcam, the Fika fork, AmandsGraphics (code and offline
   checks only).
-- GPU-1 has no Arena installation, so the map exists only on GPU-2.
+- Anything on GPU-1: it holds the same ArenaMapPort files and the same ArenaMode build, and nothing was run there.
 - Whether standing on a formation point inside an exit box (`south-03`, `south-04`, `north-05`, `north-08`) extracts in
   an Arena raid. The 10v10 respawn read back at `north-08`, which lies inside the north exit box by the coordinates
   above; the native facts record no extraction from it.

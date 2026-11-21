@@ -20,8 +20,8 @@ version.
 
 `scenarios/` holds six gpu-run scenario files for the native run on SPT-GPU-2, twins of the files of
 `tools/ChopShopChecks/scenarios`. All six ran on 2026-11-21 against the installed build `0.6.0+fb2b3af6`
-(`block-dm` first on build `0.6.0+c071cb81`, where it failed, then in its present form on the installed
-build); the numbers below are from those runs
+(`block-dm` and `block-tdm` ran first on build `0.6.0+c071cb81`, where both failed: `block-dm` in its earlier
+form, `block-tdm` because that build refused the start); the numbers below are from the runs on the installed build
 (`artifacts/yard-20261121/native/<run>/`, gitignored) and from the installed data.
 
 | File | What it does | Native result of 2026-11-21 |
@@ -34,13 +34,14 @@ build); the numbers below are from those runs
 | `block-tactical-solo.json` | solo Tactical, three rounds (the `map` parameter defaults to `BLOCK`): five opponents live in each round, the burst spawn plan, the objective, a lost round and a round ended by the test hook | passed (20 steps, 10 expectations) |
 
 Run from the UiBridge checkout (they need an ArenaMapPort build that ships `arena_yard` and a gpu-run
-that knows the tile `BLOCK`; `mapFromMenu` is set, so a catalog drift in gpu-run does not stop them):
+that knows the tile `BLOCK`; `mapFromMenu` is set in the five Arena scenarios, so a catalog drift in gpu-run does
+not stop them; `block-pmc` names the map by its catalogue key):
 
 ```text
 node ../UiBridge/tools/gpu-run/gpu-run.mjs scenario <file> --host host2
 ```
 
-The tile entry in gpu-run's catalogue is an uncommitted change in the UiBridge checkout (2026-11-21).
+The tile entry in gpu-run's catalogue is committed locally in the UiBridge checkout (`main`, `b3a469a`, not pushed).
 
 What the scenarios assume, and what to set before them:
 
@@ -67,5 +68,6 @@ player on the installed `arena_yard-player-usec` row (-14.86, 7.27, 13.3) and la
 equivalent that was measured, so the Zombies scenario starts from a Player row instead.
 
 Not run natively: a PitFireTeam squad on Block, Gun Game, Deathmatch above eight participants, a match played to
-its result, the local player in the south pocket (the test profile is BEAR, so the player always started north),
+its result, the local player on a south formation point in Team DM or Domination (the test profile is BEAR, so the
+player started north there),
 a held gate walked into by a player, and anything heard.

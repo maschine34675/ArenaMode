@@ -1,10 +1,9 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 1059 assertions before Block (arena_yard) joined the tables (the new count is to be
-taken from the next run); all 38 source mutants rejected by their
-intended behavioral assertions, followed by a clean baseline (to be re-confirmed by the
-next run; the last confirmed baseline is 2026-11-13, with the
+Current baseline: 1127 assertions (1059 before Block (arena_yard) joined the tables); all 38 source mutants
+rejected by their intended behavioral assertions, followed by a clean baseline (2026-11-21, with the
+Block row and its mutant `block-lifted-point`; before it 2026-11-13, with the
 world-letter pin and the surveyed-slot layout kind).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup

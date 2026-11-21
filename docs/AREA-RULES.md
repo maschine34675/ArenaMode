@@ -301,7 +301,7 @@ without the component); a lookup that works is never replaced, and ordinary raid
 are untouched. The substitute is the live `Singleton<LevelSettings>` of the exact
 active raid or of its still-loading, server-armed local game and map; nothing is
 written into Graphics' scene table. Core owns the subsequent camera handoff. Only
-Factory and Labyrinth were run natively with Graphics; the six ArenaMapPort
+Factory and Labyrinth were run natively with Graphics; the seven ArenaMapPort
 maps are covered by code and offline checks only (`tools/AmandsGraphicsSceneChecks`,
 with mutants) and have not been run natively. Open point: Graphics treats an unknown
 scene like the hideout and writes its own sky, equator and ground colours into the

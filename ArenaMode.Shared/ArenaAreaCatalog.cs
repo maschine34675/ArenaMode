@@ -719,8 +719,8 @@ public static class ArenaAreaCatalog
         // PitFireTeam squad, in Tactical or in Zombies. It has 18 Bot/BotPmc rows over a main
         // walkable component of about 4,500 m² on the port's built mesh (Iceberg 4,788, Bowl
         // 4,987, Chop Shop 1,915.6), and ArenaMapPort's own coverage check on that mesh found at least 11 of
-        // them beyond the 25 m floor from every cell outside the two pockets and at least 17
-        // from each Player row, so RequestTeamEnemies should find its five from any leader
+        // them beyond the 25 m floor from every cell outside the two pockets (its offline model on
+        // Arena's own mesh: at least 17 from each Player row), so RequestTeamEnemies should find its five from any leader
         // position. That is argued from the rows and the mesh: solo Tactical and solo Zombies
         // ran natively on 2026-11-21, neither mode has run with a PitFireTeam squad on this map.
         // The installed-data pins in MapModeAdmissionChecks (BLOCK-GRID, BLOCK-POCKETS,

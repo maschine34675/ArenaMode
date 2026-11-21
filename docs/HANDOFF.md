@@ -15,30 +15,40 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 - **Development, 2026-11-21: Block (arena_yard) admitted on feature/yard.** Block is ArenaMapPort's seventh map
   (location id `arena_yard`, Arena's own name "Block", unrelated to the Customs yard area). It is admitted as an
   optional map in every mode on the branch `feature/yard`, worktree `D:\SPT41\Development\ArenaMode-yard`, cut from
-  `master` `6b3ba6a4`. **The branch is not merged into `master` and not pushed.** It holds three commits:
+  `master` `6b3ba6a4`. **The branch is not merged into `master` and not pushed.** It holds five commits:
   `30892f9a` (admission: catalogue, optional-map revision 7, team boxes, two-point Domination, tests and harnesses),
   `c071cb81` (the Amand's Graphics scene check pins the number of catalogue ids, now twelve; three comments that
-  claimed more than was measured now give the numbers) and `fb2b3af6` (seven south start heights carry the measured
-  floors, see below), plus the documents of this change, which were written after the third commit and are not part of
-  it. The contract is [BLOCK-INTEGRATION-20261121](reviews/BLOCK-INTEGRATION-20261121.md).
+  claimed more than was measured now give the numbers), `fb2b3af6` (seven south start heights carry the measured
+  floors, see below), `96a51cea` (the review fixes, the scenarios, the native report and the contract) and a last
+  commit with the final offline result, the corrections of a document fact check (25 findings, none about the
+  behaviour of the code) and two code comments. The contract is
+  [BLOCK-INTEGRATION-20261121](reviews/BLOCK-INTEGRATION-20261121.md).
   Offline: the first pass of the verification runner (before `fb2b3af6`) passed 105 of 109 steps; the four red steps
   (`EquatorMapChecks`, `PftTacticalKitChecks/Verify-Integration.ps1`, `AmandsGraphicsSceneChecks`,
   `ColaReleaseChecks`) are explained in the message of `c071cb81`: two wrappers that run the whole suite met the
   known load-dependent `OfflineSessionHelperTests` cases, one step lacked a fixture folder in this worktree, and one
-  was real and is fixed in `c071cb81`. The final offline result is FINAL-PASS-PENDING (the runner is run once more
-  after the documents). xunit before `fb2b3af6`: 4,565 tests, 4,562 passed, 3 known skips, six red proofs.
+  was real and is fixed in `c071cb81`. **The final pass over `96a51cea` is green, 109 of 109 steps**
+  (`-ChangedSince master`, 108 steps selected of 175 registered and the xunit suite once). The full run (10,292 s,
+  nothing cached) had 108 green and one red: `IcebergTeamBoxChecks`, which runs the whole suite itself, met the
+  load-dependent case `OfflineSessionHelperTests.ANoteThatDoesNotNameTheStartedServerNeverExcusesAnUnsettledSession`
+  (4,561 of 4,565). Started again at the same head, the runner took the 108 green steps from its cache and ran
+  that step alone: `ARENA_VERIFICATION_SUMMARY passed=109 failed=0 seconds=356 cached=108`. All four steps that
+  were red in the first pass are green. xunit in the final pass: 4,565 tests, 4,562 passed, 3 known skips. The six
+  red proofs date from `30892f9a`.
   **Native cycle on SPT-GPU-2** (profile SPT-GPU-2, a BEAR PMC; evidence in the gitignored
   `artifacts/yard-20261121/native/`): the first Team DM start with build `0.6.0+c071cb81` was refused
   (`Block team-box capacity: USEC 0/10 safe connected places`) because the authored south markers sit 0.10 m under
   their floor and `FloorAndClear`'s clearance capsule starts 0.10 m above the point; `fb2b3af6` replaced seven
   heights with the floors measured on GPU-2 (six at 7.368, south-04 at 7.483). On build `0.6.0+fb2b3af6` these
-  passed without a warning or error line: Team DM 4v4 and 10v10 (MapPort drive scale 1.0 for the 10v10: gates open
+  passed without an error line and without a warning from ArenaMode or ArenaMapPort (Unity's own "referenced script
+  is missing" warnings appeared in the Domination, Tactical and Deathmatch raids): Team DM 4v4 and 10v10 (MapPort drive scale 1.0 for the 10v10: gates open
   8.03 s after the release), Domination 4v4, solo Zombies, solo Tactical (three rounds) and an ordinary PMC raid that
   ended through the exit "Block South Gate". Deathmatch with eight participants ran on the first build and, with the
   scenario revised to wait for the first bot, on the installed build as the first raid after a server start (first
   arrival 38 s after the match start). Not run: a
   PitFireTeam squad on this map, Gun Game, Deathmatch above eight participants, a match played to its result and its
-  reward, the local player in the south pocket, a held gate walked into by a player, anything heard, performance
+  reward, the local player on a south formation point in Team DM or Domination (the test profile is BEAR and started
+  north there), a held gate walked into by a player, anything heard, performance
   beyond MapPort's drive-frame lines. Scenario notes: `tools/BlockChecks/README.md`.
   **Decisions that wait for the owner.** Every decision in the working brief
   (`artifacts/yard-20261121/DESIGN.md`) is the orchestrator's and has not been confirmed by the owner: the name
@@ -58,22 +68,27 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   The migration stays in the saved configuration because the build stays: client `General/Maps` has `arena_yard` and
   `OptionalMapsRevision` 7, the server `config.json` has `optionalMapsRevision` 7 and an `arena_yard` row. gpu-run
   changed `Match/GameMode` and the new key `Map participants/arena_yard_team`; both were set back (domination, 8) and
-  the VM and GPU-2 files are identical. EFT and the SPT server on GPU-2 are stopped. GPU-1 has no Arena installation,
-  so the map exists only on GPU-2. No reward was earned.
-  **Profile comparison.** The test profile (5,003 leaves) against the copy taken before the PMC control raid differs
+  the VM and GPU-2 files are identical. EFT and the SPT server on GPU-2 are stopped. GPU-1 holds the same ArenaMapPort
+  files and the same build; nothing was run there. No reward was earned.
+  **Profile comparison.** The copy of the test profile taken before the first test build (5,003 leaves) against its
+  state after the Arena raids and before the PMC control raid (SPT's backup `2026-11-21_13-08-52` UTC) differs
   in 6 leaves: two health values and two timestamps, which are expected, and `upd.StackObjectsCount: 1` newly written
   on two equipment items (the dogtag and the scabbard knife). The item is the same (1 is the default), but the
-  comparison is therefore not "timestamps only". It is not specific to this map: it is present in every SPT backup
-  from the first Arena raid on, absent again after the ordinary PMC control raid, and nothing in the branch touches
-  profile code. Not investigated. The PitFireTeam companion files were not compared.
+  comparison is therefore not "timestamps only". The two entries were absent again after the ordinary PMC control
+  raid and came back with the last Deathmatch raid, so the profile as it stands carries them. It is not specific to
+  this map or this branch: conflict copies of the same profile from 2026-11-13 and 2026-11-15 carry them too, and
+  nothing in the branch touches profile code. Not investigated. With what the ordinary PMC raid changed (experience
+  300 -> 400, three skills, counters), the profile as it stands differs from that copy in 24 leaves. The PitFireTeam
+  companion files were not compared.
   **ArenaMapPort's side.** ArenaMode never edits ArenaMapPort. Once ArenaMode pins the donor row, ArenaMapPort has
   to move `yard` out of `PENDING_DONOR_MAPS` in `tools/validate/spawn_coverage.py` into `DONOR_ROWS` with the exact
   floats, and to move the first-new id in `LAYOUTS['yard']` to the first appended row at publication. The donor row
   is `arena_yard-bot-core-04` (-12.88, 6.17, 87.03).
   **UiBridge.** The gpu-run catalogue entry for the tile "BLOCK" is committed locally in the UiBridge checkout
-  (`main`, `b3a469a`, not pushed); the scenarios do not depend on it while `mapFromMenu` is set.
-  **Review.** Four lenses with a second reader per finding: ten findings, none critical or major; seven applied
-  (three comments, the wider row pin `BLOCK-POCKETS`, a stale mutant count, the test filter of `BlockChecks` and
+  (`main`, `b3a469a`, not pushed); the five Arena scenarios do not depend on it (`mapFromMenu`), `block-pmc` names
+  the map by its catalogue key and does.
+  **Review.** Four lenses with a second reader per finding: ten findings, none critical or major; eight applied
+  (three comments, the wider row pin `BLOCK-POCKETS`, a stale mutant count, the test filter of `BlockChecks`,
   the registration of `BlockTeamBoxChecks`, the Deathmatch scenario), two kept as they are with reasons
   ([contract](reviews/BLOCK-INTEGRATION-20261121.md), "Review").
   **Release rule.** No announcement before an ArenaMapPort release that ships the map under a new version number
@@ -643,11 +658,11 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 ## Open work
 
 **Block (`arena_yard`), 2026-11-21, `feature/yard` (not merged, not pushed; entry under "Released and installed",
-[contract](reviews/BLOCK-INTEGRATION-20261121.md)):** open are (1) the owner's decisions on the brief; (2) the final
-offline pass after the documents (result in the entry above); (3) the native runs not made: a PitFireTeam squad
-on Block, Gun Game, Deathmatch above eight participants, a match played to its result, the local player in the south
-pocket, a held gate walked into by a player; (4) the ArenaMapPort side (`PENDING_DONOR_MAPS`) and the uncommitted
-gpu-run entry in UiBridge; (5) the harnesses that read installed MapPort data (`BlockChecks`, `BlockTeamBoxChecks`,
+[contract](reviews/BLOCK-INTEGRATION-20261121.md)):** open are (1) the owner's decisions on the brief; (2) nothing offline: the final
+pass is green (result in the entry above); (3) the native runs not made: a PitFireTeam squad
+on Block, Gun Game, Deathmatch above eight participants, a match played to its result, the local player on a south
+formation point in Team DM or Domination, a held gate walked into by a player; (4) the ArenaMapPort side (`PENDING_DONOR_MAPS`) and the unpushed
+gpu-run commit `b3a469a` in UiBridge; (5) the harnesses that read installed MapPort data (`BlockChecks`, `BlockTeamBoxChecks`,
 `ArenaPickupChecks` and through it every full run) fail without an ArenaMapPort build that ships `arena_yard`;
 (6) merge and push only on the owner's word. README, FORGE-DESCRIPTION and the whitelist stay free of Block.
 

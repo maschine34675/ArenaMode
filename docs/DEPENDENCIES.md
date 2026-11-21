@@ -283,7 +283,7 @@ native observations below predate that migration; see
   actual lighting settings of the running map when Graphics cannot find its
   usual scene object, on every Arena map (a lookup that works is left alone).
   The initial kit and two deaths on Labyrinth passed, including one with
-  graphics switched off. The six ArenaMapPort maps are covered by code and
+  graphics switched off. The seven ArenaMapPort maps are covered by code and
   offline checks and have not been run natively yet; on them Graphics treats the
   unknown scene like the hideout, which can change the ambient colours.
   [Native test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
