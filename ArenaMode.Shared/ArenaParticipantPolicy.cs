@@ -28,10 +28,13 @@ public static class ArenaParticipantPolicy
     // number of rows (BurstMinAliveBots is 4 on every port); it is an older, smaller
     // preset of a 2,783 m² map, kept as it is until someone decides to change it. The
     // ranges stay generic (2-24 solo, 4-20 through the boxes).
+    // Block (arena_yard) joins the 8-group as well: 18 Bot/BotPmc rows (seven bots leave
+    // eleven spare) on a main walkable component the size of Iceberg's and Bowl's.
     public static int DefaultTotal(string map, string mode)
         => ArenaMapCatalog.IsEquator(map) ? 4
             : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
-                || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)) ? 8
+                || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)
+                || ArenaMapCatalog.IsYard(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;
 

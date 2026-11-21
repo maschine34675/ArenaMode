@@ -33,6 +33,8 @@ public sealed class BowlMapTests
         {
             ConfigStore.FillMissingKeys(saved, defaults);
             Assert.Equal(gain, maps.ContainsKey(ArenaMapCatalog.BowlId));
+            // A gain brings the complete current default, Block (arena_yard) included.
+            Assert.Equal(gain, maps.ContainsKey(ArenaMapCatalog.YardId));
             foreach (var id in ids.Split(','))
             {
                 Assert.False(maps[id]!["enabled"]!.GetValue<bool>());
@@ -44,6 +46,7 @@ public sealed class BowlMapTests
         if (!gain) return;
         Assert.True(maps[ArenaMapCatalog.BowlId]!["enabled"]!.GetValue<bool>());
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.BowlId]!["spawnZones"]!.GetValue<string>());
+        Assert.True(maps[ArenaMapCatalog.YardId]!["enabled"]!.GetValue<bool>());
         // Once upgraded, deleting Bowl must survive the next repair, even though
         // the remaining map set again looks exactly like the prior default.
         maps.Remove(ArenaMapCatalog.BowlId);

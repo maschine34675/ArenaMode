@@ -71,7 +71,7 @@ Check(Harmony.Hooks.Count == 1, "Enable is idempotent");
 Raid(); BotExtractManager.Calls = 0;
 Check(!Ask(bot), "active Arena raid refuses SAIN extraction");
 Check(BotExtractManager.Calls == 1, "SAIN's own check still runs once");
-foreach (string map in new[] { "factory4_day", "bigmap", "arena_equator", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+foreach (string map in new[] { "factory4_day", "bigmap", "arena_equator", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
 {
     Raid(armedMap: map, world: map);
     Check(!Ask(bot), "active Arena raid refuses SAIN extraction on " + map);

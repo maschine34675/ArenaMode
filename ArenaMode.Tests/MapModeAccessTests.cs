@@ -11,7 +11,7 @@ public sealed class MapModeAccessTests
     public static IEnumerable<object[]> SupportedCases()
     {
         foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId })
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
             yield return [map, mode];
     }
@@ -44,6 +44,25 @@ public sealed class MapModeAccessTests
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.AutoServiceId, "tactical", true, out _, out _));
     }
 
+    // Block (arena_yard) carries no refusal: Tactical and Zombies are admitted solo AND with a
+    // PitFireTeam squad (18 Bot/BotPmc rows, see ArenaAreaCatalog), unlike Chop Shop above.
+    [Fact]
+    public void BlockAdmitsSoloAndSquadFormatsInEveryMode()
+    {
+        var pairs = SupportedCases().Select(c => ((string)c[0], (string)c[1])).ToArray();
+        Assert.Contains((ArenaMapCatalog.YardId, "tactical"), pairs);
+        Assert.Contains((ArenaMapCatalog.YardId, "zombie"), pairs);
+        Assert.Contains((ArenaMapCatalog.YardId, "teamdeathmatch"), pairs);
+        foreach (string mode in new[] { "tactical", "zombie" })
+        foreach (bool pitFireTeam in new[] { false, true })
+        {
+            Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.YardId, mode, pitFireTeam,
+                out var area, out var reason), $"{mode} pft={pitFireTeam}");
+            Assert.Null(area);
+            Assert.Null(reason);
+        }
+    }
+
     // Every formation names its two exits now (they stand in the pockets since ArenaMapPort
     // 2026-11-12), USEC's first, as in Equator's entry. The member is data: extraction is
     // isolated and nothing reads positions.
@@ -54,6 +73,7 @@ public sealed class MapModeAccessTests
     [InlineData(ArenaMapCatalog.BowlId, "Bowl BTR Gate", "Bowl Army Gate")]
     [InlineData(ArenaMapCatalog.IcebergId, "Iceberg West Gate", "Iceberg East Gate")]
     [InlineData(ArenaMapCatalog.AutoServiceId, "Chop Shop East Gate", "Chop Shop West Gate")]
+    [InlineData(ArenaMapCatalog.YardId, "Block South Gate", "Block North Gate")]
     public void EveryFormationNamesItsTwoPocketExits(string map, string usecExit, string bearExit)
     {
         var formation = ArenaTeamBoxCatalog.Find(map)!;
@@ -86,6 +106,8 @@ public sealed class MapModeAccessTests
             original.SpawnPointParams = [IcebergTeamSpawnTests.Donor()];
         else if (mapId == ArenaMapCatalog.AutoServiceId && mode == "teamdeathmatch")
             original.SpawnPointParams = [ChopShopTeamSpawnTests.Donor()];
+        else if (mapId == ArenaMapCatalog.YardId && mode == "teamdeathmatch")
+            original.SpawnPointParams = [BlockTeamSpawnTests.Donor()];
         string before = JsonSerializer.Serialize(original);
         var clone = JsonSerializer.Deserialize<LocationBase>(before)!;
         var config = new ArenaModeConfig();

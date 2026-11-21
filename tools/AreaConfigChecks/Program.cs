@@ -36,13 +36,14 @@ try
 
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId,ArenaMapCatalog.CustomsId,
-        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId,ArenaMapCatalog.BowlId,ArenaMapCatalog.IcebergId,ArenaMapCatalog.AutoServiceId})
+        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId,ArenaMapCatalog.BowlId,ArenaMapCatalog.IcebergId,ArenaMapCatalog.AutoServiceId,ArenaMapCatalog.YardId})
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
             // Written out on purpose (ArenaMapPort rows of 2026-11-12): squad Zombies are refused by
             // space on Equator and Chop Shop; squad Tactical only on Chop Shop, whose yard centre
-            // has too few distant rows for the exact five a squad round needs.
+            // has too few distant rows for the exact five a squad round needs. Block carries no
+            // refusal: it admits PitFireTeam Tactical and PitFireTeam Zombies, so it is no exception here.
             bool allowed=(mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId)
                 && !(mode.Id==ArenaModeCatalog.ZombieId&&(ArenaMapCatalog.IsEquator(map)||ArenaMapCatalog.IsAutoService(map)))
                 && !(mode.Id==ArenaModeCatalog.TacticalId&&ArenaMapCatalog.IsAutoService(map));
@@ -65,6 +66,9 @@ try
         (ArenaMapCatalog.IcebergId,false,""),
         (ArenaMapCatalog.IcebergId,true,"PitFireTeam squad"),
         (ArenaMapCatalog.BowlId,false,""),
+        // Block has no map hint of its own (no refusal); with a squad it shows only the generic PitFireTeam text.
+        (ArenaMapCatalog.YardId,false,""),
+        (ArenaMapCatalog.YardId,true,"PitFireTeam squad"),
         (ArenaMapCatalog.EquatorId,false,"Limited space: no squad Zombies"),
         (ArenaMapCatalog.AutoServiceId,false,"Small map: no squad Tactical / Zombies")})
     {
@@ -73,11 +77,12 @@ try
             $"{map}/zombie (PFT={pitFireTeam}) must hint \"{hint}\", got \"{hinted.ModeHint}\".");
     }
 
-    // Solo Tactical is offered on all three; the squad format on Equator and Iceberg only.
+    // Solo Tactical is offered on all four; the squad format on Equator, Iceberg and Block, not on Chop Shop.
     foreach(var (map,pitFireTeam,offeredHere) in new[]{
         (ArenaMapCatalog.EquatorId,false,true),(ArenaMapCatalog.EquatorId,true,true),
         (ArenaMapCatalog.IcebergId,false,true),(ArenaMapCatalog.IcebergId,true,true),
-        (ArenaMapCatalog.AutoServiceId,false,true),(ArenaMapCatalog.AutoServiceId,true,false)})
+        (ArenaMapCatalog.AutoServiceId,false,true),(ArenaMapCatalog.AutoServiceId,true,false),
+        (ArenaMapCatalog.YardId,false,true),(ArenaMapCatalog.YardId,true,true)})
         Need(ArenaAreaSelectionState.Create(map,ArenaModeCatalog.TacticalId,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4).Available==offeredHere,
             "TACTICAL-MAP-OFFER",$"{map}/tactical (PFT={pitFireTeam}) must be {(offeredHere?"offered":"refused")}.");
 
@@ -232,9 +237,13 @@ try
         (Name: "bowl-removed", Maps: ArenaMapCatalog.AirPitDefaultClientAllowlist, Legacy: true, Revision: 4, Gain: false),
         (Name: "bowl-release", Maps: ArenaMapCatalog.BowlDefaultClientAllowlist, Legacy: true, Revision: 4, Gain: true),
         (Name: "iceberg-removed", Maps: ArenaMapCatalog.BowlDefaultClientAllowlist, Legacy: true, Revision: 5, Gain: false),
+        // Gain means "becomes the current default": the exact Iceberg default at revision 5 gains Chop Shop and Block.
         (Name: "iceberg-release", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 5, Gain: true),
+        // The Iceberg default at revision 6 means Chop Shop was removed on purpose: it gains neither Chop Shop nor Block.
         (Name: "chopshop-removed", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 6, Gain: false),
-        (Name: "future-version", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 7, Gain: false),
+        (Name: "block-release", Maps: ArenaMapCatalog.AutoServiceDefaultClientAllowlist, Legacy: true, Revision: 6, Gain: true),
+        (Name: "block-removed", Maps: ArenaMapCatalog.AutoServiceDefaultClientAllowlist, Legacy: true, Revision: 7, Gain: false),
+        (Name: "future-version", Maps: ArenaMapCatalog.AutoServiceDefaultClientAllowlist, Legacy: true, Revision: 8, Gain: false),
     })
     {
         string path=Path.Combine(scratch,"optional-"+migration.Name+".cfg");

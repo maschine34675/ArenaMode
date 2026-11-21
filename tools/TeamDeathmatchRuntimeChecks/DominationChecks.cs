@@ -69,7 +69,7 @@ internal static partial class Program
         stopped.Step(Time.time + 1);
         Check(DominationObjectiveBridge.Stops > before && !stopped.Mode.IsSearchActive,
             "DOM native stop revokes objectives before body disposal");
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
         foreach (bool usec in new[] { true, false })
         {
             int count = map is "arena_equator" or "arena_bay5" or "arena_autoservice" ? 1 : map is "arena_iceberg" ? 3 : 2;

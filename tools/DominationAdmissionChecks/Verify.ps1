@@ -62,7 +62,7 @@ function Reject-Change([string]$name, [string]$path, [string]$from, [string]$to,
 }
 $maps = [ordered]@{ FactoryDayId='factory4_day'; FactoryNightId='factory4_night'; Bay5Id='arena_bay5';
     EquatorId='arena_equator'; AirPitId='arena_airpit'; BowlId='arena_bowl'; IcebergId='arena_iceberg';
-    AutoServiceId='arena_autoservice'; LaboratoryId='laboratory'; LabyrinthId='labyrinth' }
+    AutoServiceId='arena_autoservice'; YardId='arena_yard'; LaboratoryId='laboratory'; LabyrinthId='labyrinth' }
 foreach ($key in $maps.Keys) {
     Reject-Change ('reject-' + $maps[$key]) 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
         "string.Equals(map, ArenaMapCatalog.$key, StringComparison.OrdinalIgnoreCase)" `
@@ -101,7 +101,7 @@ Reject-Change 'stale-refusal-text' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     'Domination is not available for this map or area, or with a PitFireTeam squad.' 'Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.' `
     'server authority refuses PFT even with a reviewed map'
 Reject-Change 'allow-unreviewed-map' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
-    '&& !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)' '&& false' `
+    '&& !string.Equals(map, ArenaMapCatalog.YardId, StringComparison.OrdinalIgnoreCase)' '&& false' `
     'unreviewed objective map rejected by shared authority'
 # These explicitly labelled controls exercise source wiring, not executed native/server code.
 Reject-Change 'pin-final-freshness' 'ArenaMode.Client/Session/ArenaMenuSelection.cs' `

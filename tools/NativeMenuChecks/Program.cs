@@ -349,6 +349,10 @@ internal static partial class Program
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.IcebergId, ArenaMode.Shared.ArenaMapCatalog.BowlDefaultClientAllowlist);
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.AutoServiceId, ArenaMode.Shared.ArenaMapCatalog.IcebergDefaultClientAllowlist,
             pftTactical: false, pftZombie: false);
+        // Block (arena_yard): every mode solo and with a squad (defaults pftTactical/pftZombie true). The excluded
+        // allowlist is the former default, which lacks only Block.
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.YardId, ArenaMode.Shared.ArenaMapCatalog.AutoServiceDefaultClientAllowlist,
+            pftTactical: true, pftZombie: true);
         CheckEquatorBoxHookAdmission();
         CheckDeathmatchNegotiation();
         CheckDifficultyEcho();

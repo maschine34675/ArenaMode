@@ -272,7 +272,7 @@ public sealed class ChopShopTeamSpawnTests
     [InlineData("side")] [InlineData("category")] [InlineData("infiltration")]
     [InlineData("zone")] [InlineData("core")] [InlineData("collider")]
     [InlineData("rotation")] [InlineData("delay")] [InlineData("foreign-equator")]
-    [InlineData("foreign-bowl")] [InlineData("foreign-iceberg")]
+    [InlineData("foreign-bowl")] [InlineData("foreign-iceberg")] [InlineData("foreign-yard")]
     public void FinalResponseRejectsChangedMissingAndForeignMarkersWithoutRepair(string fault)
     {
         var map = Map();
@@ -298,6 +298,7 @@ public sealed class ChopShopTeamSpawnTests
             case "foreign-equator": points.Add(point with { Id = ArenaEquatorTeamSpawns.Points[0].Id }); break;
             case "foreign-bowl": points.Add(point with { Id = ArenaTeamBoxCatalog.Bowl.Points[0].Id }); break;
             case "foreign-iceberg": points.Add(point with { Id = ArenaTeamBoxCatalog.Iceberg.Points[0].Id }); break;
+            case "foreign-yard": points.Add(point with { Id = ArenaTeamBoxCatalog.Yard.Points[0].Id }); break;
         }
         map.SpawnPointParams = points;
         string changed = JsonSerializer.Serialize(map);
@@ -314,7 +315,7 @@ public sealed class ChopShopTeamSpawnTests
 
     [Theory]
     [InlineData("arena_equator")] [InlineData("arena_bay5")] [InlineData("arena_airpit")]
-    [InlineData("arena_bowl")] [InlineData("arena_iceberg")]
+    [InlineData("arena_bowl")] [InlineData("arena_iceberg")] [InlineData("arena_yard")]
     public void ForeignPrivateMarkerCannotEnterTheChopShopFormation(string foreignMap)
     {
         var foreign = ArenaTeamBoxCatalog.Find(foreignMap)!;

@@ -40,6 +40,8 @@ public sealed class AirPitMapTests
         var maps = saved["maps"]!.AsObject();
         Assert.True(maps[ArenaMapCatalog.AirPitId]!["enabled"]!.GetValue<bool>());
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.AirPitId]!["spawnZones"]!.GetValue<string>());
+        // The complete current default arrives with it, Block (arena_yard) included.
+        Assert.True(maps[ArenaMapCatalog.YardId]!["enabled"]!.GetValue<bool>());
         foreach (string id in ids.Split(','))
         {
             Assert.False(maps[id]!["enabled"]!.GetValue<bool>());
@@ -71,7 +73,8 @@ public sealed class AirPitMapTests
         {
             ConfigStore.FillMissingKeys(saved, JsonSerializer.SerializeToNode(new ArenaModeConfig()));
             var maps = saved["maps"]!.AsObject();
-            foreach (string optional in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId })
+            foreach (string optional in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId,
+                         ArenaMapCatalog.YardId })
                 Assert.Equal(ids.Split(',').Contains(optional), maps.ContainsKey(optional));
         }
     }

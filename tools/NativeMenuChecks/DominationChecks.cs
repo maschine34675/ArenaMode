@@ -16,7 +16,7 @@ internal static partial class Program
         var originalEnabled = ArenaClientConfig.Enabled;
         string[] ports = { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id,
             ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId,
-            ArenaMapCatalog.AutoServiceId };
+            ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId };
         try
         {
             Settings.Allowlist = ArenaMapCatalog.DefaultClientAllowlist;
@@ -45,7 +45,7 @@ internal static partial class Program
             ArenaMode.Bots.DominationObjectiveBridge.Available = true;
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                 ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId,
+                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId,
                 ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId })
             {
                 ConfigureAreaNegotiation(); Select(map);

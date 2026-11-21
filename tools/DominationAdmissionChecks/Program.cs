@@ -12,7 +12,7 @@ const string Mode = "domination";
 string Day = ArenaMapCatalog.FactoryDayId, Night = ArenaMapCatalog.FactoryNightId;
 string[] supported = { Day, Night, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId,
     ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId,
-    ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId };
+    ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId };
 const string RefusalText = "Domination is not available for this map or area, or with a PitFireTeam squad.";
 Need(ArenaPopulationPolicy.Domination == Mode && ArenaModeCatalog.DominationId == Mode,
     "client and server use the same independent Domination identity");

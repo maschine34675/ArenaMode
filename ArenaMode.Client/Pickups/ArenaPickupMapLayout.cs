@@ -129,7 +129,8 @@ internal static class ArenaPickupMapLayout
             || string.Equals(map, "arena_airpit", StringComparison.OrdinalIgnoreCase)
             || string.Equals(map, "arena_bowl", StringComparison.OrdinalIgnoreCase)
             || string.Equals(map, "arena_iceberg", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(map, "arena_autoservice", StringComparison.OrdinalIgnoreCase));
+            || string.Equals(map, "arena_autoservice", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(map, "arena_yard", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool NearBooth(ArenaTeamBoxCatalog.Formation formation, float x, float y, float z)

@@ -90,7 +90,7 @@ internal static class Program
     private static void Main()
     {
         TeamDeathmatchRelations.Enable();
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT", "arena_bowl", "ARENA_BOWL", "arena_iceberg", "ARENA_ICEBERG", "arena_autoservice", "ARENA_AUTOSERVICE" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT", "arena_bowl", "ARENA_BOWL", "arena_iceberg", "ARENA_ICEBERG", "arena_autoservice", "ARENA_AUTOSERVICE", "arena_yard", "ARENA_YARD" })
         foreach (bool usec in new[] { true, false })
         {
             using var raid = new Raid(map, usec);
@@ -129,15 +129,15 @@ internal static class Program
         }
 
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie", "endless", "rounds", "", null })
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
         {
             Check(!ArenaTeamBoxCatalog.Applies(map, mode), "other modes must not enter the box catalog");
             using var raid = new Raid(map, mode: mode);
             Check(raid.Mode.IsComplete && !raid.Mode.IsBotSpawnProtected(raid.World.MainPlayer), "other modes cannot start independent TDM shield authority");
         }
-        // Domination arms the same scope: the six box maps shield their bots, Factory does not.
+        // Domination arms the same scope: the seven box maps shield their bots, Factory does not.
         // Its phase lives in the objective rules (MatchPhase), not in the Team DM kill policy.
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
         foreach (bool usec in new[] { true, false })
         {
             Check(ArenaTeamBoxCatalog.Applies(map, "domination"), "Domination box map is in the catalog: " + map);

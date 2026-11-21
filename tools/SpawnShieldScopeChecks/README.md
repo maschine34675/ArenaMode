@@ -7,14 +7,14 @@ protection leases and team-box catalog. It reuses the existing TDM engine double
 it neither deploys a mod nor starts EFT. Independent expected map/mode lists
 prevent an accidentally widened catalog from widening the test oracle too.
 
-Coverage includes all six ported box maps and both human factions, ordinary
+Coverage includes all seven ported box maps and both human factions, ordinary
 maps including day/night Factory, other modes, unarmed/PFT/stale raid rejection,
 current-match loss, setting changes across replacement bots, disabled/invalid
 durations and the existing 30-second cap. Local-player shields are not owned by
 these code paths; the model checks that live local damage remains outside bot
 spawn admission.
 
-Domination is covered too: the six box maps (both factions) must shield their bots, refuse damage and
+Domination is covered too: the seven box maps (both factions) must shield their bots, refuse damage and
 let the lease end on time; Factory day/night in Domination must grant none. This pins the scope; the
 phase-read fault controls for Domination live in `tools/TeamDeathmatchRuntimeChecks/Verify-Regression.ps1`.
 

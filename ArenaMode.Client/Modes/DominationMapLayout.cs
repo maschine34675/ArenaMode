@@ -158,6 +158,20 @@ internal sealed class DominationMapLayout
     private const float ChopShopControlPointY = -3.8f;
     private static readonly DominationMapLayout ChopShop = new(false,
         new Point("X", -369.29f, ChopShopControlPointY, 499.49f));
+    // Block (arena_yard): two points, A east and B west, the CAPTURE_POINT/YARD_CAPTURE_POINT_LIGHT_01
+    // and _LIGHT_02 light roots of yard.modes.json (the same per-light source as the other ports).
+    // They are 33.2 m apart and each has its own pair of ring decals on the floor (7.9 m and 5.6 m
+    // wide, within 0.7 m of the root), so they are two separate points like AirPit's and Bowl's;
+    // the sidecar's "capture_point" is their centroid, 16.6 m from either ring, and the scene's
+    // Capture_Zone object is only the parent of those decals. X/Z and the height are the roots' own
+    // (both y 6.1262; the yard floor of the built NavMesh is 6.15 there). If a later map build
+    // refuses a point, change BlockControlPointY below and nothing else. Do not move X/Z, add a
+    // relocation or loosen ArenaPickupGeometry.TryFloor: a refused point must keep aborting the
+    // protected match.
+    private const float BlockControlPointY = 6.1262f;
+    private static readonly DominationMapLayout Block = new(false,
+        new Point("A", -29.3245f, BlockControlPointY, 71.6287f),
+        new Point("B", -62.5245f, BlockControlPointY, 72.1887f));
 
     // The Lab (laboratory), floor 1, the main hall level. Seeds, not authority: measured natively on
     // GPU-2 on 13.11.2026 (installed master build 0.5.0+c64846fb, Team Deathmatch raids, UiBridge
@@ -280,6 +294,7 @@ internal sealed class DominationMapLayout
         "arena_bowl" => Bowl,
         "arena_iceberg" => Iceberg,
         "arena_autoservice" => ChopShop,
+        "arena_yard" => Block,
         _ => throw new InvalidOperationException("No fixed Domination layout exists for this map.")
     };
 
@@ -293,7 +308,8 @@ internal sealed class DominationMapLayout
         if (map == null || !(ArenaMapCatalog.IsFactoryVariant(map)
             || ArenaMapCatalog.IsEquator(map) || ArenaMapCatalog.IsBay5(map)
             || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
-            || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;
+            || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)
+            || ArenaMapCatalog.IsYard(map))) return 0;
         return Resolve(map).Points.Count;
     }
 }

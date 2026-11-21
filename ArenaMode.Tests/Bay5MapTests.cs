@@ -34,6 +34,8 @@ public sealed class Bay5MapMigrationTests
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.Bay5Id]!["spawnZones"]!.GetValue<string>());
         Assert.Equal(8, maps[ArenaMapCatalog.Bay5Id]!["botMax"]!.GetValue<int>());
         Assert.Equal(4, maps[ArenaMapCatalog.Bay5Id]!["burstMinAliveBots"]!.GetValue<int>());
+        // The complete current default arrives with it, Block (arena_yard) included.
+        Assert.True(maps[ArenaMapCatalog.YardId]!["enabled"]!.GetValue<bool>());
         foreach (string id in ArenaMapCatalog.EquatorDefaultClientAllowlist.Split(','))
         {
             Assert.False(maps[id]!["enabled"]!.GetValue<bool>());
@@ -60,6 +62,7 @@ public sealed class Bay5MapMigrationTests
         {
             ConfigStore.FillMissingKeys(saved, JsonSerializer.SerializeToNode(new ArenaModeConfig()));
             Assert.False(saved["maps"]!.AsObject().ContainsKey(ArenaMapCatalog.Bay5Id));
+            Assert.False(saved["maps"]!.AsObject().ContainsKey(ArenaMapCatalog.YardId));
             if (!ids.Split(',').Contains(ArenaMapCatalog.EquatorId))
                 Assert.False(saved["maps"]!.AsObject().ContainsKey(ArenaMapCatalog.EquatorId));
             Assert.Equal(Math.Max(ArenaMapCatalog.OptionalMapsRevision, revision), saved["optionalMapsRevision"]!.GetValue<int>());
@@ -128,6 +131,10 @@ public sealed partial class ArenaAreaServerTests
     [InlineData(ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId)]
     [InlineData(ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.IcebergId)]
     [InlineData(ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId)]
+    [InlineData(ArenaMapCatalog.YardId, ArenaMapCatalog.AutoServiceId)]
+    [InlineData(ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId)]
+    [InlineData(ArenaMapCatalog.YardId, ArenaMapCatalog.IcebergId)]
+    [InlineData(ArenaMapCatalog.IcebergId, ArenaMapCatalog.YardId)]
     public void OptionalTransportViewChecksEachLocationFreshAndNeverBorrowsAvailability(string present, string absent)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
@@ -143,7 +150,7 @@ public sealed partial class ArenaAreaServerTests
             Assert.True(first.RootElement.GetProperty("maps").TryGetProperty(present, out _));
             Assert.False(first.RootElement.GetProperty("maps").TryGetProperty(absent, out _));
             Assert.Equal(new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId }, calls);
+                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId }, calls);
             Assert.True(ArenaOptionalMapPolicy.IsAvailable(present.ToUpperInvariant()));
             Assert.Equal(before, JsonSerializer.Serialize(config));
             Assert.Equal(locationBefore, JsonSerializer.Serialize(location));

@@ -649,7 +649,7 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // Only Factory, the six imported maps and the two whole vanilla maps The Lab and The
+        // Only Factory, the seven imported maps and the two whole vanilla maps The Lab and The
         // Labyrinth have reviewed objective layouts, and of Customs only its three surveyed areas
         // (docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md). Keep the whole-map list explicit: a
         // future port is not automatically admitted. Whole Customs stays refused because it is no
@@ -670,7 +670,8 @@ public static class ArenaAreaCatalog
                     && !string.Equals(map, ArenaMapCatalog.AirPitId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.BowlId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.IcebergId, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)))
+                    && !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.YardId, StringComparison.OrdinalIgnoreCase)))
             { reason = "Domination is not available for this map or area, or with a PitFireTeam squad."; return false; }
             if (wholeMap) return true;
         }
@@ -714,6 +715,13 @@ public static class ArenaAreaCatalog
         // keeps only the PitFireTeam refusal. When MapPort closes that patch, the installed-data
         // pin in MapModeAdmissionChecks (CHOPSHOP-YARD-CENTER) fails and this rule is to be
         // re-decided.
+        // Block (arena_yard, ArenaMapPort's seventh map) carries no refusal, solo or with a
+        // PitFireTeam squad, in Tactical or in Zombies. It has 18 Bot/BotPmc rows over a main
+        // walkable component of about 4,500 m² (the size of Iceberg and Bowl, 2.4 times Chop
+        // Shop), and ArenaMapPort's own coverage check on the built mesh found at least 11 of
+        // them beyond the 25 m floor from every cell outside the two pockets and at least 17
+        // from each Player row, so RequestTeamEnemies always finds its five. The installed-data
+        // pins in MapModeAdmissionChecks (BLOCK-GRID and the row count) hold that argument.
         if (ArenaMapCatalog.IsAutoService(map!) && pitFireTeam
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Chop Shop's yard centre has too few distant bot spawn points for a PitFireTeam Tactical squad; select Solo or another map."; return false; }
