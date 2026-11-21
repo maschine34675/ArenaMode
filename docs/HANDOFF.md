@@ -13,15 +13,19 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 ## Released and installed
 
 - **Development, 2026-11-21: WTT review.** The default policy now reviews
-  Content Backport 2.0.7 and its installed CommonLib 3.0.8 on both sides. The
-  exact client binaries already ran during the 20 November native test;
-  this change adds no runtime adapter. Armory remains unlisted: its installed
-  runtime metadata is 2.0.5 (Forge package 3.0.0), and its AN-94 Hyperburst state
-  can keep following a retained old body. A Core fix and dedicated weapon test
-  are prerequisites to its proposed admission and are now authorized as the next
-  separate change. The version-only policy is deployed on VM/GPU1/GPU2 with
-  matching hashes; all 51 verification steps passed, xunit 4,422 passed/three
-  known skips. [Review and limits](reports/2026-11/WTT-WHITELIST-20261121.md).
+  Content Backport 2.0.7, CommonLib 3.0.8 and Armory 2.0.5 on both sides.
+  Armory's runtime metadata differs from its 3.0.0 package label. The authorized
+  Core 1.0.27 repair now follows the replacement player and resets/fences AN-94
+  Hyperburst state. GPU2 standalone and Arena tests passed real death/respawn and
+  swaps retaining living old bodies; the old Core's incorrect firing behavior
+  was reproduced first. All affected checks have passing results (one unchanged
+  startup test required an isolated retry); xunit 4,422 passed/three known skips.
+  The exact accepted Core `1.0.27+42839bd` and Arena client/companion
+  `0.6.0+552abd3a`, with the unchanged server, are deployed on VM/GPU1/GPU2;
+  all ten file hashes match. Original profiles/PFT/settings are preserved, the
+  test clone/probe is removed, both GPU games/servers are stopped and sync is
+  restored. No push or release. [Initial review](reports/2026-11/WTT-WHITELIST-20261121.md)
+  and [repair, native evidence and limits](reports/2026-11/WTT-ARMORY-20261121.md).
 
 - **Development, 2026-11-20: DynamicMaps 1.3.0 and Core 1.0.26.** The default
   client/server whitelist and corpse-marker advisory review DynamicMaps 1.3.0;

@@ -14,9 +14,10 @@ for every feature.
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
 | `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.6.0 bundles/requires **1.0.24**, shared byte-for-byte with Redeploy 1.1.3 (see below). Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
-Development builds after 0.6.0 currently stamp **Core 1.0.26**. It adds active
+Development builds after 0.6.0 currently stamp **Core 1.0.27**. It adds active
 DynamicMaps 1.3.0 quest/key subscriptions and standalone Advanced Movement 1.0.1
-outgoing movement-state cleanup; the published 0.6.0 bundle is unchanged.
+outgoing movement-state cleanup, plus WTT Armory 2.0.5 player/Hyperburst rebinding;
+the published 0.6.0 bundle is unchanged.
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -65,7 +66,7 @@ Arena runs only with whitelisted mods: the default list allows SAIN, APBS, ABPS,
 Waypoints, ArenaMapPort, Killcam, Redeploy and the other mods of this author (AutoCorpseSearch,
 DefaultAutoFireMode, DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMenuCleanupFix, StashFilter,
 SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib 3.0.8, WTT-ContentBackport 2.0.7
-(and its patcher), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
+(and its patcher), WTT-Armory 2.0.5 (the package is labelled 3.0.0), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 Caliber Under Ammo Name, Compatibility Highlighter, Trader Modding and Improved Weapon Building,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus

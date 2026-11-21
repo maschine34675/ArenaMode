@@ -10,6 +10,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
+
 - Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.
 
 - Restore Domination objective markers with DynamicMaps 1.3.0 while retaining

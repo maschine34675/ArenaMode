@@ -24,6 +24,7 @@
     { "guid": "com.tyfon.uifixes", "name": "UIFixes", "kind": "mod", "clientVersion": "6.0.3", "serverVersion": "6.0.3" },
     { "guid": "com.wtt.commonlib", "name": "WTT-CommonLib", "kind": "mod", "clientVersion": "3.0.8", "serverVersion": "3.0.8" },
     { "guid": "com.wtt.contentbackport", "name": "WTT-ContentBackport", "kind": "mod", "clientVersion": "2.0.7", "serverVersion": "2.0.7" },
+    { "guid": "com.wtt.armory", "name": "WTT-Armory", "kind": "mod", "clientVersion": "2.0.5", "serverVersion": "2.0.5" },
     { "patcher": "WTT-ContentBackportPatcher.dll", "name": "WTT-ContentBackport patcher", "kind": "mod" },
     { "guid": "fika.ghostfenixx.svm", "name": "SVM", "kind": "mod", "serverVersion": "2.2.3" },
     { "guid": "com.agavalda.giveui", "name": "give-ui", "kind": "mod", "serverVersion": "5.0.0" },
