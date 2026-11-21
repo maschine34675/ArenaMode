@@ -24,13 +24,16 @@ least 16, 17, 16 and 18 distinct Bot/BotPmc rows; on the published 0.5.0, with a
 file or with a stub file without spawn rows it fails with a
 sentence that names the needed build, because the Tactical admissions of 2026-11-13
 were decided on those rows and a red pin on older data is not an ArenaMode defect;
-for Block it names "an ArenaMapPort build that ships arena_yard", which the published
-0.6.0 and the installed 0.6.0+1d8faa8 are not),
+for Block it names "an ArenaMapPort build that ships arena_yard": the published 0.6.0
+does not, the installed 0.6.0+1d8faa8 of ArenaMapPort's feature/yard does),
 `EQUATOR-GRID`, `ICEBERG-GRID` and `BLOCK-GRID` (the minimum of the production selector's
 `CountUsable` over the bounding box of the map's Bot rows, 1 m steps, y of the nearest
-row, is at least five; today 6 and 9, Block's value is printed by the run; if `BLOCK-GRID`
+row, is at least five; today 6, 9 and, for Block, 9; if `BLOCK-GRID`
 fails the decision to admit Tactical and Zombies with a PitFireTeam squad on Block is
-re-taken, the number is not re-pinned), `BLOCK-PLAYER-ROWS` (Block has exactly its four
+re-taken, the number is not re-pinned), `BLOCK-POCKETS` (that bounding box ends at the
+outermost Bot rows, z 23.5 to 116.9, so the twenty start points of both pockets and three
+points of the corridor between the north leaves and the room are pinned on their own:
+five distant rows at each; no compiled fault), `BLOCK-PLAYER-ROWS` (Block has exactly its four
 Player rows, two of them with Sides `All`, all covered by the opening-squad loop, and a
 solo survivor on each keeps five distant rows), `CHOPSHOP-GRID` (the same minimum is 1 to 4,
 the evidence of the PitFireTeam refusal beside `CHOPSHOP-YARD-CENTER`; today 3) and

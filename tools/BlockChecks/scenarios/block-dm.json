@@ -6,7 +6,8 @@
   "steps": [
     { "step": "status", "name": "status" },
     { "step": "raid", "name": "raid", "mode": "deathmatch", "map": "BLOCK", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
-    { "step": "sleep", "name": "settle", "seconds": 30 },
+    { "step": "expect", "name": "first-arrival", "what": "log", "regex": "Arena burst spawn: \\w+ arrived", "sinceStep": "raid", "withinSeconds": 150 },
+    { "step": "sleep", "name": "settle", "seconds": 25 },
     { "step": "player", "name": "player" },
     { "step": "bots", "name": "bots", "aliveOnly": true, "minCount": { "$ref": "/parameters/minBots" }, "onFail": "continue" },
     { "step": "expect", "what": "logAbsent", "contains": "Team DM formation ready", "sinceStep": "raid" },

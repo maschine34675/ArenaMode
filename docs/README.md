@@ -71,7 +71,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (218)
+## Feature reviews and contracts (219)
 
 Sorted by file name.
 
@@ -112,6 +112,7 @@ Sorted by file name.
 - [Bay5 original TeamFight boxes for independent Team DM](reviews/BAY5-TEAM-BOXES-REVIEW.md)
 - [Arena-owned BigBrain library and Redeploy server boundary](reviews/BIGBRAIN-LIBRARY-20261018.md)
 - [Retired player body: bleeding registration cleanup (ArenaRetiredBodyEffects)](reviews/BLEEDING-NRE-REVIEW.md)
+- [Block (arena_yard) map admission, original pockets as team boxes, the two-point Domination and the seven measured start heights (decisions unconfirmed by the owner; offline pass and review pending)](reviews/BLOCK-INTEGRATION-20261121.md)
 - [Bot agility and reduced weight inertia (ArenaBotAgility)](reviews/BOT-AGILITY-REVIEW.md)
 - [Depth-occluded bot effect contours (spawn, shield, double damage)](reviews/BOT-EFFECT-OUTLINES-20261019.md)
 - [Arena bot locomotion speed: walk/sprint displacement bonus and SAIN door guard](reviews/BOT-MOVEMENT-REVIEW.md)
@@ -294,12 +295,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (307)
+## Reports (308)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Block native acceptance on GPU-2, 2026-11-21: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, solo Tactical and a PMC control; the first Team DM start refused with USEC 0/10 (seven south start heights) and the fixed build](reports/2026-11/GPU-BLOCK-20261121.md)
 - [Branch and worktree collection, 2026-11-20: the reward-history branch merged, fourteen branches and four worktrees removed (Fika left out), their ignored files archived, one stale installed-PitFireTeam test repaired, offline run and read-only review of the merged master, push](reports/2026-11/WORKTREE-CLEANUP-20261120.md)
 - [PitFireTeam 1.1.2, TarkovaCola 3.0.1 and VisualAssist 1.2.0: scoped native tests, regular installation and restoration](reports/2026-11/GPU-MOD-REFRESH-20261120.md)
 - [Reward history conflict copies on the GPU-2 test profile, 2026-11-20: GPU-1 and GPU-2 settled the same queue, Syncthing conflict copies in decisions/ stopped every reward from 2026-11-13; recovery with backup and hash checks, 100 queued receipts settled and 24 paid once; the fix that names a foreign history file](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)

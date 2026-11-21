@@ -133,4 +133,4 @@ if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash)
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 19 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 20 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"

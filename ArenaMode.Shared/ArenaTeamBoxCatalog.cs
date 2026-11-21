@@ -383,8 +383,9 @@ public static class ArenaTeamBoxCatalog
     // connected places": the anchor (9) is one of the six, and a held path needs a safe
     // anchor). Those seven points therefore carry the measured floor, 7.368 and 7.483. The
     // other three south points stand on their floors as authored ((7) 0.017 m above 7.483,
-    // (13) and (14) on 6.883), and the north room's floor is 6.134, 0.04 to 0.05 m below its
-    // markers. The height at which the NavMesh sample put the body on each point is within
+    // (13) and (14) on 6.883). In the north room the floor was measured under three points
+    // ((5), (7), (8)): 6.134, 0.04 to 0.06 m below the markers; the other seven were not
+    // ray-measured and passed the live check. The height at which the NavMesh sample put the body on each point is within
     // 0.07 m of the catalogue height (Connected allows 0.3 m). Do not loosen FloorAndClear
     // for a point.
     //

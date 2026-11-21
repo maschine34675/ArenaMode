@@ -343,6 +343,15 @@ foreach (string map in maps)
         foreach (var player in players)
             Need(BurstSpawnPointSelector.CountUsable(zones.Single(), Position(player)) >= 5,
                 "BLOCK-PLAYER-ROWS: a solo survivor moved to a Player row has five distant rows for Tactical");
+        // BLOCK-GRID scans the bounding box of the Bot rows only (z 23.5 .. 116.9 on the installed data). A
+        // PitFireTeam leader can also stand in a pocket or in the corridor between the north leaves and the room,
+        // and RequestTeamEnemies demands exactly five there too: pin the twenty start points and that corridor.
+        foreach (var point in ArenaTeamBoxCatalog.Yard.Points)
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(point.X, point.Y, point.Z)) >= 5,
+                "BLOCK-POCKETS: the start point " + point.Id + " has five distant rows");
+        foreach (var spot in new[] { new Vector3(-9.6f, 6.15f, 129f), new Vector3(-9.6f, 6.15f, 135f), new Vector3(-9.6f, 6.15f, 141f) })
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), spot) >= 5,
+                "BLOCK-POCKETS: the north corridor at z " + spot.z + " has five distant rows");
     }
     Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified." + gridLine);
 }

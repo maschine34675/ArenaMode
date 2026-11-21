@@ -1,6 +1,6 @@
 {
   "name": "block-pmc",
-  "description": "Ordinary PMC raid on Block as the isolation control: no Team DM, Domination or pickup lines, player alive, no errors. The map's exits are \"Block South Gate\" and \"Block North Gate\"; like its Chop Shop twin this scenario ends through the pause-menu leave (gpu-run has no in-world exfil step and no exit coordinate is recorded), so the exits themselves are not exercised here.",
+  "description": "Ordinary PMC raid on Block as the isolation control: no Team DM, Domination or pickup lines, player alive, no errors. The raid ends through the map's own exit \"Block South Gate\": the player is placed in its box on the south platform (-20.75, 7.48, 11.25) and extracts after its 8 s, so the test profile keeps its gear (a pause-menu disconnect would cost it).",
   "host": "host2",
   "steps": [
     { "step": "status", "name": "status" },
@@ -16,5 +16,9 @@
     { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
     { "step": "log-export", "name": "export", "onFail": "continue" }
   ],
-  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+  "finally": [
+    { "step": "teleport", "name": "exit", "x": -20.75, "y": 7.48, "z": 11.25, "reachable": false, "whenStepStarted": "raid" },
+    { "step": "wait", "name": "extracted", "inRaid": false, "timeoutSeconds": 60, "whenStepStarted": "raid" },
+    { "step": "menu", "name": "menu", "whenStepStarted": "raid" }
+  ]
 }

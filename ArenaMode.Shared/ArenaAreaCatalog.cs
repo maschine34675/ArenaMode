@@ -720,8 +720,11 @@ public static class ArenaAreaCatalog
         // walkable component of about 4,500 m² on the port's built mesh (Iceberg 4,788, Bowl
         // 4,987, Chop Shop 1,915.6), and ArenaMapPort's own coverage check on that mesh found at least 11 of
         // them beyond the 25 m floor from every cell outside the two pockets and at least 17
-        // from each Player row, so RequestTeamEnemies always finds its five. The installed-data
-        // pins in MapModeAdmissionChecks (BLOCK-GRID and the row count) hold that argument.
+        // from each Player row, so RequestTeamEnemies should find its five from any leader
+        // position. That is argued from the rows and the mesh: solo Tactical and solo Zombies
+        // ran natively on 2026-11-21, neither mode has run with a PitFireTeam squad on this map.
+        // The installed-data pins in MapModeAdmissionChecks (BLOCK-GRID, BLOCK-POCKETS,
+        // BLOCK-PLAYER-ROWS and the row count) hold the row argument.
         if (ArenaMapCatalog.IsAutoService(map!) && pitFireTeam
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Chop Shop's yard centre has too few distant bot spawn points for a PitFireTeam Tactical squad; select Solo or another map."; return false; }

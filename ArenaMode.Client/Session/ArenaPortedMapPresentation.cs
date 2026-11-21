@@ -42,7 +42,7 @@ internal sealed class ArenaPortedMapPresentation
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
             // AirPit/Bowl/Iceberg/Chop Shop/Block retain the native MapPort position, including later updates
-            // (MapPort places Chop Shop's marker at 870/428 and Block's at 691/857 itself; no _reposition entry).
+            // (MapPort places Chop Shop's marker at 743/428, 870/428 until 2026-11-12, and Block's at 691/857 itself; no _reposition entry).
             // With ArenaMapPort installed this target is moot for every optional map: its
             // ArenaModeMapPositionIntegration (since MapPort 0.3.0, 18.10.2026) overwrites
             // _target with the native anchor after Create and refreshes, so the marker sits

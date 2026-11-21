@@ -46,7 +46,7 @@ $previousDatabase = $env:SPT_DATABASE
 try {
     $env:SPT_DATABASE = Join-Path $SptRoot 'SPT_Runtime/SPT_Data/database'
     Run-Check 'server' @('test', "$repo/ArenaMode.Tests/ArenaMode.Tests.csproj", '-c', 'Release', '--nologo', '--filter',
-        'FullyQualifiedName~BlockMapTests|FullyQualifiedName~BlockTeamSpawnTests|FullyQualifiedName~ChopShopMapTests|FullyQualifiedName~ChopShopTeamSpawnTests|FullyQualifiedName~IcebergMapTests|FullyQualifiedName~BowlMapTests|FullyQualifiedName~AirPitMapTests|FullyQualifiedName~Bay5MapMigrationTests|FullyQualifiedName~MapModeAccessTests|FullyQualifiedName~OptionalTransportView|FullyQualifiedName~ExpandedFullMapRoute|FullyQualifiedName~UnavailableOptionalMap|FullyQualifiedName~DefaultsUseRealZoneAndSmallMapPopulation')
+        'FullyQualifiedName~BlockMapTests|FullyQualifiedName~BlockTeamSpawnTests|FullyQualifiedName~ChopShopMapTests|FullyQualifiedName~ChopShopTeamSpawnTests|FullyQualifiedName~BowlTeamSpawnTests|FullyQualifiedName~IcebergTeamSpawnTests|FullyQualifiedName~IcebergMapTests|FullyQualifiedName~BowlMapTests|FullyQualifiedName~AirPitMapTests|FullyQualifiedName~Bay5MapMigrationTests|FullyQualifiedName~MapModeAccessTests|FullyQualifiedName~OptionalTransportView|FullyQualifiedName~ExpandedFullMapRoute|FullyQualifiedName~UnavailableOptionalMap|FullyQualifiedName~DefaultsUseRealZoneAndSmallMapPopulation')
     foreach ($harness in @('NativeMenuChecks','AreaConfigChecks','AreaMapPreviewChecks','ParticipantMenuChecks',
         'PftPortedMapChecks','PortedCoverChecks','ArenaLightingChecks','SpawnShieldScopeChecks','ArenaExtractionChecks')) {
         Run-Check $harness @('run', '--project', "$repo/tools/$harness/$harness.csproj", '-c', 'Release')
