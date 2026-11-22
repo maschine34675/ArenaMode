@@ -26,9 +26,9 @@ written). Contract and what was built:
 
 ## The setting
 
-`[Difficulty] Step`, an enum with two values, `Maximum` (default) and `Reduced`. It is a
-BepInEx setting with an F12 row; the F9 panel shows the frozen value read-only. It is global,
-not per mode.
+`[Difficulty] Step` has two values, `Maximum` (default) and `Reduced`. The difficulty
+button above the game modes on the Arena map screen and the F12 setting edit the same
+choice for all modes. The F9 panel shows the frozen raid value.
 
 The value is read once on the arm path, sent to the server as the optional `difficulty`
 field of the raid-start request (`"maximum"` or `"reduced"`), stored in the server's session

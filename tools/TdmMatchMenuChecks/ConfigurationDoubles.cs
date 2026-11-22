@@ -18,7 +18,21 @@ namespace ArenaMode.Pickups
 namespace ArenaMode.Session
 {
     // Difficulty is the step frozen at arm (null outside an armed or active raid), as in the real ArenaSession.
-    public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; public static ArenaMode.Shared.ArenaDifficultyStep? Difficulty; }
+    public static class ArenaSession
+    {
+        public static bool IsActive, ArmedForNextRaid;
+        public static ArenaMode.Shared.ArenaDifficultyStep? Difficulty;
+        public static string ActiveMode => null;
+        public static string ArmedMap => null;
+    }
+    // The linked difficulty reader only needs its step in the map menu.
+    internal static class ArenaClientConfig
+    {
+        public static int GetBotTierRampMinutes(string map, int fallback) => throw new NotSupportedException();
+        public static bool GetScaleBotTier(string map) => throw new NotSupportedException();
+        public static int GetBotTierStartLevel(string map) => throw new NotSupportedException();
+        public static int GetBotTierEndLevel(string map) => throw new NotSupportedException();
+    }
     internal static class ArenaMenuSelection
     {
         internal static bool DominationAvailable = true;
@@ -52,6 +66,12 @@ namespace ArenaMode.Session
         }
     }
 }
+namespace ArenaMode.Modes
+{
+    internal static class ArenaMatchService { public static MatchDouble Current => null; }
+    internal sealed class MatchDouble { public float Elapsed => 0f; }
+}
+namespace EFT { public class GameWorld { public string LocationId => null; } }
 namespace ArenaMode.Config
 {
     public static class SettingsSync { public static int Reports; public static void Report() => Reports++; }

@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT.UI;
 using EFT.UI.Matchmaker;
@@ -30,6 +31,9 @@ internal sealed class ArenaModeSelectionView
     private readonly ArenaEquipmentChoiceView _equipmentChoiceView = new();
     private ArenaEquipmentChoiceState _equipmentChoice;
     private GameObject _root;
+    private Button _difficultyButton;
+    private TextMeshProUGUI _difficultyValue;
+    private bool _changingDifficulty;
     private TextMeshProUGUI _respawn;
     private TextMeshProUGUI _equipment;
     private TextMeshProUGUI _subtitle;
@@ -133,6 +137,10 @@ internal sealed class ArenaModeSelectionView
         foreach (var button in _buttons)
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
+        Safe(() => { if (_difficultyButton != null) _difficultyButton.onClick.RemoveAllListeners(); });
+        _difficultyButton = null;
+        _difficultyValue = null;
+        _changingDifficulty = false;
         Safe(_mutators.Close);
         Safe(_rewards.Close);
         _markers.Clear();
@@ -165,6 +173,8 @@ internal sealed class ArenaModeSelectionView
         Hud.ArenaUiTheme.Decorate(rect);
 
         var title = CreateText("Title", typography, "ARENA", 26f, 16f, 32f);
+        SetRect(title.rectTransform, Inset, 16f, 94f, 32f);
+        CreateDifficultyControl(template, typography);
         var subtitle = CreateText("Mode heading", typography,
             _selection.TacticalOnly ? "GAME MODE / PITFIRETEAM" : "GAME MODE", 14f, 51f, 22f);
         subtitle.color = Dim(typography, .65f);
@@ -192,6 +202,59 @@ internal sealed class ArenaModeSelectionView
         _dmRulesView.Show(_root.transform, template, typography, _dmRules, Refresh);
         _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
         _zombieRules.Show(_root.transform, typography);
+    }
+
+    private void CreateDifficultyControl(Button template, TMP_Text typography)
+    {
+        // The rightmost 92 px of this header belong to KITS.
+        const float left = 122f, width = 114f, height = 24f;
+        var heading = CreateText("Difficulty heading", typography, "DIFFICULTY", 13f, 7f, 16f);
+        SetRect(heading.rectTransform, left, 7f, width, 16f);
+        heading.alignment = TextAlignmentOptions.Center;
+        heading.color = Dim(typography, .65f);
+
+        var button = _difficultyButton = UnityEngine.Object.Instantiate(template, _root.transform, false);
+        button.name = "Arena Difficulty Step";
+        button.onClick = new Button.ButtonClickedEvent();
+        button.transform.localScale = Vector3.one;
+        SetRect((RectTransform)button.transform, left, 25f, width, height);
+        var layout = button.GetComponent<LayoutElement>();
+        if (layout != null) layout.ignoreLayout = true;
+        var navigation = button.navigation;
+        navigation.mode = Navigation.Mode.None;
+        button.navigation = navigation;
+        var label = _difficultyValue = button.GetComponentInChildren<TextMeshProUGUI>(true)
+            ?? throw new InvalidOperationException("The native difficulty label is missing.");
+        label.fontSize = 16f;
+        label.alignment = TextAlignmentOptions.Center;
+        label.enableWordWrapping = false;
+        label.raycastTarget = false;
+        SetRect(label.rectTransform, 0f, 0f, width, height);
+        Hud.ArenaUiTheme.StyleButton(button, label);
+        var tooltip = button.GetComponent<HoverTooltipArea>();
+        if (tooltip != null)
+        {
+            // Unlocking the native CanvasGroup also disables its tooltip component.
+            tooltip.SetUnlockStatus(true);
+            tooltip.SetMessageText("Switch between Maximum and Reduced.", rawText: true);
+            tooltip.enabled = true;
+        }
+        var owner = _root;
+        button.onClick.AddListener(() =>
+        {
+            if (!ReferenceEquals(owner, _root) || owner == null || !owner.activeInHierarchy
+                || !button.interactable || _changingDifficulty) return;
+            _changingDifficulty = true;
+            try
+            {
+                var next = Bots.ArenaDifficulty.Step == ArenaDifficultyStep.Maximum
+                    ? ArenaDifficultyStep.Reduced : ArenaDifficultyStep.Maximum;
+                Settings.TrySelectDifficultyStep(next);
+                if (ReferenceEquals(owner, _root)) Refresh();
+            }
+            finally { if (ReferenceEquals(owner, _root)) _changingDifficulty = false; }
+        });
+        button.gameObject.SetActive(true);
     }
 
     private void CreateRow(Button template, TMP_Text typography, int index, float top)
@@ -314,6 +377,9 @@ internal sealed class ArenaModeSelectionView
     private void Refresh()
     {
         if (_selection == null) return;
+        _difficultyButton.interactable = Settings.DifficultyStep != null && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
+        string difficulty = Bots.ArenaDifficulty.Step == ArenaDifficultyStep.Reduced ? "Reduced  ›" : "Maximum  ›";
+        if (_difficultyValue.text != difficulty) _difficultyValue.text = difficulty;
         for (int index = 0; index < _buttons.Count; index++)
         {
             bool allowed = CanSelectRow(index);

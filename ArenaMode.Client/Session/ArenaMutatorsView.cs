@@ -96,6 +96,7 @@ internal sealed class ArenaMutatorsView
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = ArenaMapPanelLayout.MutatorCellWidth(width);
+        var contents = ArenaMapPanelLayout.MutatorRowContents(cell);
         Array.Clear(_groupCounts, 0, _groupCounts.Length);
         Array.Clear(_groupIndices, 0, _groupIndices.Length);
         foreach (var row in _rows)
@@ -118,9 +119,9 @@ internal sealed class ArenaMutatorsView
             float left = ArenaMapPanelLayout.MutatorGroupLeft(group, width);
             float top = ArenaMapPanelLayout.MutatorRowTop(group, _groupCounts[group < 2 ? 0 : 2], _groupIndices[group]++);
             Rect((RectTransform)row.Button.transform, left, top, cell, ButtonHeight);
-            Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, ButtonHeight);
-            Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, ButtonHeight);
-            Rect((RectTransform)row.Chip.transform, cell - 55f, 1f, 50f, 20f);
+            Rect(row.Label.rectTransform, contents.labelLeft, 0f, contents.labelWidth, ButtonHeight);
+            Rect(row.Status.rectTransform, contents.statusLeft, 0f, contents.statusWidth, ButtonHeight);
+            Rect((RectTransform)row.Chip.transform, contents.statusLeft, 1f, contents.statusWidth, 20f);
             Rect(row.Description.rectTransform, left + 8f, top + ButtonHeight, cell - 16f,
                 ArenaMapPanelLayout.MutatorRowPitch - ButtonHeight);
         }

@@ -23,6 +23,15 @@ Write-Output $arenaRun.Output
 # Mutants change isolated compiler inputs only. The test project imports no
 # deployment targets and links actual production Settings/state/view files.
 $arenaFaults = @(
+    @('difficulty-native-tooltip-blocks-pointer', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      'tooltip.SetUnlockStatus(true);', 'tooltip.SetUnlockStatus(false);',
+      'ProductionModeView', 'a real pointer click on the difficulty choice survives native tooltip and canvas locks'),
+    @('difficulty-displays-live-step-while-locked', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      'string difficulty = Bots.ArenaDifficulty.Step ==', 'string difficulty = Settings.DifficultyStep.Value ==',
+      'ProductionModeView', 'the locked difficulty control displays the frozen raid choice'),
+    @('difficulty-click-skips-preference', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      'Settings.TrySelectDifficultyStep(next);', '// Preference write omitted.',
+      'ProductionModeView', 'a difficulty click updates the shared entry and reports and saves exactly once'),
     @('domination-companion-lock', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
       '&& ArenaMenuSelection.ModeAvailabilityRejection(ArenaModeCatalog.All[index].Id) == null;', ';',
       'ProductionModeView', 'missing objective companion disables Domination even under forced click'),

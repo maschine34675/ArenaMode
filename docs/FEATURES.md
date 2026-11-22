@@ -784,7 +784,8 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
 - **One difficulty setting, fixed strength** ([contract](reviews/DIFFICULTY-MODEL-20261118.md),
   [native acceptance on GPU-2](reports/2026-11/GPU-DIFFICULTY-MODEL-20261119.md), which also
   lists what was not run).
-  `[Difficulty] Step` has two values: **Maximum** (default) and **Reduced**. It is
+  Click **Difficulty** above the game modes on the Arena map screen to switch between
+  **Maximum** (default) and **Reduced**. F12 uses the same setting, `[Difficulty] Step`. It is
   read once when the raid is armed, sent to the server, echoed back, and frozen
   until the raid ends; changing it during a raid changes nothing. The F9 panel
   shows the frozen value read-only. Nothing reads elapsed time, the kill streak

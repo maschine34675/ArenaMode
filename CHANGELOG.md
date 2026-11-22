@@ -10,6 +10,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Choose **Maximum** or **Reduced** directly on the Arena map screen. The Combat
+  mutator list now leaves room for the full **TRANSLOCATOR (WIP)** label on narrow screens.
+
 - Add Tarkova Cola 4.0.0's research and achievement catalog while preserving older
   reward records. Block Arena-generated Tombstone offering mails and preserve
   pending ordinary offerings. [Protection details](docs/reviews/TARKOVA-COLA-4-20261122.md).

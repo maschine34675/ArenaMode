@@ -21,19 +21,28 @@ foreach (bool team in new[] { false, true })
     selection.Synchronize(mode.Id, team);
     var visible = ids.Where(selection.Visible).ToArray();
     Need(visible.Length == 24, "Every mode presents 24 controls without hidden duplicate bot controls.");
+    Need(visible.Contains(ArenaMutator.Translocator)
+        && selection.GroupTitle(ArenaMutatorSelection.Group(ArenaMutator.Translocator)) == "COMBAT"
+        && ArenaMutatorSelection.Title(ArenaMutator.Translocator) == "TRANSLOCATOR (WIP)",
+        "Every mode offers the Translocator with its WIP suffix under Combat.");
     Need(visible.Count(id => id is ArenaMutator.FastBots or ArenaMutator.ZombieCrowd) == 1,
         "Normal bots and horde pressure share exactly one combat slot.");
     Need(selection.Visible(ArenaMutator.ZombieCrowd) == (mode.Id == ArenaModeCatalog.ZombieId),
         "Horde pressure is offered only by Zombies.");
     var counts = Enumerable.Range(0, 4).Select(g => visible.Count(id => ArenaMutatorSelection.Group(id) == g)).ToArray();
     Need(counts.SequenceEqual(new[] { 9, 3, 6, 6 }), "Movement, equipment, combat and feedback preserve their complete contents.");
-    foreach (var (w, h) in new[] { (1920f,1080f), (1600f,900f), (1280f,720f), (2560f,1440f), (1440f,1080f) })
+    foreach (var (w, h) in new[] { (1920f,1080f), (1600f,900f), (1280f,720f), (2560f,1440f), (1440f,1080f), (1788f,1080f) })
     {
         var screen = new RectTransform { rect = new Rect(w, h) };
         var panel = new RectTransform();
         ArenaMapPanelLayout.Place(panel, screen, ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float scale = ArenaMapPanelLayout.Scale(screen), width = ArenaMapPanelLayout.Width(screen);
         float cell = ArenaMapPanelLayout.MutatorCellWidth(width);
+        var contents = ArenaMapPanelLayout.MutatorRowContents(cell);
+        Need(contents.labelLeft > 3f && contents.labelWidth >= 169f
+            && contents.labelLeft + contents.labelWidth < contents.statusLeft
+            && contents.statusWidth >= 30f && contents.statusLeft + contents.statusWidth < cell,
+            "The full Translocator title, WIP suffix and status fit beside the 3px marker.");
         Need(panel.sizeDelta.x == width && panel.sizeDelta.y == ArenaMapPanelLayout.MutatorsHeight,
             "Placed panel consumes the production width and height.");
         Need(w + panel.anchoredPosition.x - width * scale >= 0,

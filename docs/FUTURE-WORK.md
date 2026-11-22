@@ -83,8 +83,6 @@ The proposal for difficulty controls in the native game menu is superseded by th
 only in Gun Game. The pressure curve, the kill-streak term and the separate settings for them
 are gone. Still open:
 
-- A difficulty row on the map screen. The step is a BepInEx setting with an F12 row today and
-  is frozen when the raid is armed; the native menu does not show it.
 - The native measurements the contract lists (impossible against hard under SAIN, Tactical
   round one at the Maximum band, the weakest stock kits, whether the map timer ends a raid
   before the Gun Game ramp). Until they are done the numbers in the table are provisional.

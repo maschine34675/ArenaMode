@@ -17,6 +17,17 @@ internal static class ArenaMapPanelLayout
     // the right. The second group's position follows the visible first group,
     // so Fast Bots and Zombie Crowd can share one slot without layout drift.
     internal static float MutatorCellWidth(float width) => (width - 60f) / 2f;
+    internal static (float labelLeft, float labelWidth, float statusLeft, float statusWidth) MutatorRowContents(float cell)
+    {
+        // The full chip would clip the WIP suffix on narrow panels. All three
+        // states (ON/OFF/N/A) fit in a 30px chip at their normal font size.
+        var (left, right, gap, chip) = cell < 244f
+            ? (6f, 3f, 2f, 30f)
+            : (12f, 5f, 7f, 50f);
+        float statusLeft = cell - right - chip;
+        return (left, statusLeft - gap - left, statusLeft, chip);
+    }
+
     internal static float MutatorGroupLeft(int group, float width)
         => group < 2 ? 20f : 40f + MutatorCellWidth(width);
     internal static float MutatorGroupTop(int group, int firstGroupCount)

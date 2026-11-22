@@ -42,6 +42,7 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
 Need(Settings.GameMode.Value == "teamdeathmatch", "a new configuration starts with TDM");
+Need(Settings.DifficultyStep.Value == ArenaDifficultyStep.Maximum, "a fresh Arena configuration starts at Maximum");
 Need(!Settings.ZombieCrowdEnabled.Value, "new configurations opt out of the harder crowd behavior");
 Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value == 50
     && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
@@ -50,12 +51,14 @@ Need(!Settings.DeathmatchOwnGear.Value && !Settings.TeamDeathmatchOwnGear.Value 
     && Settings.TacticalTeamOwnGear.Value,
     "fresh preferences keep Arena kits in the respawning modes; protected Tactical keeps own gear");
 var savedZombieConfig = new ConfigFile();
+savedZombieConfig.Stored["Difficulty/Step"] = ArenaDifficultyStep.Reduced;
 savedZombieConfig.Stored["Zombie/MaxAlive"] = 24;
 savedZombieConfig.Stored["Zombie/WaveStartSize"] = 35;
 savedZombieConfig.Stored["Zombie/WaveGrowth"] = 7;
 savedZombieConfig.Stored["Zombie/OwnGear"] = false;
 savedZombieConfig.Stored["Zombie/CrowdEnabled"] = true;
 Settings.Init(savedZombieConfig);
+Need(Settings.DifficultyStep.Value == ArenaDifficultyStep.Reduced, "an existing Reduced preference survives configuration reload");
 Need(Settings.ZombieCrowdEnabled.Value, "saved explicit crowd choice survives default change");
 Need(Settings.ZombieMaxAlive.Value == 24 && Settings.ZombieWaveStartSize.Value == 35
     && Settings.ZombieWaveGrowth.Value == 7 && !Settings.ZombieOwnGear.Value,
@@ -186,11 +189,7 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-// 6 modes + 1 inert preview + 9 TDM + 17 Deathmatch
-// + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
-// 2026-10-06 follow-up) is built unconditionally in Create() just like the
-// TDM/Deathmatch rules rows, only its own visibility differs by mode.
-Need(Buttons().Length == 47 && RuleRoot().activeInHierarchy, "six modes, one preview, two faction choices and existing rules exist without a mutators opener");
+Need(Buttons().Length == 48 && RuleRoot().activeInHierarchy, "the difficulty control joins the mode panel with its existing rules and choices");
 var usecChoice = Buttons().Single(b => b.name == "Arena Team USEC");
 var bearChoice = Buttons().Single(b => b.name == "Arena Team BEAR");
 Need(usecChoice.GetComponentInChildren<TMP_Text>(true).text == "● USEC", "profile default resolves to visible native faction");
@@ -1391,5 +1390,99 @@ PickMap("factory4_day");
 Need(Described("tactical").Contains("hold the point", StringComparison.Ordinal),
     "menu: Tactical keeps its control-point copy on a map that has one (positive control)");
 PickMap(null);
+CheckDifficultySelection();
 view.Close();
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");
+
+void CheckDifficultySelection()
+{
+    var file = Settings.File;
+    var entry = Settings.DifficultyStep;
+    Button Control() => Buttons().Single(b => b.name == "Arena Difficulty Step");
+    string Display() => Control().GetComponentInChildren<TMP_Text>(false).text.TrimEnd(' ', '›');
+    var button = Control();
+    var bounds = (RectTransform)button.transform;
+    var title = Label("Title").rectTransform;
+    var heading = Label("Mode heading").rectTransform;
+    var difficultyHeading = Label("Difficulty heading");
+    Need(difficultyHeading.gameObject.activeInHierarchy && difficultyHeading.text == "DIFFICULTY"
+        && -difficultyHeading.rectTransform.anchoredPosition.y + difficultyHeading.rectTransform.sizeDelta.y <= -bounds.anchoredPosition.y,
+        "the difficulty heading is visible above its choice");
+    Need(bounds.anchoredPosition.x >= title.anchoredPosition.x + title.sizeDelta.x
+        && bounds.anchoredPosition.x + bounds.sizeDelta.x <= 248f
+        && -bounds.anchoredPosition.y + bounds.sizeDelta.y <= -heading.anchoredPosition.y,
+        "difficulty fits between ARENA and the reserved KITS entry above the mode subtitle");
+
+    entry.Value = ArenaDifficultyStep.Reduced;
+    int savesBefore = file.Saves, reportsBefore = SettingsSync.Reports;
+    foreach (var mode in ArenaModeCatalog.All)
+    {
+        view.Synchronize(mode.Id, false);
+        Need(button.gameObject.activeInHierarchy && button.interactable && Display() == "Reduced",
+            "each solo mode displays the same editable difficulty: " + mode.Id);
+    }
+    foreach (var mode in new[] { "tactical", "zombie" })
+    {
+        view.Synchronize(mode, true);
+        Need(button.gameObject.activeInHierarchy && button.interactable && Display() == "Reduced",
+            "protected squads display the same editable difficulty: " + mode);
+    }
+    Need(file.Saves == savesBefore && SettingsSync.Reports == reportsBefore, "mode changes only read the difficulty preference");
+
+    view.Synchronize("zombie", false);
+    Settings.ZombieMaxAlive.Value = 32;
+    foreach (bool autosave in new[] { true, false })
+    {
+        file.SaveOnConfigSet = autosave;
+        int before = file.Saves, reportsAtClick = SettingsSync.Reports;
+        var next = autosave ? ArenaDifficultyStep.Maximum : ArenaDifficultyStep.Reduced;
+        Need(button.TryPointerClick(), "a real pointer click on the difficulty choice survives native tooltip and canvas locks");
+        Need(entry.Value == next && Display() == next.ToString() && file.Saves == before + 1
+            && SettingsSync.Reports == reportsAtClick + 1,
+            "a difficulty click updates the shared entry and reports and saves exactly once");
+        Need(Label("Zombie value MaxAlive").text == (autosave ? "32" : "24 (setting 32, Reduced)")
+            && Settings.ZombieMaxAlive.Value == 32, "a difficulty click immediately updates the effective Zombie cap");
+    }
+    file.SaveOnConfigSet = true;
+    entry.Value = ArenaDifficultyStep.Maximum;
+    savesBefore = file.Saves; reportsBefore = SettingsSync.Reports;
+    view.Synchronize("zombie", false);
+    Need(Display() == "Maximum" && file.Saves == savesBefore && SettingsSync.Reports == reportsBefore,
+        "the open menu follows a same-mode F12 change without saving or reporting it again");
+    Need(!Settings.TrySelectDifficultyStep((ArenaDifficultyStep)27) && entry.Value == ArenaDifficultyStep.Maximum,
+        "the menu rejects unknown difficulty values");
+
+    foreach (bool armed in new[] { true, false })
+    {
+        ArenaSession.ArmedForNextRaid = armed;
+        ArenaSession.IsActive = !armed;
+        ArenaSession.Difficulty = ArenaDifficultyStep.Reduced;
+        int before = file.Saves, reportsAtLock = SettingsSync.Reports;
+        button.onClick.Invoke(); // Native input queued immediately before the lock.
+        view.Synchronize("zombie", false);
+        Need(!Settings.TrySelectDifficultyStep(ArenaDifficultyStep.Reduced)
+            && entry.Value == ArenaDifficultyStep.Maximum && file.Saves == before && SettingsSync.Reports == reportsAtLock,
+            "difficulty rejects pending clicks and direct writes after the raid locks");
+        Need(!button.TryPointerClick() && !button.interactable && Display() == "Reduced",
+            "the locked difficulty control displays the frozen raid choice");
+        ArenaSession.ArmedForNextRaid = ArenaSession.IsActive = false;
+        ArenaSession.Difficulty = null;
+        view.Synchronize("zombie", false);
+        Need(button.interactable && Display() == "Maximum", "leaving the raid restores the editable F12 choice");
+    }
+
+    var retired = button.onClick.Snapshot();
+    Need(retired.Length == 1, "the difficulty control owns exactly one action");
+    Show("zombie");
+    foreach (var callback in retired) callback();
+    Need(!button.gameObject.activeInHierarchy && Display() == "Maximum" && entry.Value == ArenaDifficultyStep.Maximum,
+        "retired difficulty callback cannot change a reopened menu");
+    file.SaveOnConfigSet = false;
+    file.ThrowSave = true;
+    reportsBefore = SettingsSync.Reports;
+    Need(Settings.TrySelectDifficultyStep(ArenaDifficultyStep.Reduced)
+        && entry.Value == ArenaDifficultyStep.Reduced && SettingsSync.Reports == reportsBefore + 1,
+        "after a failed disk flush the accepted in-memory difficulty is still reported");
+    file.ThrowSave = false;
+    file.SaveOnConfigSet = true;
+}

@@ -6,7 +6,9 @@ namespace UnityEngine
     {
         public static T Instantiate<T>(T original, Transform parent, bool world) where T:Component
         {
-            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Image),typeof(UnityEngine.UI.Button),typeof(Animator));
+            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Image),
+                typeof(UnityEngine.UI.Button),typeof(Animator),typeof(CanvasGroup),typeof(EFT.UI.HoverTooltipArea));
+            result.GetComponent<UnityEngine.UI.Image>().raycastTarget = true;
             result.GetComponent<UnityEngine.UI.Button>().targetGraphic = result.GetComponent<UnityEngine.UI.Image>();
             result.transform.SetParent(parent,false);
             var label=new GameObject("native label",typeof(RectTransform),typeof(TMPro.TextMeshProUGUI));
@@ -39,6 +41,7 @@ namespace UnityEngine
     public struct Color(float red,float green,float blue,float alpha)
     { public float r=red,g=green,b=blue,a=alpha; public static Color white=>new(1,1,1,1); public static Color clear=>new(0,0,0,0); }
     public class CanvasRenderer:Component{}
+    public class CanvasGroup:Component { public bool interactable=true,blocksRaycasts=true; public float alpha=1f; }
     // Native dropdown Animator overwrites text after the clone is activated.
     public class Animator:Component
     {
@@ -86,6 +89,18 @@ namespace UnityEngine.UI
         public bool interactable;public Navigation navigation;
         public UnityEngine.Component targetGraphic; public ColorBlock colors;
         public ButtonClickedEvent onClick=new();
+        public bool TryPointerClick()
+        {
+            if (!interactable || !gameObject.activeInHierarchy || GetComponent<Image>()?.raycastTarget != true)
+                return false;
+            for (var parent = transform; parent != null; parent = parent.parent)
+            {
+                var group = parent.GetComponent<UnityEngine.CanvasGroup>();
+                if (group != null && (!group.interactable || !group.blocksRaycasts)) return false;
+            }
+            onClick.Invoke();
+            return true;
+        }
         public class ButtonClickedEvent
         {
             readonly List<Action> callbacks=new();
@@ -150,9 +165,17 @@ namespace EFT.UI
     public class GUISounds { public int Count;public void PlayUISound(EUISoundType sound)=>Count++; }
     public class HoverTooltipArea:UnityEngine.Component
     {
-        public string Message; public bool RawText;
+        public string Message; public bool RawText, enabled=true;
         public void SetMessageText(string text,bool rawText) { Message=text;RawText=rawText; }
-        public void SetUnlockStatus(bool value){}
+        // EFT HoverTooltipArea.SetUnlockStatus calls the CanvasGroup extension with setRaycast:false.
+        public void SetUnlockStatus(bool value)
+        {
+            enabled = !value;
+            var group = GetComponent<UnityEngine.CanvasGroup>();
+            if (group == null) return;
+            group.interactable = value;
+            group.alpha = value ? 1f : .3f;
+        }
     }
     public class ItemUiContext { public static ItemUiContext Instance=new(); }
     public class MenuUI { public static MenuUI Instance=new(); public Offline MatchmakerOfflineRaidScreen=new(); }

@@ -433,6 +433,27 @@ public static class Settings
         return true;
     }
 
+    internal static bool TrySelectDifficultyStep(ArenaDifficultyStep step)
+    {
+        var entry = DifficultyStep;
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid || entry == null
+            || (step != ArenaDifficultyStep.Maximum && step != ArenaDifficultyStep.Reduced)) return false;
+        if (entry.Value == step) return true;
+        try
+        {
+            entry.Value = step;
+            if (entry.Value == step && File?.SaveOnConfigSet == false) File.Save();
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger?.LogWarning($"Arena difficulty save failed: {ex.Message}");
+        }
+        // BepInEx may already have changed the in-memory value when its file write fails.
+        if (entry.Value != step) return false;
+        SettingsSync.Report();
+        return true;
+    }
+
     /// <summary>
     /// The kit screen's choice (docs/reviews/KIT-PICKER-20261110.md): the random draw, or one
     /// catalogue kit. Refused while a raid is armed or running, like every other menu choice;
