@@ -300,12 +300,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (309)
+## Reports (310)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Release cycle 0.7.0 / Redeploy 1.1.4 on GPU-2, 2026-11-22: Chop Shop Deathmatch with six, Block Team DM with the published ArenaMapPort 0.7.0, a Redeploy respawn on Factory, the Arena session round trip](reports/2026-11/GPU-RELEASE-070-20261122.md)
 - [Branch and worktree collection, 2026-11-22: feature/yard (Block) merged, two branches and nine ArenaMode worktrees plus one Redeploy worktree removed (Fika left out), their ignored files archived, Chop Shop's recommendation back to six](reports/2026-11/WORKTREE-CLEANUP-20261122.md)
 - [Block native acceptance on GPU-2, 2026-11-21: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, solo Tactical and a PMC control; the first Team DM start refused with USEC 0/10 (seven south start heights) and the fixed build](reports/2026-11/GPU-BLOCK-20261121.md)
 - [Branch and worktree collection, 2026-11-20: the reward-history branch merged, fourteen branches and four worktrees removed (Fika left out), their ignored files archived, one stale installed-PitFireTeam test repaired, offline run and read-only review of the merged master, push](reports/2026-11/WORKTREE-CLEANUP-20261120.md)

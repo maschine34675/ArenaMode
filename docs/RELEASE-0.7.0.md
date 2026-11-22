@@ -272,8 +272,61 @@ still apply. Fika is not supported.
 
 ## Native release check
 
-Pending: filled in after packaging and the native run.
+On the GPU test host SPT-GPU-2 (SPT 4.1.6) with these exact binaries loaded, together with
+Redeploy 1.1.4 and the published ArenaMapPort 0.7.0: Deathmatch on Chop Shop with six
+participants (five bots active, the map screen showing `Recommended: 6`); Team Deathmatch on
+Block, 4v4 from the pockets, with all twenty box markers restored, the formation ready, the gates
+opening 5.01 s after the release with every formation path revalidated, both factions alive and
+an Arena respawn through Core 1.0.28 into the north pocket; and a Redeploy respawn near the corpse
+in a normal Factory raid (`Respawn complete.` 5.1 s after the death). A third-party plugin that
+another session had installed that day and that is on no whitelist kept the ARENA toggle at
+`MOD CONFLICT`, so the two Arena raids ran in a private Arena session, entered and left through
+the 0.7.0 session helper (`START ARENA · RESTART` and `RETURN TO SPT · RESTART`). No warning or
+error from ArenaMode, ArenaMapPort, Redeploy or Core in the three game sessions of the run; Unity
+logged two Animator notes, one collider note on Factory and one `MenuScreen` coroutine error
+while the Factory raid was being left, which is in every earlier session of that day on the host
+as well. After the run the configuration was set back (one menu value) and the test profile
+differed from a copy taken before the installation only by the ordinary Factory raid and SPT's
+own mod list. Not run: Gun Game, Domination, Tactical, Zombies and PitFireTeam with these
+binaries, a match to its limit or reward, any Block mode but Team DM, the mods of the Core 1.0.25
+to 1.0.28 integrations as such, and anything on the second test host. Record:
+[GPU-RELEASE-070-20261122.md](reports/2026-11/GPU-RELEASE-070-20261122.md).
 
 ## Package checks
 
-Pending: filled in after packaging and the native run.
+Built from `259d6dfb7a0164845ceaa6375433dbe244941b9e`. ZIP SHA-256:
+`3a4e21c970b3fa9f0ac17bf8f33e40354c3f6ffb443ffa6845dfac9220c06b14` (7,466,372 bytes, 74
+files). The package manifest records Core 1.0.28 from Redeploy `50c3df0` as a verified input;
+the bundled Core is byte-identical to the one in Redeploy 1.1.4. Package contents, paths,
+hashes, defaults, 31 notice links and 41 audio provenance records passed the package verifier,
+and the PitFireTeam rule (no PitFireTeam binary, no byte-identical reference payload) passed
+against 335 reference hashes.
+
+Fresh checks in the isolated source snapshot: 4,566 passed with four environment-dependent
+skips (two reward-recovery fixtures, the installed-APBS probe and the installed-PitFireTeam
+transaction-target probe). The full offline verification register was not run again on the
+release tree: the owner asked that the late Chop Shop change should not set off a complete
+rerun. Its features were checked on their own branches before they were merged (Block: 109 of
+109 selected steps over `96a51cea`; the other records are linked above). After the last merge,
+the Chop Shop change and this release commit, the solution built with 0 errors, the 525 tests of
+the participant classes and `ParticipantMenuChecks` (seven negative controls) passed, and the
+suite above passed on the release commit itself. No credential scan tool was run; the commits
+published with this release were searched for keys, tokens, private addresses and binaries, and
+none was found.
+
+VirusTotal results below apply to these exact binaries (22 November 2026). The five DLLs had no
+malicious or suspicious labels (71 engines without detection each). The unsigned helper
+`maschine-ArenaMode.Session.exe` has **3 malicious labels** (CrowdStrike
+`win/malicious_confidence_60% (D)`, VirIT `Trojan.Win32.MSIL_Heur.A`, Elastic `malicious
+(moderate confidence)`) and 68 engines without detection, as the helper of every earlier release
+had generic labels of this kind. These findings are unresolved; they are not established false
+positives. No antivirus protection needs to be disabled.
+
+| File | SHA-256 / scan |
+|---|---|
+| `maschine-ArenaMode.Gate.dll` | [b76050715023…](https://www.virustotal.com/gui/file/b7605071502302ea07c34dc3453e91869caf15cc8704530d783f03130582dd1f) |
+| `maschine-ArenaMode.BigBrainCompat.dll` | [76ac6d979341…](https://www.virustotal.com/gui/file/76ac6d9793417d152095cce92d892ed4b1956f022f4fb9c452c60592f1f53901) |
+| `maschine-ArenaMode.Client.dll` | [ae25eeb5b8c6…](https://www.virustotal.com/gui/file/ae25eeb5b8c6cac6ed57bc98aa5863933e862f76d033393ee35531c5141c505b) |
+| `maschine-ArenaMode.Session.exe` | [8c31e4b3888f…](https://www.virustotal.com/gui/file/8c31e4b3888fd42d132bed6b66ae60281dd2c28f6c712c6bb95c00c63a0dee66) |
+| `maschine-Redeploy.Core.dll` | [238d202642b9…](https://www.virustotal.com/gui/file/238d202642b9c3ec1a9895a022b3f8f0e1c4123ccb9863f86cc74f3d1f7802e5) |
+| `maschine-ArenaMode.Server.dll` | [710d5e5d189b…](https://www.virustotal.com/gui/file/710d5e5d189b0eda91b4a335b8deb6445a36b46b7481e289508fac13185a9600) |
