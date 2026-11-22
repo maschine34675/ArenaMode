@@ -13,7 +13,7 @@ internal static class RewardColaProfile
         var delta = RewardColaDelta.Read(deltaJson);
         var profile = RewardColaDelta.ParseObject(profileJson, 64 * 1024 * 1024);
         var achievements = Achievements(profile, create: false);
-        var added = delta.Achievements.Select(k => RewardColaCatalog.Achievements[k].Id)
+        var added = delta.Achievements.Select(k => RewardColaCatalog.AchievementsFor(delta.Catalog)[k].Id)
             .Where(id => !AlreadyEarned(achievements, id)).Order(StringComparer.Ordinal).ToArray();
         return Write(RewardIdentity.Hash(deltaJson), added, delta.Catalog);
     }
@@ -24,7 +24,7 @@ internal static class RewardColaProfile
         var resolved = Read(payment);
         var changes = RewardColaDelta.Read(delta);
         return resolved.Catalog == changes.Catalog && resolved.Hash == RewardIdentity.Hash(delta) && resolved.Ids.All(id =>
-            changes.Achievements.Contains(RewardColaCatalog.ById[id].Key, StringComparer.Ordinal));
+            changes.Achievements.Contains(RewardColaCatalog.ByIdFor(changes.Catalog)[id].Key, StringComparer.Ordinal));
     }
 
     internal static IReadOnlyList<string> Validate(string json) => Read(json).Ids;
@@ -53,9 +53,10 @@ internal static class RewardColaProfile
     {
         if (payment.Cola is null) return;
         int index = 0;
-        foreach (var id in Read(payment.Cola).Ids)
+        var resolved = Read(payment.Cola);
+        foreach (var id in resolved.Ids)
         {
-            foreach (var reward in RewardColaCatalog.ById[id].Items)
+            foreach (var reward in RewardColaCatalog.ByIdFor(resolved.Catalog)[id].Items)
             {
                 // Bottles and GP coins are safe as one item per unit, independent
                 // of modded stack limits. Each catalog RUB grant is <500000.
@@ -93,7 +94,7 @@ internal static class RewardColaProfile
         if (RewardColaDelta.Integer(obj["schema"]) != 1
             || !RewardColaCatalog.IsKnownVersion(catalog) || !RewardIdentity.IsHex(hash, 64))
             throw new RewardDataException("cola-payment-version-or-hash");
-        var ids = RewardColaDelta.Set(obj["ach"], RewardColaCatalog.ById.ContainsKey);
+        var ids = RewardColaDelta.Set(obj["ach"], RewardColaCatalog.ByIdFor(catalog).ContainsKey);
         if (json != Write(hash, ids, catalog)) throw new RewardDataException("cola-payment-noncanonical");
         return (hash, ids, catalog);
     }

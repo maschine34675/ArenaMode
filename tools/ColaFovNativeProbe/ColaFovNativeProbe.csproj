@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../../Redeploy/Shared.props" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion>
+    <AssemblyName>maschine-ColaFovNativeProbe</AssemblyName><SPTModType>Probe</SPTModType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp"/><Reference Include="Comfort"/><Reference Include="Comfort.Unity"/>
+    <Reference Include="UnityEngine"/><Reference Include="UnityEngine.CoreModule"/><Reference Include="Newtonsoft.Json"/><Reference Include="spt-common"/>
+    <Reference Include="maschine-Redeploy.Core"><HintPath>$(SPTPath)/BepInEx/plugins/maschine-Redeploy.Core.dll</HintPath><Private>false</Private></Reference>
+    <PackageReference Include="BepInEx.Core" Version="5.*"/>
+  </ItemGroup>
+</Project>

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "mods": [
-    { "guid": "com.tarkovacola.server", "name": "Tarkova Cola", "kind": "mod", "clientVersion": "3.0.1", "serverVersion": "3.0.1" },
+    { "guid": "com.tarkovacola.server", "name": "Tarkova Cola", "kind": "mod", "clientVersion": "4.0.0", "serverVersion": "4.0.0" },
     { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "clientVersion": "4.5.1", "serverVersion": "4.5.1" },
     { "guid": "com.acidphantasm.progressivebotsystem", "name": "APBS", "kind": "mod", "serverVersion": "2.4.1" },
     { "guid": "com.acidphantasm.botplacementsystem", "name": "ABPS", "kind": "mod", "clientVersion": "2.1.0", "serverVersion": "2.1.0" },
@@ -31,7 +31,8 @@
     { "guid": "com.lacyway.ch", "name": "ContinuousHealing", "kind": "mod", "clientVersion": "1.6.3" },
     { "guid": "com.ozen.continuousloadammo", "name": "Continuous Load Ammo", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.pein.camerarecoilmod", "name": "Recoil Rework Legacy", "kind": "mod", "clientVersion": "2.0.0" },
-    { "guid": "com.fontaine.fovfix", "name": "Fontaine FOV Fix", "kind": "mod", "clientVersion": "4.1.0" },
+    { "guid": "com.fontaine.fovfix", "name": "Fontaine FOV Fix", "kind": "mod", "clientVersion": "5.0.1" },
+    { "guid": "com.fontaine.spt-realism-common-lib", "name": "SPT Realism Common Lib", "kind": "mod", "clientVersion": "0.1.0" },
     { "guid": "com.manimal.loadammoanim", "name": "Manimal Ammo Loading Animations", "kind": "mod", "clientVersion": "2.0.0", "serverVersion": "2.0.0" },
     { "guid": "com.flir.increaselookdirection", "name": "Increase Look Direction", "kind": "mod", "clientVersion": "1.3.0" },
     { "guid": "hazelify.StanceSync", "name": "Auto Shoulder Swap", "kind": "mod", "clientVersion": "1.1.1" },

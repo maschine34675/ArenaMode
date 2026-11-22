@@ -160,7 +160,15 @@ never deleted, and your reward choice is kept. [Reward details](docs/REWARDS-RUN
 
 Tarkova Cola **2.2.1+**, installed on both sides, can additionally transfer eligible
 Zombie progress and newly earned achievements through the same reward switch.
-[Scope](docs/TARKOVA-COLA-COMPAT.md).
+Development builds include the **4.0.0** catalog and protect its deferred Tombstone
+item returns; older reward records remain valid. [Scope](docs/TARKOVA-COLA-COMPAT.md).
+
+The development whitelist also records **Fontaine FOV Fix 5.0.1** and its
+**SPT Realism Common Lib 0.1.0** dependency. Bundled Core **1.0.28** handles their
+physical-player state during replacement. Standalone Redeploy and protected Arena
+body changes, aiming/firing and Cola offering protection passed the
+[bounded native checks](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md). These are
+changes after ArenaMode 0.6.0, not claims about its published bundle.
 
 ## Verification and known limits
 

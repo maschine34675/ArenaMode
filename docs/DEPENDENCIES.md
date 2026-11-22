@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-Updated 2026-11-20 for development after ArenaMode 0.6.0. This overview describes the reviewed ArenaMode source revision,
+Updated 2026-11-22 for development after ArenaMode 0.6.0. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -14,9 +14,12 @@ for every feature.
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
 | `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.6.0 bundles/requires **1.0.24**, shared byte-for-byte with Redeploy 1.1.3 (see below). Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
-Development builds after 0.6.0 currently stamp **Core 1.0.27**. It adds active
-DynamicMaps 1.3.0 quest/key subscriptions and standalone Advanced Movement 1.0.1
-outgoing movement-state cleanup, plus WTT Armory 2.0.5 player/Hyperburst rebinding;
+Development builds after 0.6.0 currently stamp **Core 1.0.28**. This includes active
+DynamicMaps 1.3.0 quest/key subscriptions, standalone Advanced Movement 1.0.1
+outgoing movement-state cleanup and WTT Armory 2.0.5 player/Hyperburst rebinding.
+1.0.28 adds Realism Common Lib 0.1.0 controller ownership for FOV Fix 5.0.1 and
+selective Tarkova Cola 4.0.0 body-state cleanup. Standalone and Arena body changes
+passed the [bounded native checks](reports/2026-11/COLA-FOV-NATIVE-20261122.md);
 the published 0.6.0 bundle is unchanged.
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
@@ -43,9 +46,9 @@ optional standalone body fixes; ArenaMode's mod exclusions for ORBIT, Questing B
 are unchanged. Redeploy's `docs/CHANGELOG.md` and its
 `docs/compatibility/` records state which checks ran in the game and which only offline.
 Core 1.0.21 to 1.0.23 were never released on their own: ArenaMode 0.6.0 and Redeploy 1.1.3
-are the first releases that carry them. Development after 0.6.0 requires Core **1.0.25**
-for VisualAssist's grenade-preview body handoff; the released 0.6.0 package still requires
-1.0.24. Core keeps its independent
+are the first releases that carry them. Development after 0.6.0 now builds against
+Core **1.0.28**; 1.0.25 introduced VisualAssist's grenade-preview body handoff.
+The released 0.6.0 package still requires 1.0.24. Core keeps its independent
 version line; the public Redeploy client/server release is 1.1.3. Keep one copy of the
 shared library.
 The server metadata declares no additional mandatory third-party mods.
@@ -70,7 +73,7 @@ SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-Commo
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 Caliber Under Ammo Name, Compatibility Highlighter, Trader Modding and Improved Weapon Building,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
-Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
+Fontaine FOV Fix 5.0.1, SPT Realism Common Lib 0.1.0, Manimal Ammo Loading Animations, Increase Look Direction,
 Auto Shoulder Swap, Dynamic External Resolution Patch, Player Encumbrance Bar,
 Bot Callsigns Reloaded,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
@@ -83,12 +86,14 @@ sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
 ArenaMapPort 0.6.0 (0.5.0 and 0.4.0 still work without Chop Shop and the added Bot spawn rows, 0.4.0 also
 without Iceberg and the crowd reactions, 0.3.0 also without score monitors, each with a version advisory),
-PitFireTeam 1.1.2, Tarkova Cola 3.0.1 and Redeploy 1.1.3 on both sides. User policy is preserved.
+PitFireTeam 1.1.2, Tarkova Cola 4.0.0 and Redeploy 1.1.3 on both sides. User policy is preserved.
 The [2026-11-21 Forge audit](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md)
-refreshes seven reviewed versions from release binaries and source changes. Cola 4.0.0
-and FOV Fix 5.0.1 are deliberately not marked reviewed: Cola needs new progression/refund
-protection, while FOV now requires the unlisted Realism Common Lib and a body-lifecycle review.
-Source review of the seven updates does not extend prior native-test evidence.
+refreshed seven reviewed versions from release binaries and source changes. Its deferred
+Cola 4.0.0 and FOV Fix 5.0.1 integrations are now implemented in development, including
+Cola's progression/item-return protection and the explicit Common Lib policy entry.
+The [combined native run](reports/2026-11/COLA-FOV-NATIVE-20261122.md) separately
+verified death/respawn, retained-live-body replacement and offering protection;
+it does not certify every perk or mod combination.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -204,15 +209,16 @@ native observations below predate that migration; see
   See [healing operations and verification limits](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md).
 - **UIFixes:** the alternative R-key reload path is covered. The whitelist now reviews
   6.0.4; its source delta changes Edit Build UI and the version, not the reload hooks.
-- **Fontaine FOV Fix 4.1.0+:** Core 1.0.11 transfers the persistent camera controller
-  to the replacement body and fences retired-body aim/weapon callbacks. Reviewed
-  whitelist version: 4.1.0. Newer versions still require the reflected APIs.
-  FOV Fix 5.0.1 additionally needs Realism Common Lib 0.1.0, which is not on the
-  default whitelist. Its retained-body controllers need review before admission;
-  the FOV contract itself has not been shown to reject 5.0.1. An installed hard
-  dependency is automatically pulled in by the existing dependency closure, even
-  when unlisted. Therefore keeping the 4.1.0 review does not block 5.0.1/Common Lib;
-  its body-lifecycle risk remains unresolved until the separate integration.
+- **Fontaine FOV Fix 4.1.0+:** Core 1.0.11 introduced persistent camera-controller
+  handoff and retired-body aim/weapon guards. Development policy now records
+  **5.0.1** and its **SPT Realism Common Lib 0.1.0** dependency. Core **1.0.28**
+  retires the outgoing Common Lib controllers and their exact event subscriptions,
+  retains the replacement's fresh state, and restores the previous bundle when
+  creation fails. Unrelated players and ordinary calls pass through. Reflected
+  contracts remain mandatory. The current native run covered standalone/Arena
+  death and retained-live-body changes, controller subscriptions, ADS and firing.
+  Hard-dependency closure already allowed an installed, non-denied Common Lib
+  before its explicit policy entry; the old FOV review number was never a block.
 - **Manimal Ammo Loading Animations 2.0.0+:** Core 1.0.11 removes retired owned
   player sessions and fences delayed animation/controller/loading work. Reviewed
   client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
@@ -220,20 +226,22 @@ native observations below predate that migration; see
   See [four-candidate review and verification boundaries](reports/2026-10/FOUR-MOD-COMPAT-20261025.md)
   for both additions and the initial exclusions. The subsequent Fast Grenade
   Throw and Tarkova Cola integrations are described below.
-- **Tarkova Cola 2.2.1+, reviewed 3.0.1:** both client and server are admitted with checked
-  lifecycle, storage and achievement-catalog contracts. Arena protects ordinary
-  progression and restores foreign state after play. Completed Zombie matches
-  can transfer research and earned achievements through the existing protected
-  reward path; bottle/grenade refunds are excluded. Other Arena modes retain
-  temporary perks without exporting Cola progression. Install Tarkova Cola
-  separately; its optional VisitAPI storyline is outside this integration.
-  Both reviewed research catalogs retain their own reward semantics. Arena blocks
-  the new companion-perk and machine-editor writes; repeated body creation does
-  not duplicate machines. APEX progression is not exported.
-  See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md) and the
-  [3.0.1 review](reviews/MOD-REFRESH-20261120.md). Version 4.0.0 adds an unsupported
-  progress catalog and deferred Tombstone offering refunds; the current catalog
-  check rejects that build before Arena. Keep 3.0.1 until those paths are protected.
+- **Tarkova Cola 2.2.1+, development review 4.0.0:** client and server admission
+  require checked lifecycle, storage and achievement-catalog contracts. Arena
+  protects ordinary progression and restores foreign state after play. Completed
+  Zombie matches can transfer research and earned achievements through the existing
+  protected reward path. Bottle, grenade and Tombstone item returns are excluded;
+  legitimate pre-Arena pending queues are preserved. Other modes retain temporary
+  perks without exporting Cola progression. Install both Cola parts separately;
+  its optional VisitAPI storyline and APEX progression are outside this integration.
+  The 2.2.1, 3.0.1 and 4.0.0 catalogs retain separate receipt semantics. V4 adds
+  six perk trees and removes synergies; old saved progress is preserved. Companion
+  and machine-editor writes remain blocked. Core 1.0.28 supplies the separate
+  generic body cleanup for standalone Redeploy as well. Native checks covered
+  Quick Revive downing/body replacement, protected offering rejection and exact
+  restoration of the actual arm snapshot. See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md),
+  [v4 source/offline evidence](reviews/TARKOVA-COLA-4-20261122.md) and
+  [native coverage and limits](reports/2026-11/COLA-FOV-NATIVE-20261122.md).
 - **VisualAssist 1.2.0:** optional grenade preview, with physical-body and owned
   renderer cleanup in Core 1.0.25. Arena refreshes valid ordinary-throw predictions
   and leaves quick throws or invalid predictions to native physics. Ordinary raids

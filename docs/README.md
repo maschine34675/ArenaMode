@@ -18,6 +18,8 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ## Living references
 
+- [Cola 4 / FOV 5 / Common Lib body fixes: standalone and Arena native verification](reports/2026-11/COLA-FOV-NATIVE-20261122.md)
+
 - [Full Forge whitelist audit: seven version updates, runtime identities and Cola/FOV follow-ups](reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md)
 
 - [WTT Content Backport 2.0.7/CommonLib 3.0.8 review and Armory Hyperburst respawn finding](reports/2026-11/WTT-WHITELIST-20261121.md)

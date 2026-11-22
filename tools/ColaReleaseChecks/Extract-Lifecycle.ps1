@@ -10,7 +10,8 @@ function Slice([string]$First,[string]$Last){
 }
 $fields=Slice '    private static readonly object RerollSync' '    internal static void Initialize()'
 $methods=Slice '    private sealed class RerollOwner' '    private static void TrackerPostfix()'
-$code="using System;`nusing System.Runtime.CompilerServices;`nusing EFT;`nusing ArenaMode.Shared;`nusing Newtonsoft.Json.Linq;`nusing Redeploy.Core.Api;`nnamespace ArenaMode.Compat;`ninternal static partial class ArenaTarkovaColaCompat {`n$fields`n$methods`n}"
+$offering=Slice '    private static bool PersistPrefix()' '    private static bool EnsureLoadedPrefix'
+$code="using System;`nusing System.Runtime.CompilerServices;`nusing EFT;`nusing ArenaMode.Shared;`nusing Newtonsoft.Json.Linq;`nusing Redeploy.Core.Api;`nnamespace ArenaMode.Compat;`ninternal static partial class ArenaTarkovaColaCompat {`n$fields`n$methods`n$offering`n}"
 $target=[IO.Path]::GetFullPath($Destination)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
 [IO.File]::WriteAllText($target,$code)

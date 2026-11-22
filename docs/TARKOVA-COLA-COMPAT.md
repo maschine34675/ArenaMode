@@ -1,14 +1,22 @@
-# Tarkova Cola compatibility — updated 2026-11-20
+# Tarkova Cola compatibility — updated 2026-11-22
 
-Development after ArenaMode 0.6.0 also reviews **3.0.1**, with a separate research
-catalog so old 2.2.1 receipts and plans keep their meaning. New companion-perk and
-machine-editor writes are protected, machines are not duplicated by respawns and
-new perk state is cleaned up at Arena exit. APEX remains outside reward transfer.
-See the [3.0.1 contract and limits](reviews/MOD-REFRESH-20261120.md).
+Development after ArenaMode 0.6.0 includes **4.0.0** with separate 2.2.1, 3.0.1 and
+4.0.0 catalogs, so old receipts and plans keep their meaning. V4's six added perk
+trees and changed goals are covered; removed synergy state remains intact without
+creating new v4 rewards. Tombstone's deferred item offering is excluded from Arena,
+and legitimate pending ordinary offerings survive the protected session.
+Companion-perk and machine-editor writes remain protected; respawns do not duplicate
+machines. APEX remains outside reward transfer. See the
+[v4 contract and offline evidence](reviews/TARKOVA-COLA-4-20261122.md) and the
+[earlier 3.0.1 review](reviews/MOD-REFRESH-20261120.md). The separate
+[2026-11-22 native run](reports/2026-11/COLA-FOV-NATIVE-20261122.md) covered
+standalone/Arena body changes, Quick Revive downing, offering protection and exact
+arm-snapshot restoration. It did not repeat every perk or next-start payout.
 
-The user requested Zombie research and achievement rewards, with no bottle or
-grenade refunds. This integration is optional, requires both parts of Tarkova Cola
-2.2.1 or newer, and does not include its assets or VisitAPI storyline. Review target:
+The user requested Zombie research and achievement rewards, with no bottle,
+grenade or Tombstone item refunds. This integration is optional, requires both parts
+of Tarkova Cola 2.2.1 or newer, and includes neither its assets nor VisitAPI storyline.
+The initial review target was:
 [official 2.2.1 source](https://github.com/Yendaxddd/TarkovaCola/tree/2.2.1), commit
 `163bb9b1192d050b9e0da5aada8686e8c43877dd`. Release ZIP SHA256:
 `9d5116b79e21301655135a157d680ee209b66aa1450b449b1a5da64cbc981607`.
@@ -42,11 +50,14 @@ grenade refunds. This integration is optional, requires both parts of Tarkova Co
 
 The existing profile-rewards preference controls transfer. A completed, validated
 Zombie result may carry only a typed, bounded monotonic delta for perk research XP,
-challenge progress/completions, synergy progress/completions and earned achievement
-keys. Aborted/no-contest matches grant nothing. Other Arena modes do not transfer
+challenge progress/completions and earned achievement keys. The older 2.2.1/3.0.1
+catalogs also support synergy progress/completions; 4.0.0 removed that feature. Aborted/no-contest matches grant nothing. Other Arena modes do not transfer
 Cola progression. Ordinary stats, choices, equipped augments, Classic/Eternal state
-and inventory are never copied back. Bottle or grenade refunds are excluded;
-bottles which are actual achievement prizes remain valid achievement rewards.
+and inventory are never copied back. Bottle, grenade and Tombstone item refunds
+are excluded; bottles which are actual achievement prizes remain valid achievement
+rewards. Pending ordinary offerings are neither drained nor overwritten during an
+Arena lease and are restored exactly at its end. The server independently guards
+the new offering-mail route for the protected profile.
 
 The server reads the foreign baseline itself at arm and compares the client's
 synchronously saved state. Protected foreign loads use a shadow; writes are held.
@@ -58,7 +69,10 @@ transfers the signed result, never a private Cola or PMC profile.
 At ordinary startup, the existing kernel atomically records RUB, PMC XP, newly
 earned native achievements, their fixed catalog prizes, one mail and the payment
 ledger. The exact mail is checked during recovery; collecting it cannot reapply XP.
-The frozen catalog covers 100 achievements, 47 research goals and 15 synergies.
+Frozen catalogs cover 100 achievements, 47 goals and 15 synergies in 2.2.1;
+100 achievements, 72 goals and 15 synergies in 3.0.1; and 127 achievements,
+120 goals and no synergies in 4.0.0. Old counters above a lowered v4 goal are
+validated against reviewed historical limits without reducing the saved value.
 Existing native achievement IDs suppress duplicate prizes, including grants made
 outside Arena. Research-only transfers also have an informational mail and receipt.
 
@@ -89,6 +103,18 @@ reward records instead; a profile backup does not repair it. See
 [Lost reward authority](REWARDS-RUNTIME.md#lost-reward-authority).
 
 ## Verification
+
+For the 2026-11-22 development change, the focused Cola suite passes **190 tests**.
+The exact official v4 DLLs pass **213 assertions** and **11 rejected mutants**;
+3.0.1 passes **172 assertions** and **8 rejected mutants**. This verifies binary
+catalogs, fixed rewards, protected offering queues and the versioned payout path.
+The affected runner passed 58 steps before a missing worker fixture was corrected;
+the isolated v4 harness rerun then passed, together with the full unit suite
+(**4,427 passed, 0 failed, 3 unavailable-fixture skips**). Native death and live body changes,
+ordinary/protected offering controls and exact arm-snapshot restoration passed.
+The native reward journal captured session XP; a new v4 next-start payout was not
+exercised. See [the v4 evidence](reviews/TARKOVA-COLA-4-20261122.md) and
+[native coverage](reports/2026-11/COLA-FOV-NATIVE-20261122.md).
 
 Offline tests cover canonical deltas, unknown/malformed keys, catalog boundaries,
 legacy RUB/XP serialization, native SPT profile serialization, duplicate rewards,

@@ -38,6 +38,7 @@ internal static class ArenaTarkovaColaCompat
     private static bool _baselineDirty;
     private static float _baselineSaveAt;
     private static object[] _refunds, _native, _claims;
+    private static string _offering;
     private static Profile _lastProfile;
     private static string _captured;
     // Tag the exact request closure and produced JSON, never a reusable container.
@@ -165,6 +166,7 @@ internal static class ArenaTarkovaColaCompat
         _refunds = Snapshot(_contract.PendingRefunds);
         _native = Snapshot(_contract.PendingNative);
         _claims = Snapshot(_contract.PendingClaims);
+        CaptureOffering();
         _lease = new TarkovaColaClientLease(profileId, ArenaSession.ArmedMap, mode, armEpoch);
         _lastProfile = null; _captured = null; _rebindInitialization = false;
         try
@@ -295,6 +297,7 @@ internal static class ArenaTarkovaColaCompat
             Restore(_contract.PendingRefunds, _refunds);
             Restore(_contract.PendingNative, _native);
             Restore(_contract.PendingClaims, _claims);
+            RestoreOffering();
             ClearAnimator();
             Invoke(_contract.ClearActive);
             foreach (var reset in _contract.NewPerkCleanup) Invoke(reset);
@@ -310,7 +313,7 @@ internal static class ArenaTarkovaColaCompat
             if (restored)
             {
                 _lease.Release(); _lease = null; _baseline = null;
-                _refunds = _native = _claims = null; _lastProfile = null; _captured = null;
+                _refunds = _native = _claims = null; _offering = null; _lastProfile = null; _captured = null;
                 _rebindInitialization = false;
             }
             _allowEnd = _allowAward = false;
@@ -330,6 +333,9 @@ internal static class ArenaTarkovaColaCompat
     private static bool Blocks => _lease?.BlocksWrites == true;
     private static GameWorld CurrentWorld() => Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
     private static bool PersistPrefix() => !Blocks;
+    private static void CaptureOffering() => _offering = _contract.PendingOffering?.GetValue(null) as string;
+    private static void RestoreOffering() => _contract.PendingOffering?.SetValue(null, _offering);
+
     private static bool EnsureLoadedPrefix() => !Blocks;
     private static bool NativeUnlockPrefix(ref bool __result) { if (!Blocks) return true; __result = false; return false; }
     private static bool ServerSafePrefix(ref bool __result) { if (!Blocks) return true; __result = false; return false; }
@@ -594,7 +600,7 @@ internal static class ArenaTarkovaColaCompat
     private sealed class Contract
     {
         internal readonly PropertyInfo State, ServerSafe, ArenaNow;
-        internal readonly FieldInfo StateField, Dirty, SaveAt, PendingRefunds, PendingNative, PendingClaims;
+        internal readonly FieldInfo StateField, Dirty, SaveAt, PendingRefunds, PendingNative, PendingClaims, PendingOffering;
         internal readonly FieldInfo TrackerInit, TrackerDeath, TrackerHands, TrackerWeapon, Breath, Sped, Awarded;
         internal readonly FieldInfo HasPosition, StaminHasPosition, PreviousStamina, HealingPolled, NextPhysicalPoll;
         internal readonly MethodInfo Flush, FlushSync, EnsureLoaded, SendRefund, SendClaim, UnlockNative;
@@ -609,7 +615,8 @@ internal static class ArenaTarkovaColaCompat
         internal Contract(Assembly assembly)
         {
             if (assembly.GetName().Name != "TarkovaCola.Client") throw new InvalidOperationException("Unexpected Cola assembly.");
-            bool currentCatalog = RequireProgressCatalog(assembly);
+            string catalog = RequireProgressCatalog(assembly);
+            bool currentCatalog = catalog != TarkovaColaResearchCatalog.ResearchFingerprint;
             Type T(string name) => assembly.GetType("TarkovaCola.Client." + name, true);
             MethodInfo M(string type, string name, Type returns, params Type[] args)
             {
@@ -665,6 +672,16 @@ internal static class ArenaTarkovaColaCompat
             DrinkPostfix = M("DrinkPatch", "Postfix", typeof(void), typeof(ActiveHealthController), typeof(EFT.InventoryLogic.Item));
             ClearActive = M("Perks", "ClearActive", typeof(void)); EternalStart = M("Eternal", "OnRaidStart", typeof(void));
             Refresh = M("Perk", "Refresh", typeof(void)); RefreshPhysical = M("PerkFx", "RefreshPhysical", typeof(void), typeof(Player));
+            if (catalog == TarkovaColaResearchCatalog.LatestResearchFingerprint)
+            {
+                PendingOffering = F("PerkService", "_pendingOffering", typeof(string));
+                ProtectedMutations.Add(M("PerkService", "RequestOffering", typeof(void), typeof(string)));
+                // Never drain even a legitimate pre-Arena queue while server-side
+                // protection is active. Restore its exact value at lease release.
+                ProtectedMutations.Add(M("PerkService", "FlushRefunds", typeof(void)));
+                foreach (string name in new[] { "DoubleTap", "ElectricCherry", "QuickRevive", "DeathPerception", "Tombstone", "MuleKick" })
+                    NewPerkCleanup.Add(M(name, "Reset", typeof(void)));
+            }
             if (assembly.GetType("TarkovaCola.Client.PitPerks", false) != null)
             {
                 // 3.0.1's follower editor writes pit_perks.json directly, outside
@@ -714,7 +731,7 @@ internal static class ArenaTarkovaColaCompat
                 throw new MissingMemberException("Incomplete Tarkova Cola 3.x protection contract.");
         }
 
-        private static bool RequireProgressCatalog(Assembly assembly)
+        private static string RequireProgressCatalog(Assembly assembly)
         {
             const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
             IEnumerable Values(string type, string name, bool property = false)
@@ -740,16 +757,19 @@ internal static class ArenaTarkovaColaCompat
                     research.Add(TarkovaColaResearchCatalog.Challenge(perkId, Text(aug, "Id"), Number(aug, "Goal")));
                 }
             }
-            foreach (var synergy in Values("Synergy", "All"))
-                research.Add(TarkovaColaResearchCatalog.Synergy(Text(synergy, "Id"), Number(synergy, "Goal")));
+            // v4 removed Synergy. Its complete research fingerprint and paired
+            // achievement fingerprint must match; a missing old table still fails.
+            if (assembly.GetType("TarkovaCola.Client.Synergy", false) != null)
+                foreach (var synergy in Values("Synergy", "All"))
+                    research.Add(TarkovaColaResearchCatalog.Synergy(Text(synergy, "Id"), Number(synergy, "Goal")));
             TarkovaColaResearchCatalog.RequireResearch(research);
             // Foreign progress keys are CLIENT keys (a_first, st_fresh, ...),
             // which intentionally differ from server localization keys.
             var achievements = new List<string>();
             foreach (var achievement in Values("Achievements", "All", property: true))
                 achievements.Add(TarkovaColaResearchCatalog.Achievement(Text(achievement, "Key"), Text(achievement, "ServerId")));
-            TarkovaColaResearchCatalog.RequireAchievements(achievements);
-            return TarkovaColaResearchCatalog.Fingerprint(research) == TarkovaColaResearchCatalog.CurrentResearchFingerprint;
+            TarkovaColaResearchCatalog.RequirePair(research, achievements);
+            return TarkovaColaResearchCatalog.Fingerprint(research);
         }
     }
 }

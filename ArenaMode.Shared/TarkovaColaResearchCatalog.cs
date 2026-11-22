@@ -8,9 +8,10 @@ using System.Text;
 
 namespace ArenaMode.Shared;
 
-// Structural fingerprints from reviewed TarkovaCola 2.2.1 and 3.0.1 commits
+// Structural fingerprints from reviewed TarkovaCola 2.2.1, 3.0.1 and 4.0.0 commits
 // 163bb9b1192d050b9e0da5aada8686e8c43877dd / 8d4294d4410425bad27f1d019db4f7dc8fa17631,
-// client PerkDefs/Synergy/Achievements*. No version ceiling: unchanged reviewed
+// 7163afb46ed8732d83dc26f3415e252bb5bf6c91; client PerkDefs/Synergy/Achievements*.
+// No version ceiling: unchanged reviewed
 // catalogs remain accepted, but an unknown mixture never does.
 // Server catalog equality is independently tested to prevent accidental drift.
 internal static class TarkovaColaResearchCatalog
@@ -19,6 +20,9 @@ internal static class TarkovaColaResearchCatalog
     internal const string CurrentResearchFingerprint = "a5aa369825bddc1cf03e7f2f88c8017d5446159a5209fd9a1d1365a21f70b802";
     internal const string AchievementFingerprint = "27df213626b8cf9632db43e2838db5dd2e515075223e9a9a304c11d6ff09d3c5";
 
+    internal const string LatestResearchFingerprint = "20157b1782f65bb7aba5afbd17343d29d2363512bf6dc4b395cc1c9da7644528";
+    internal const string LatestAchievementFingerprint = "9643b9331aebe05b801ec6c30b5e484fddb49f9bf33b4903c5f792c62da94221";
+
     internal static string Perk(string id) => "perk|" + Key(id);
     internal static string Challenge(string perk, string id, int goal) => "aug|" + Key(perk) + "|" + Key(id) + "|" + Goal(goal);
     internal static string Synergy(string id, int goal) => "syn|" + Key(id) + "|" + Goal(goal);
@@ -26,10 +30,21 @@ internal static class TarkovaColaResearchCatalog
     internal static void RequireResearch(IEnumerable<string> descriptions)
     {
         var fingerprint = Fingerprint(descriptions);
-        if (fingerprint != ResearchFingerprint && fingerprint != CurrentResearchFingerprint)
+        if (fingerprint != ResearchFingerprint && fingerprint != CurrentResearchFingerprint && fingerprint != LatestResearchFingerprint)
             throw new InvalidOperationException("Tarkova Cola research definitions changed.");
     }
-    internal static void RequireAchievements(IEnumerable<string> descriptions) => Require(descriptions, AchievementFingerprint);
+    internal static void RequireAchievements(IEnumerable<string> descriptions)
+    {
+        var fingerprint = Fingerprint(descriptions);
+        if (fingerprint != AchievementFingerprint && fingerprint != LatestAchievementFingerprint)
+            throw new InvalidOperationException("Tarkova Cola achievement definitions changed.");
+    }
+    internal static void RequirePair(IEnumerable<string> research, IEnumerable<string> achievements)
+    {
+        RequireResearch(research); RequireAchievements(achievements);
+        if ((Fingerprint(research) == LatestResearchFingerprint) != (Fingerprint(achievements) == LatestAchievementFingerprint))
+            throw new InvalidOperationException("Tarkova Cola research/achievement revisions disagree.");
+    }
 
     internal static string Fingerprint(IEnumerable<string> descriptions)
     {
@@ -44,11 +59,6 @@ internal static class TarkovaColaResearchCatalog
                 .Select(value => value.ToString("x2", CultureInfo.InvariantCulture)));
     }
 
-    private static void Require(IEnumerable<string> descriptions, string expected)
-    {
-        if (!string.Equals(Fingerprint(descriptions), expected, StringComparison.Ordinal))
-            throw new InvalidOperationException("Tarkova Cola research or achievement definitions changed.");
-    }
     private static string Goal(int goal) => goal > 0 && goal <= 1_000_000
         ? goal.ToString(CultureInfo.InvariantCulture) : throw new InvalidOperationException("Invalid Tarkova Cola goal.");
     private static string Key(string value) => !string.IsNullOrEmpty(value) && value.Length <= 64

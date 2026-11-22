@@ -131,15 +131,15 @@ internal static class RewardColaCatalog
         return values.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
-    internal static bool IsKnownVersion(string version) => version is Version or CurrentVersion;
+    internal static bool IsKnownVersion(string version) => version is Version or CurrentVersion or LatestVersion;
     internal static FrozenSet<string> PerksFor(string version) => version switch
     {
-        Version => Perks, CurrentVersion => CurrentPerks,
+        Version => Perks, CurrentVersion => CurrentPerks, LatestVersion => LatestPerks,
         _ => throw new RewardDataException("cola-delta-version")
     };
     internal static FrozenDictionary<string, RewardColaChallenge> ChallengesFor(string version) => version switch
     {
-        Version => Challenges, CurrentVersion => CurrentChallenges,
+        Version => Challenges, CurrentVersion => CurrentChallenges, LatestVersion => LatestChallenges,
         _ => throw new RewardDataException("cola-delta-version")
     };
 
@@ -269,4 +269,141 @@ internal static class RewardColaCatalog
 
     internal static readonly FrozenDictionary<string, RewardColaAchievement> ById =
         Achievements.Values.ToFrozenDictionary(a => a.Id, StringComparer.Ordinal);
+    // Reviewed v4 data: old signed receipts retain their exact prior catalogs.
+    internal const string LatestVersion = "tarkova-cola-4.0.0";
+    internal const string LatestSourceCommit = "7163afb46ed8732d83dc26f3415e252bb5bf6c91";
+    internal static readonly FrozenSet<string> LatestPerks = new[]
+        { "speedcola", "staminup", "juggernog", "phdflopper", "widowswine", "deadshot", "bandolier", "vultureaid", "meleemacchiato", "quickrevive", "mulekick", "electriccherry", "deathperception", "tombstone", "doubletap" }.ToFrozenSet(StringComparer.Ordinal);
+    internal static readonly FrozenDictionary<string, RewardColaChallenge> LatestChallenges = CreateLatestChallenges();
+    private static FrozenDictionary<string, RewardColaChallenge> CreateLatestChallenges()
+    {
+        var values = CurrentChallenges.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+        values["st_rush"] = new("staminup", 3);
+        values["st_feet"] = new("staminup", 3000);
+        values["jg_plates"] = new("juggernog", 40);
+        values["jg_skull"] = new("juggernog", 600);
+        values["pf_terrain"] = new("phdflopper", 3000);
+        values["ww_fuse"] = new("widowswine", 5);
+        values["dd_sky"] = new("deadshot", 800);
+        values["bb_cold"] = new("bandolier", 600);
+        values["mm_charge"] = new("meleemacchiato", 1000);
+        values["mm_flash"] = new("meleemacchiato", 100);
+        values["qr_revive"] = new("quickrevive", 1000);
+        values["qr_transfuse"] = new("quickrevive", 5);
+        values["qr_medic"] = new("quickrevive", 2000);
+        values["qr_patience"] = new("quickrevive", 50);
+        values["qr_priority"] = new("quickrevive", 300);
+        values["qr_clot"] = new("quickrevive", 10);
+        values["qr_reserve"] = new("quickrevive", 20);
+        values["qr_slot"] = new("quickrevive", 1);
+        values["mk_kick"] = new("mulekick", 15);
+        values["mk_bando"] = new("mulekick", 25);
+        values["mk_change"] = new("mulekick", 30);
+        values["mk_strap"] = new("mulekick", 3000);
+        values["mk_chamber"] = new("mulekick", 30);
+        values["mk_balance"] = new("mulekick", 10);
+        values["mk_holster"] = new("mulekick", 100);
+        values["mk_slot"] = new("mulekick", 1);
+        values["ec_discharge"] = new("electriccherry", 30);
+        values["ec_overcharge"] = new("electriccherry", 2000);
+        values["ec_lightning"] = new("electriccherry", 20);
+        values["ec_battery"] = new("electriccherry", 180);
+        values["ec_voltage"] = new("electriccherry", 50);
+        values["ec_feedback"] = new("electriccherry", 10);
+        values["ec_steady"] = new("electriccherry", 1000);
+        values["ec_slot"] = new("electriccherry", 1);
+        values["de_sixth"] = new("deathperception", 25);
+        values["de_hunter"] = new("deathperception", 10);
+        values["de_instinct"] = new("deathperception", 15);
+        values["de_persist"] = new("deathperception", 10);
+        values["de_cat"] = new("deathperception", 15);
+        values["de_shrapnel"] = new("deathperception", 10);
+        values["de_reading"] = new("deathperception", 10);
+        values["de_slot"] = new("deathperception", 1);
+        values["ts_offering"] = new("tombstone", 5);
+        values["ts_polter"] = new("tombstone", 10);
+        values["ts_haunt"] = new("tombstone", 5);
+        values["ts_long"] = new("tombstone", 60);
+        values["ts_restless"] = new("tombstone", 3);
+        values["ts_ecto"] = new("tombstone", 10);
+        values["ts_trail"] = new("tombstone", 5);
+        values["ts_slot"] = new("tombstone", 1);
+        values["db_double"] = new("doubletap", 20);
+        values["db_perf"] = new("doubletap", 15);
+        values["db_momentum"] = new("doubletap", 30);
+        values["db_trigger"] = new("doubletap", 15);
+        values["db_cold"] = new("doubletap", 800);
+        values["db_feed"] = new("doubletap", 10);
+        values["db_metro"] = new("doubletap", 10);
+        values["db_slot"] = new("doubletap", 1);
+        return values.ToFrozenDictionary(StringComparer.Ordinal);
+    }
+
+    // The 82 surviving old rewards are byte-for-byte unchanged in v4.
+    internal static readonly FrozenDictionary<string, RewardColaAchievement> LatestAchievements =
+        Achievements.Values.Where(a => !a.Key.StartsWith("syn_", StringComparison.Ordinal)).Concat(new RewardColaAchievement[]
+    {
+        new("6a1c00000000000000000a65", "bb_fresh", "bbfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a66", "bb_total", "bbtotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c07", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a67", "bb_lvl5", "bblvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a68", "bb_all", "bball", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c07", 3)])),
+        new("6a1c00000000000000000a69", "bb_secret", "bbsecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a6a", "va_fresh", "vafresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a6b", "va_total", "vatotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c08", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a6c", "va_lvl5", "valvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a6d", "va_all", "vaall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c08", 3)])),
+        new("6a1c00000000000000000a6e", "va_secret", "vasecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a6f", "mm_fresh", "mmfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a70", "mm_total", "mmtotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c09", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a71", "mm_lvl5", "mmlvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a72", "mm_all", "mmall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c09", 3)])),
+        new("6a1c00000000000000000a73", "mm_secret", "mmsecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a74", "qr_fresh", "qrfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a75", "qr_total", "qrtotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0a", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a76", "qr_lvl5", "qrlvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a77", "qr_all", "qrall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0a", 3)])),
+        new("6a1c00000000000000000a78", "qr_secret", "qrsecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a79", "mk_fresh", "mkfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a7a", "mk_total", "mktotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0b", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a7b", "mk_lvl5", "mklvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a7c", "mk_all", "mkall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0b", 3)])),
+        new("6a1c00000000000000000a7d", "mk_secret", "mksecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a7e", "ec_fresh", "ecfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a7f", "ec_total", "ectotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0c", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a80", "ec_lvl5", "eclvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a81", "ec_all", "ecall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0c", 3)])),
+        new("6a1c00000000000000000a82", "ec_secret", "ecsecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a83", "de_fresh", "defresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a84", "de_total", "detotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0d", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a85", "de_lvl5", "delvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a86", "de_all", "deall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0d", 3)])),
+        new("6a1c00000000000000000a87", "de_secret", "desecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a88", "ts_fresh", "tsfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a89", "ts_total", "tstotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0e", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a8a", "ts_lvl5", "tslvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a8b", "ts_all", "tsall", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0e", 3)])),
+        new("6a1c00000000000000000a8c", "ts_secret", "tssecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+        new("6a1c00000000000000000a8d", "db_fresh", "dbfresh", Array.AsReadOnly<RewardColaItem>([new("5449016a4bdc2d6f028b456f", 20000)])),
+        new("6a1c00000000000000000a8e", "db_total", "dbtotal", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0f", 1), new("5449016a4bdc2d6f028b456f", 15000)])),
+        new("6a1c00000000000000000a8f", "db_lvl5", "dblvl5", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 4)])),
+        new("6a1c00000000000000000a90", "db_all", "dball", Array.AsReadOnly<RewardColaItem>([new("6a1c00000000000000000c0f", 3)])),
+        new("6a1c00000000000000000a91", "db_secret", "dbsecret", Array.AsReadOnly<RewardColaItem>([new("5d235b4d86f7742e017bc88a", 5)])),
+    }).ToFrozenDictionary(a => a.Key, StringComparer.Ordinal);
+    internal static readonly FrozenDictionary<string, RewardColaAchievement> LatestById =
+        LatestAchievements.Values.ToFrozenDictionary(a => a.Id, StringComparer.Ordinal);
+    internal static readonly FrozenDictionary<string, RewardColaAchievement> AllAchievements =
+        Achievements.Values.Concat(LatestAchievements.Values).GroupBy(a => a.Key, StringComparer.Ordinal)
+            .Select(g => g.Last()).ToFrozenDictionary(a => a.Key, StringComparer.Ordinal);
+    internal static FrozenDictionary<string, RewardColaAchievement> AchievementsFor(string version) => version switch
+    {
+        Version or CurrentVersion => Achievements, LatestVersion => LatestAchievements,
+        _ => throw new RewardDataException("cola-delta-version")
+    };
+    internal static FrozenDictionary<string, RewardColaAchievement> ByIdFor(string version) => version switch
+    {
+        Version or CurrentVersion => ById, LatestVersion => LatestById,
+        _ => throw new RewardDataException("cola-delta-version")
+    };
+    internal static int HistoricalGoal(string id) => Math.Max(Challenges.GetValueOrDefault(id)?.Goal ?? 0,
+        Math.Max(CurrentChallenges.GetValueOrDefault(id)?.Goal ?? 0, LatestChallenges.GetValueOrDefault(id)?.Goal ?? 0));
 }

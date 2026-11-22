@@ -244,4 +244,61 @@ public sealed class RewardColaDeltaTests
         Assert.Throws<RewardDataException>(() => RewardColaDelta.Capture("{}", """{"prog":{"speedcola":{"a_bolt":11}}}""", RewardColaCatalog.CurrentVersion));
     }
 
+
+    [Fact]
+    public void Version4CatalogIsPairedAndOldReceiptsRemainFrozen()
+    {
+        Assert.Equal(15, RewardColaCatalog.LatestPerks.Count);
+        Assert.Equal(120, RewardColaCatalog.LatestChallenges.Count);
+        Assert.Equal(127, RewardColaCatalog.LatestAchievements.Count);
+        Assert.Equal(45, RewardColaCatalog.LatestAchievements.Keys.Except(RewardColaCatalog.Achievements.Keys).Count());
+        Assert.Equal(18, RewardColaCatalog.Achievements.Keys.Except(RewardColaCatalog.LatestAchievements.Keys).Count());
+        var research = RewardColaCatalog.LatestPerks.Select(TarkovaColaResearchCatalog.Perk)
+            .Concat(RewardColaCatalog.LatestChallenges.Select(c => TarkovaColaResearchCatalog.Challenge(c.Value.Perk, c.Key, c.Value.Goal))).ToArray();
+        var achievements = RewardColaCatalog.LatestAchievements.Values.Select(a => TarkovaColaResearchCatalog.Achievement(a.Key, a.Id)).ToArray();
+        Assert.Equal(TarkovaColaResearchCatalog.LatestResearchFingerprint, TarkovaColaResearchCatalog.Fingerprint(research));
+        Assert.Equal(TarkovaColaResearchCatalog.LatestAchievementFingerprint, TarkovaColaResearchCatalog.Fingerprint(achievements));
+        TarkovaColaResearchCatalog.RequirePair(research, achievements);
+        Assert.Throws<InvalidOperationException>(() => TarkovaColaResearchCatalog.RequirePair(research,
+            RewardColaCatalog.Achievements.Values.Select(a => TarkovaColaResearchCatalog.Achievement(a.Key, a.Id))));
+        Assert.Throws<InvalidOperationException>(() => TarkovaColaResearchCatalog.RequireResearch(research.Append("aug|mulekick|mk_unknown|1")));
+        Assert.Equal(5000, RewardColaCatalog.CurrentChallenges["st_feet"].Goal);
+        Assert.Equal(3000, RewardColaCatalog.LatestChallenges["st_feet"].Goal);
+    }
+
+    [Fact]
+    public void Version4AcceptsUpgradedStateWithoutPayingRemovedSynergiesOrLoweringSavedCounters()
+    {
+        const string oldState = """{"chv":2,"prog":{"staminup":{"st_feet":4500}},"syn":{"prog":{"syn_cardio":100},"done":{"syn_medic":true}},"ach":{"syn_medic":true}}""";
+        var after = JsonNode.Parse(oldState)!.AsObject();
+        // Native v4 can clamp an unfinished legacy counter to its lower goal.
+        after["prog"]!["staminup"]!["st_feet"] = 3000;
+        Assert.Null(RewardColaDelta.Capture(oldState, after.ToJsonString(), RewardColaCatalog.LatestVersion));
+        after["xp"] = new JsonObject { ["mulekick"] = 20 };
+        after["researched"] = new JsonObject { ["staminup"] = new JsonObject { ["st_feet"] = true } };
+        string delta = RewardColaDelta.Capture(oldState, after.ToJsonString(), RewardColaCatalog.LatestVersion)!;
+        var read = RewardColaDelta.Read(delta);
+        Assert.Empty(read.SynergyDone); Assert.Empty(read.SynergyProgress); Assert.Empty(read.Achievements);
+        var merged = JsonNode.Parse(RewardColaDelta.Merge(oldState, delta))!;
+        Assert.Equal(4500, merged["prog"]!["staminup"]!["st_feet"]!.GetValue<int>());
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(oldState)!["syn"], merged["syn"]));
+        Assert.True(merged["ach"]!["syn_medic"]!.GetValue<bool>());
+        Assert.Equal(20, merged["xp"]!["mulekick"]!.GetValue<int>());
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Capture("{}", """{"prog":{"staminup":{"st_feet":5001}}}""", RewardColaCatalog.LatestVersion));
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Capture("{}", """{"ach":{"unknown":true}}""", RewardColaCatalog.LatestVersion));
+    }
+
+    [Fact]
+    public void RemovedAchievementsAndSynergiesCannotBeInjectedIntoVersion4Receipt()
+    {
+        string old = AchievementDelta("syn_medic");
+        var forged = JsonNode.Parse(old)!; forged["catalog"] = RewardColaCatalog.LatestVersion;
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Validate(forged.ToJsonString()));
+        string synergy = RewardColaDelta.Capture("{}", """{"syn":{"prog":{"syn_cardio":1}}}""")!;
+        forged = JsonNode.Parse(synergy)!; forged["catalog"] = RewardColaCatalog.LatestVersion;
+        Assert.Throws<RewardDataException>(() => RewardColaDelta.Validate(forged.ToJsonString()));
+        // Historical approval may still settle after a legitimate mod update.
+        var upgraded = """{"xp":{"mulekick":20},"chv":2}""";
+        Assert.True(JsonNode.Parse(RewardColaDelta.Merge(upgraded, old))!["ach"]!["syn_medic"]!.GetValue<bool>());
+    }
 }

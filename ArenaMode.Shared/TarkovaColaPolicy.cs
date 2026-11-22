@@ -7,7 +7,7 @@ namespace ArenaMode.Shared;
 internal static class TarkovaColaPolicy
 {
     internal const string PluginGuid = "com.tarkovacola.server";
-    internal const string ReviewedVersion = "3.0.1";
+    internal const string ReviewedVersion = "4.0.0";
     internal const int MaxStateBytes = 524288;
     internal static bool SupportedVersion(Version version)
         => version != null && version >= new Version(2, 2, 1);

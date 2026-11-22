@@ -50,9 +50,9 @@ internal static class RewardColaDelta
             Numbers(Object(root["xp"]), id => perks.Contains(id) ? MaxXpDelta : -1, positive: true),
             Numbers(Object(root["prog"]), id => challenges.TryGetValue(id, out var c) ? c.Goal : -1, positive: true),
             Set(root["researched"], challenges.ContainsKey),
-            Numbers(Object(root["synProg"]), id => RewardColaCatalog.Synergies.GetValueOrDefault(id, -1), positive: true),
-            Set(root["synDone"], RewardColaCatalog.Synergies.ContainsKey),
-            Set(root["ach"], RewardColaCatalog.Achievements.ContainsKey), catalog);
+            Numbers(Object(root["synProg"]), id => catalog == RewardColaCatalog.LatestVersion ? -1 : RewardColaCatalog.Synergies.GetValueOrDefault(id, -1), positive: true),
+            Set(root["synDone"], id => catalog != RewardColaCatalog.LatestVersion && RewardColaCatalog.Synergies.ContainsKey(id)),
+            Set(root["ach"], RewardColaCatalog.AchievementsFor(catalog).ContainsKey), catalog);
         if (Empty(changes) || !string.Equals(json, Write(changes), StringComparison.Ordinal))
             throw new RewardDataException("cola-delta-empty-or-noncanonical");
         return changes;
@@ -67,7 +67,7 @@ internal static class RewardColaDelta
         // An old signed receipt may meet a profile already upgraded by Cola.
         // Validate the entire current owned state against the reviewed superset,
         // while applying only the receipt's original goals and identities.
-        _ = Snapshot(current, RewardColaCatalog.CurrentVersion);
+        _ = Snapshot(current, RewardColaCatalog.LatestVersion, validateSuperset: true);
         var challenges = RewardColaCatalog.ChallengesFor(delta.Catalog);
         PrepareCurrentChallengeVersion(current);
         foreach (var (id, amount) in delta.Xp)
@@ -91,7 +91,7 @@ internal static class RewardColaDelta
         return result;
     }
 
-    private static RewardColaChanges Snapshot(JsonObject root, string catalog)
+    private static RewardColaChanges Snapshot(JsonObject root, string catalog, bool validateSuperset = false)
     {
         var perks = RewardColaCatalog.PerksFor(catalog);
         var challenges = RewardColaCatalog.ChallengesFor(catalog);
@@ -100,11 +100,15 @@ internal static class RewardColaDelta
         var xp = Numbers(Optional(root, "xp"), id => perks.Contains(id) ? int.MaxValue : -1);
         var prog = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var researched = new List<string>();
+        bool latest = catalog == RewardColaCatalog.LatestVersion;
         foreach (var (perk, value) in Optional(root, "prog"))
         {
             if (!perks.Contains(perk)) throw new RewardDataException("cola-unknown-perk");
-            foreach (var entry in Numbers(Object(value), id => challenges.TryGetValue(id, out var c) && c.Perk == perk ? c.Goal : -1))
-                prog.Add(entry.Key, entry.Value);
+            foreach (var entry in Numbers(Object(value), id => challenges.TryGetValue(id, out var c) && c.Perk == perk
+                         ? latest ? RewardColaCatalog.HistoricalGoal(id) : c.Goal : -1))
+                // v4 lowers several goals without migrating saved old counters.
+                // Normalize only the reward view; never lower the ordinary file.
+                prog.Add(entry.Key, latest && !validateSuperset ? Math.Min(entry.Value, challenges[entry.Key].Goal) : entry.Value);
         }
         foreach (var (perk, value) in Optional(root, "researched"))
         {
@@ -112,10 +116,16 @@ internal static class RewardColaDelta
             researched.AddRange(Flags(Object(value), id => challenges.TryGetValue(id, out var c) && c.Perk == perk));
         }
         var syn = Optional(root, "syn");
+        var synergyProgress = Numbers(Optional(syn, "prog"), id => RewardColaCatalog.Synergies.GetValueOrDefault(id, -1));
+        var synergyDone = Flags(Optional(syn, "done"), RewardColaCatalog.Synergies.ContainsKey);
+        var achievements = Flags(Optional(root, "ach"), latest ? RewardColaCatalog.AllAchievements.ContainsKey
+            : RewardColaCatalog.Achievements.ContainsKey);
+        // Removed synergy state/achievements may survive a normal upgrade.
+        // Keep them in the file, but v4 cannot create new rewards for them.
         return new(xp, prog, researched.Order(StringComparer.Ordinal).ToArray(),
-            Numbers(Optional(syn, "prog"), id => RewardColaCatalog.Synergies.GetValueOrDefault(id, -1)),
-            Flags(Optional(syn, "done"), RewardColaCatalog.Synergies.ContainsKey),
-            Flags(Optional(root, "ach"), RewardColaCatalog.Achievements.ContainsKey), catalog);
+            latest ? new SortedDictionary<string, int>(StringComparer.Ordinal) : synergyProgress,
+            latest ? System.Array.Empty<string>() : synergyDone,
+            latest ? achievements.Where(RewardColaCatalog.LatestAchievements.ContainsKey).ToArray() : achievements, catalog);
     }
 
     private static void PrepareCurrentChallengeVersion(JsonObject root)

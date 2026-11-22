@@ -35,7 +35,7 @@ internal static class ArenaTarkovaColaState
             _folder = ResolveFolder(Directory.GetCurrentDirectory());
             var metadata = Activator.CreateInstance(assembly.GetType("TarkovaCola.Server.ModMetadata", true)!)!;
             var version = Version.Parse(metadata.GetType().GetProperty("Version")!.GetValue(metadata)!.ToString()!);
-            _catalog = version >= new Version(3, 0, 1) ? RewardColaCatalog.CurrentVersion : RewardColaCatalog.Version;
+            _catalog = CatalogFor(version);
             if (version > new Version(TarkovaColaPolicy.ReviewedVersion))
                 ArenaContext.Logger?.Warning("[ArenaMode] Tarkova Cola is newer than reviewed " + TarkovaColaPolicy.ReviewedVersion + "; required protection contracts and existing achievement rewards match.");
             var store = assembly.GetType("TarkovaCola.Server.PerkStore", true)!;
@@ -45,7 +45,12 @@ internal static class ArenaTarkovaColaState
             Patch(store, "Save", typeof(void), [typeof(string), typeof(string)], nameof(Save));
             Patch(achievements, "Claim", typeof(List<string>), [typeof(MongoId), typeof(IEnumerable<string>)], nameof(Claim));
             Patch(refunds, "Send", typeof(bool), [typeof(MongoId), typeof(string), typeof(int)], nameof(Refund));
-            ArenaContext.Logger?.Info("[ArenaMode] Tarkova Cola: protected Arena progression enabled; bottle and grenade refunds are excluded.");
+            var offering = assembly.GetType("TarkovaCola.Server.OfferingStore", false);
+            if (offering != null)
+                Patch(offering, "Send", typeof(bool), [typeof(MongoId), typeof(string)], nameof(Refund));
+            else if (_catalog == RewardColaCatalog.LatestVersion)
+                throw new RewardDataException("cola-offering-contract-unavailable");
+            ArenaContext.Logger?.Info("[ArenaMode] Tarkova Cola: protected Arena progression enabled; bottle, grenade and Tombstone item refunds are excluded.");
         }
         catch (Exception e)
         {
@@ -74,7 +79,7 @@ internal static class ArenaTarkovaColaState
         if (metadataType.GetProperty("ModGuid")?.GetValue(metadata)?.ToString() != Guid
             || !Version.TryParse(metadataType.GetProperty("Version")?.GetValue(metadata)?.ToString(), out var version)
             || version < new Version(2, 2, 1)) throw new RewardDataException("cola-server-contract-unavailable");
-        RequireCatalog(assembly);
+        RequireCatalog(assembly, CatalogFor(version));
         var folder = Path.GetDirectoryName(assembly.Location)!;
         RewardStartupFiles.RequireLocalPath(root, folder);
         var mods = Path.GetFullPath(Path.Combine(root, "user", "mods")) + Path.DirectorySeparatorChar;
@@ -97,18 +102,23 @@ internal static class ArenaTarkovaColaState
 
     // No upper version gate: newer builds may keep these contracts. Never use a
     // stale reward table if a reviewed achievement's actual reward has changed.
-    private static void RequireCatalog(Assembly assembly)
+    private static string CatalogFor(Version version) => version >= new Version(4, 0, 0)
+        ? RewardColaCatalog.LatestVersion : version >= new Version(3, 0, 1)
+            ? RewardColaCatalog.CurrentVersion : RewardColaCatalog.Version;
+
+    private static void RequireCatalog(Assembly assembly, string catalog)
     {
         var data = assembly.GetType("TarkovaCola.Server.AchievementData", true)!;
         var definitions = data.GetProperty("All", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
             ?.GetValue(null) as System.Collections.IEnumerable ?? throw new RewardDataException("cola-reward-catalog-unavailable");
+        var expected = RewardColaCatalog.ByIdFor(catalog);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var definition in definitions)
         {
             var type = definition.GetType();
             var id = type.GetField("Id")?.GetValue(definition) as string;
             if (id is null || !seen.Add(id)) throw new RewardDataException("cola-reward-catalog-invalid");
-            if (!RewardColaCatalog.ById.TryGetValue(id, out var known)) continue;
+            if (!expected.TryGetValue(id, out var known)) continue;
             if (type.GetField("Key")?.GetValue(definition) as string != known.ServerKey)
                 throw new RewardDataException("cola-reward-catalog-changed");
             var rewards = type.GetField("Rewards")?.GetValue(definition) as System.Collections.IEnumerable
@@ -124,7 +134,7 @@ internal static class ArenaTarkovaColaState
             }
             if (!known.Items.SequenceEqual(items)) throw new RewardDataException("cola-reward-catalog-changed");
         }
-        if (RewardColaCatalog.ById.Keys.Any(id => !seen.Contains(id))) throw new RewardDataException("cola-reward-catalog-incomplete");
+        if (expected.Keys.Any(id => !seen.Contains(id))) throw new RewardDataException("cola-reward-catalog-incomplete");
     }
 
     internal static void Begin(string id, string arm, string mode, string? expectedBaseline)

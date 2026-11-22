@@ -268,4 +268,29 @@ public sealed class RewardColaSettlementTests
         Assert.InRange(Items(store.Profile).Count, 100, 1025);
         Assert.True(RewardProfileDocument.HasOriginalMail(store.Profile, Assert.Single(Ledger(store.Profile)), Limits));
     }
+
+    [Fact]
+    public async Task Version4NewPerkAchievementsPayReviewedItemsExactlyOnce()
+    {
+        var newAchievement = RewardColaCatalog.LatestAchievements.Values.First(a =>
+            a.Items.Any(i => i.Template == "6a1c00000000000000000c0a"));
+        var state = new JsonObject { ["ach"] = new JsonObject { [newAchievement.Key] = true } };
+        string delta = RewardColaDelta.Capture("{}", state.ToJsonString(), RewardColaCatalog.LatestVersion)!;
+        using var store = Store();
+        var claim = Claim(cola: delta);
+        Assert.Equal(RewardSettlementStatus.Paid, (await Settle(store, claim)).Status);
+        Assert.Single(Achievements(store.Profile));
+        Assert.True(Achievements(store.Profile).ContainsKey(newAchievement.Id));
+        Assert.Equal(newAchievement.Items.Where(i => i.Template == "6a1c00000000000000000c0a").Sum(i => i.Count),
+            Items(store.Profile).Count(i => i!["_tpl"]!.GetValue<string>() == "6a1c00000000000000000c0a"));
+        string once = store.Profile;
+        await Settle(store, claim);
+        Assert.Equal(once, store.Profile);
+        // A new reward sequence can carry research again, but native achievement
+        // dedup prevents a second bottle/achievement grant.
+        await Settle(store, Claim(2, delta));
+        Assert.Single(Achievements(store.Profile));
+        Assert.Equal(Items(once).Count(i => i!["_tpl"]!.GetValue<string>() == "6a1c00000000000000000c0a"),
+            Items(store.Profile).Count(i => i!["_tpl"]!.GetValue<string>() == "6a1c00000000000000000c0a"));
+    }
 }

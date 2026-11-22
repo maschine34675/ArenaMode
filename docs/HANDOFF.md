@@ -12,11 +12,27 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-22: Cola 4 / FOV 5.** Tarkova Cola 4.0.0 progression,
+  catalog pairing and offering protection are implemented; older reward catalogs
+  remain supported. General Cola physical-state cleanup and FOV Fix 5.0.1's new
+  Realism Common Lib 0.1.0 controller lifecycle live in sibling Redeploy.Core
+  **1.0.28**. Source whitelist now reviews those three versions (69 entries).
+  GPU2 standalone and Arena trials passed normal death/respawn, retained-live-body
+  swaps, ADS/shooting/movement and a genuine Quick Revive downed transition. The
+  full restored profile exactly matches the protected arm checkpoint; offering
+  is allowed normally and blocked during Arena. This candidate is **not regularly
+  deployed**: the actual pretest installation has separate map work, Arena client
+  `0.6.0+fb2b3af6`, server `0.6.0+026d4c44` and Core `1.0.27+42839bd`.
+  The frozen tested candidate and its hashes remain in
+  `artifacts/cola-fov-20261122/candidate-a`; integration with those map branches
+  is separate work. No push or release. [Native results and cleanup record](reports/2026-11/COLA-FOV-NATIVE-20261122.md).
+
 - **Source-only Forge whitelist audit, 2026-11-21.** All 68 default entries were
   accounted for against current Forge publications. Seven runtime-version records
   were updated after release-binary/source inspection; Cola 4.0.0 and FOV Fix 5.0.1
-  require separate protection/dependency work, so their reviewed baselines remain
-  3.0.1 and 4.1.0. No foreign mods, installed policy or DLLs were replaced; the
+  required separate protection/dependency work, so that audit retained reviewed
+  baselines 3.0.1 and 4.1.0 (superseded by the November 22 follow-up above).
+  No foreign mods, installed policy or DLLs were replaced during that audit; the
   installed Armory candidate below remains unchanged. No new native acceptance,
   push or release. Offline verification completed November 22: 4,422 unit tests
   passed (three known skips); all 52 selected checks have passing evidence after

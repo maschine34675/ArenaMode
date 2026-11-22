@@ -14,9 +14,10 @@ namespace Redeploy.Core.Api { internal static class RespawnApi { internal static
 namespace ArenaMode.Compat
 {
     internal sealed class ColaClosure { public object c = new(); }
-    internal static class ColaForeign { internal static JObject? _pending; internal static object? _pendingFor; internal static bool Busy; }
+    internal static class ColaForeign { internal static JObject? _pending; internal static object? _pendingFor; internal static bool Busy; internal static string? Offering; }
     internal sealed class ColaContract
     {
+        internal FieldInfo? PendingOffering = typeof(ColaForeign).GetField("Offering", BindingFlags.Static | BindingFlags.NonPublic)!;
         internal FieldInfo RerollContainer = typeof(ColaClosure).GetField("c")!;
         internal FieldInfo RerollPending = typeof(ColaForeign).GetField("_pending", BindingFlags.Static | BindingFlags.NonPublic)!;
         internal FieldInfo RerollPendingFor = typeof(ColaForeign).GetField("_pendingFor", BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -29,11 +30,37 @@ namespace ArenaMode.Compat
         private static readonly ColaContract _contract = new();
         private static GameWorld? _world;
         private static int _mainThread;
+        private static string? _offering;
         private static bool Blocks => _lease?.BlocksWrites == true;
         private static GameWorld? CurrentWorld()
         {
             if (Environment.CurrentManagedThreadId != _mainThread) throw new Exception("Unity access from callback worker");
             return _world;
+        }
+        internal static void CheckOfferings(Action<bool, string> check)
+        {
+            const string ordinary = "[{\"tpl\":\"ordinary\",\"count\":2}]";
+            _lease = null;
+            check(PersistPrefix(), "ordinary offering request and drain pass through");
+            ColaForeign.Offering = ordinary; CaptureOffering();
+            _lease = new("profile", "factory4_day", "zombie", 7);
+            check(!PersistPrefix(), "armed offering cannot overwrite or drain ordinary queue");
+            check(ColaForeign.Offering == ordinary, "ordinary offering retained while armed");
+            _lease.BindWorld(new object(), new object(), "profile", "factory4_day", 7);
+            _lease.Fail();
+            check(!PersistPrefix(), "failed lease still blocks offering creation and drain");
+            // Defense in depth: unexpected foreign writes cannot leak Arena items.
+            ColaForeign.Offering = "arena-items"; RestoreOffering();
+            check(ColaForeign.Offering == ordinary, "exact ordinary offering restored after lease");
+            _lease.Release();
+            check(PersistPrefix(), "ordinary queue can drain after release");
+            _lease = null;
+            ColaForeign.Offering = null; CaptureOffering(); ColaForeign.Offering = "arena-items"; RestoreOffering();
+            check(ColaForeign.Offering == null, "Arena-only offering discarded at release");
+            var field = _contract.PendingOffering; _contract.PendingOffering = null;
+            CaptureOffering(); RestoreOffering();
+            check(_offering == null, "old reviewed builds need no offering field");
+            _contract.PendingOffering = field;
         }
         internal static void CheckRerolls(Action<bool, string> check)
         {
@@ -136,3 +163,5 @@ namespace ArenaMode.Compat
         }
     }
 }
+
+namespace ArenaMode.Server.Rewards { internal sealed class RewardDataException(string message) : Exception(message); }

@@ -10,7 +10,14 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
-- Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. Keep Cola 3.0.1 and FOV Fix 4.1.0 until their newer releases have the required protection/dependency integration. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
+- Add Tarkova Cola 4.0.0's research and achievement catalog while preserving older
+  reward records. Block Arena-generated Tombstone offering mails and preserve
+  pending ordinary offerings. [Protection details](docs/reviews/TARKOVA-COLA-4-20261122.md).
+- Record Tarkova Cola 4.0.0, Fontaine FOV Fix 5.0.1 and SPT Realism Common Lib 0.1.0
+  in the development whitelist. Core 1.0.28 adds Common Lib controller handoff and
+  selective Cola body-state cleanup. Verified standalone and in protected Arena
+  with the [documented native scope](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md).
+- Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
 
 - Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
 
