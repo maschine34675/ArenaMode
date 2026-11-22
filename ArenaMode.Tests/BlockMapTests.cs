@@ -235,7 +235,7 @@ public sealed class BlockMapTests
         Assert.Equal(20, ArenaParticipantPolicy.MaximumFor(map, "teamdeathmatch"));
         // The neighbours keep their own defaults.
         Assert.Equal(4, ArenaParticipantPolicy.DefaultTotal(ArenaMapCatalog.EquatorId, "deathmatch"));
-        Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(ArenaMapCatalog.AutoServiceId, "deathmatch"));
+        Assert.Equal(6, ArenaParticipantPolicy.DefaultTotal(ArenaMapCatalog.AutoServiceId, "deathmatch"));
     }
 
     [Fact]

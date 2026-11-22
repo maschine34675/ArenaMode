@@ -282,7 +282,7 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** (and in Domination on Factory, Labs and Labyrinth) in even steps, or **4–20 in Team DM and Domination on the team-box maps** (Equator,
-Bay5, Air Pit, Bowl, Iceberg, Chop Shop, Block). Defaults are Equator 4, Bay5, Air Pit, Bowl, Iceberg, Chop Shop and Block 8 (Chop Shop was 6 until 2026-11-13),
+Bay5, Air Pit, Bowl, Iceberg, Chop Shop, Block). Defaults are Equator 4, Chop Shop 6 (8 from 2026-11-13 to 2026-11-22; a count you saved stays), Bay5, Air Pit, Bowl, Iceberg and Block 8,
 Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM and Domination separately
 default to 2v2 (the area team size, 2 to 5 per side). These are menu defaults, not hardware performance guarantees.
 

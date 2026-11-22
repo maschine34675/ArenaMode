@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Chop Shop recommends **six** participants again (eight since 0.6.0). A count you
+  already saved for the map stays as it is; the map screen shows the new recommendation
+  beside it, and a fresh configuration starts at six.
+
 - Choose **Maximum** or **Reduced** directly on the Arena map screen. The Combat
   mutator list now leaves room for the full **TRANSLOCATOR (WIP)** label on narrow screens.
 

@@ -3,8 +3,9 @@
 `Verify.ps1` runs the Chop Shop integration checks against the installed ArenaMapPort data
 (`user/mods/ArenaMapPort/db/arena_autoservice/base.json`: 4 Player rows and at least the 16
 Bot rows of ArenaMapPort 0.6.0, all in `BotZone_Main`, the donor row
-`arena_autoservice-bot-core-03` with its exact floats; no list of ids, the Tactical rule and
-the default of eight are pinned in `MapModeAdmissionChecks`), the
+`arena_autoservice-bot-core-03` with its exact floats; no list of ids, the Tactical rule is
+pinned in `MapModeAdmissionChecks`, the default of six in `ChopShopMapTests` and
+`ParticipantMenuChecks`), the
 filtered Chop Shop xunit classes and the PFT compiled faults; it fails loudly when the
 installed MapPort build ships no `arena_autoservice`. The location id is MapPort's, the
 player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md`.
@@ -17,7 +18,7 @@ player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-2
 
 | File | Runs |
 |---|---|
-| `chopshop-dm.json` | Deathmatch with six participants, the parameter default (13 steps, 5 expectations); the recommendation is eight since 2026-11-13 |
+| `chopshop-dm.json` | Deathmatch with six participants, the parameter default (13 steps, 5 expectations); the recommendation is six again since 2026-11-22 (eight from 2026-11-13) |
 | `chopshop-tdm.json` | Team DM with held gates, formation, capacity, respawn (21 steps, 4 expectations) |
 | `chopshop-dom.json` | Domination 4v4 with the one capture point (14 steps, 5 expectations) |
 | `chopshop-zombie.json` | solo Zombies from the yard centre (15 steps, 3 expectations) |

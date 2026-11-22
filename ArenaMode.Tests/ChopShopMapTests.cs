@@ -218,17 +218,17 @@ public sealed class ChopShopMapTests
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, "arena_autoservice_extra", "domination", false, out _, out _));
     }
 
-    // Sixteen installed Bot rows (ArenaMapPort 2026-11-12) put Chop Shop in the 8-group: it
-    // was six while it had seven rows. A value a player saved stays valid (6 is still
-    // accepted); only the recommendation moved.
+    // Chop Shop recommends six (the owner's decision of 2026-11-22; it was eight from
+    // 2026-11-13). A value a player saved stays valid (8 is still accepted); only the
+    // recommendation moved.
     [Theory]
     [InlineData("arena_autoservice")]
     [InlineData("ARENA_AUTOSERVICE")]
-    public void ChopShopDefaultsToEightParticipants(string map)
+    public void ChopShopDefaultsToSixParticipants(string map)
     {
-        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch" })
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "domination" })
         {
-            Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(map, mode));
+            Assert.Equal(6, ArenaParticipantPolicy.DefaultTotal(map, mode));
             Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 8, out var count, out _));
             Assert.Equal(8, count);
             Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 6, out count, out _));

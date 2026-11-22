@@ -1027,7 +1027,7 @@ Bot pickup objectives (BigBrain companion): before changing them read PICKUP-OBJ
 
 *(handoff lines 2914-2917)*
 
-Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4 (an older preset of 2026-09-21, not derived from rows); Bay5/AirPit/Bowl/Iceberg/Chop Shop/Block 8 (Chop Shop was 6 until 2026-11-13); Labs 16; Labyrinth 8; Factory and others 10.
+Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4 (an older preset of 2026-09-21, not derived from rows); Bay5/AirPit/Bowl/Iceberg/Block 8; Chop Shop 6 (6 until 2026-11-13, 8 until 2026-11-22, 6 again by the owner's decision; a saved value is not migrated); Labs 16; Labyrinth 8; Factory and others 10.
 
 *(handoff lines 2966-2969)*
 

@@ -18,12 +18,13 @@ public static class ArenaParticipantPolicy
     public static int MaximumFor(string map, string mode)
         => ArenaTeamBoxCatalog.Applies(map, mode) ? 20 : MaximumTotal;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
-    // Chop Shop defaulted to 6 while it had seven Bot/BotPmc rows (eight would have asked
-    // for seven bots from seven rows). ArenaMapPort's rows of 2026-11-12 gave it sixteen,
-    // as many as Bay5 and Equator have (Iceberg 17, Air Pit 20, Bowl 21), and Arena's own TeamFight on this map is
-    // 5v5, so it joins the 8-group (seven bots from sixteen rows leaves nine spare). It is a
-    // menu preset, not a ranking by area: Chop Shop is 1,915.6 m². A value saved per map
-    // is not migrated; only a fresh configuration gets the new recommendation.
+    // Chop Shop recommends 6 (the owner's decision of 2026-11-22). It had 6 while it had
+    // seven Bot/BotPmc rows, moved to 8 on 2026-11-13 after ArenaMapPort's rows of
+    // 2026-11-12 gave it sixteen (as many as Bay5 and Equator; Iceberg 17, Air Pit 20,
+    // Bowl 21), and is back at 6 (the hall has 1,915.6 m²). The rows are unchanged, so 8
+    // and more stay selectable. It is a menu preset, not a ranking by area. A value saved
+    // per map is not migrated; only a fresh configuration gets the new recommendation,
+    // and the map screen shows it beside the saved value.
     // Equator keeps 4. That preset dates from 2026-09-21 and was never derived from the
     // number of rows (BurstMinAliveBots is 4 on every port); it is an older, smaller
     // preset of a 2,783 m² map, kept as it is until someone decides to change it. The
@@ -32,9 +33,9 @@ public static class ArenaParticipantPolicy
     // eleven spare) on a main walkable component of about 4,500 m² (Iceberg 4,788, Bowl 4,987).
     public static int DefaultTotal(string map, string mode)
         => ArenaMapCatalog.IsEquator(map) ? 4
+            : ArenaMapCatalog.IsAutoService(map) ? 6
             : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
-                || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)
-                || ArenaMapCatalog.IsYard(map)) ? 8
+                || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsYard(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;
 
