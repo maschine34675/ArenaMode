@@ -12,6 +12,39 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Released, 2026-11-22: ArenaMode 0.7.0 (`v0.7.0` = `259d6dfb`) with Redeploy 1.1.4 (`v1.1.4` = Redeploy
+  `50c3df0`) and shared Core 1.0.28; the release binaries were installed.** At the user's request ("merge,
+  delete and push every ArenaMode and Redeploy branch and worktree, make sure the documents are current,
+  create the releases on GitHub; on the side, lower Chop Shop's recommended participant count to six
+  without running every test again"). [Release notes](RELEASE-0.7.0.md),
+  [native run](reports/2026-11/GPU-RELEASE-070-20261122.md),
+  [collection record](reports/2026-11/WORKTREE-CLEANUP-20261122.md),
+  [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.7.0) (published 14:18 UTC,
+  latest, `ArenaMode-0.7.0.zip` with its checksum; the downloaded asset's SHA-256 equals the local
+  `3a4e21c9…c06b14`). `master` was pushed with the record commit `9091abad`; this note follows in its own
+  commit. The Forge upload is the user's; `docs/FORGE-DESCRIPTION.md` describes 0.7.0.
+  **What the release publishes:** everything of the entries below up to the 0.6.0 release that says
+  "no push or release", "not deployed" or "push follows with the release": Block (`feature/yard`, merged as
+  `a28d2a5a`), Chop Shop's recommendation of six (`36b05655`), Cola 4 / FOV 5 with Core 1.0.28, the WTT and
+  Forge whitelist reviews, DynamicMaps 1.3, the difficulty model, the Tactical opening rounds and Zombie waves,
+  the Translocator and the session, reward and Pack A Punch fixes. ArenaMapPort 0.7.0 (published the same
+  day, with Block) is the version 0.7.0 is made for; the whitelist records it and Redeploy 1.1.4.
+  **Checks:** the package's isolated snapshot ran the suite (4,566 passed, four known environment skips) and
+  the package verifier; Redeploy 637 + 162 tests, 47 interop checks, the Core startup guard; VirusTotal clean
+  except the session helper's three generic labels. The full offline verification register was **not** run
+  on the release tree (the owner asked not to rerun everything for the Chop Shop change); the merged features
+  carry their own runs. Native on GPU-2 with the exact package binaries: Chop Shop Deathmatch with six,
+  Block Team DM with the published ArenaMapPort 0.7.0 and a Core respawn, a Redeploy respawn on Factory, the
+  Arena session round trip (needed because `SamSWAT.TimeWeatherChanger`, installed by another session at
+  10:21 that day and on no whitelist, holds the ARENA toggle at MOD CONFLICT).
+  **Installed state:** client, companion, gate and session helper `0.7.0+259d6dfb`, server `0.7.0+259d6dfb`,
+  Redeploy Client/Server `1.1.4+50c3df0`, Core `1.0.28+50c3df0`, on the VM and both GPU hosts (Syncthing).
+  The state before is in `D:\SPT41-Backups\release-070\20261122-150251\` (replaced files with
+  `SHA256SUMS.txt`, configurations, three profiles, `MANIFEST-SHA256.txt`).
+  **Still open:** the Block decisions of the entry below wait for the owner's confirmation; ArenaMapPort's
+  side of the Block donor row (`PENDING_DONOR_MAPS`); the UiBridge commits `b3a469a` and `9d3fd75` (gpu-run's
+  Block catalogue entry) are local and not pushed; `feature/fika-admission` stays out.
+
 - **Development, 2026-11-22: Cola 4 / FOV 5.** Tarkova Cola 4.0.0 progression,
   catalog pairing and offering protection are implemented; older reward catalogs
   remain supported. General Cola physical-state cleanup and FOV Fix 5.0.1's new
@@ -41,7 +74,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 - **Development, 2026-11-21: Block (arena_yard) admitted on feature/yard.** Block is ArenaMapPort's seventh map
   (location id `arena_yard`, Arena's own name "Block", unrelated to the Customs yard area). It is admitted as an
   optional map in every mode on the branch `feature/yard`, worktree `D:\SPT41\Development\ArenaMode-yard`, cut from
-  `master` `6b3ba6a4`. **The branch was merged into `master` on 2026-11-22 (merge `a28d2a5a`); the branch and its worktree were deleted that day, and the push follows with the 0.7.0 release.** It held five commits:
+  `master` `6b3ba6a4`. **The branch was merged into `master` on 2026-11-22 (merge `a28d2a5a`); the branch and its worktree were deleted that day, and it was pushed and published with the 0.7.0 release.** It held five commits:
   `30892f9a` (admission: catalogue, optional-map revision 7, team boxes, two-point Domination, tests and harnesses),
   `c071cb81` (the Amand's Graphics scene check pins the number of catalogue ids, now twelve; three comments that
   claimed more than was measured now give the numbers), `fb2b3af6` (seven south start heights carry the measured
@@ -685,7 +718,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Block (`arena_yard`), 2026-11-21, `feature/yard` (merged into `master` on 2026-11-22, `a28d2a5a`, branch and worktree deleted; push with the release; entry under "Released and installed",
+**Block (`arena_yard`), 2026-11-21, `feature/yard` (merged into `master` on 2026-11-22, `a28d2a5a`, branch and worktree deleted; pushed and published with 0.7.0; entry under "Released and installed",
 [contract](reviews/BLOCK-INTEGRATION-20261121.md)):** open are (1) the owner's decisions on the brief; (2) nothing offline: the final
 pass is green (result in the entry above); (3) the native runs not made: a PitFireTeam squad
 on Block, Gun Game, Deathmatch above eight participants, a match played to its result, the local player on a south

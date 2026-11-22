@@ -83,3 +83,16 @@ ArenaMode total: **5,493 files / 695,597,487 bytes**. A document of the Block se
 that names an ignored `artifacts/<name>/` folder (for example `artifacts/yard-20261121/`)
 means `artifacts/archived-worktrees/yard-20261122/artifacts/<name>/` now. The archives
 stay ignored and local; they must not be bundled or pushed.
+
+## Push and release
+
+`master` was pushed to `dev/master` with the release record commit `9091abad` (18
+commits from `a3959393`), with the tag `v0.7.0` on the build commit `259d6dfb`; Redeploy
+`main` was pushed to `origin/main` with `8f54f3c` (6 commits from `32336f4`), with the tag
+`v1.1.4` on `50c3df0`. Both GitHub releases were created the same day. Before the push the
+commits to be published were searched for keys, tokens, private addresses and binaries
+(none) and carry one author identity. What was checked for the release is in
+[RELEASE-0.7.0.md](../../RELEASE-0.7.0.md), "Package checks" and "Native release check":
+the full offline verification register was not run on the release tree, at the owner's
+request for the Chop Shop change; the package's isolated snapshot ran the unit test suite.
+This record and the publication note in `HANDOFF.md` were pushed in a commit of their own.
