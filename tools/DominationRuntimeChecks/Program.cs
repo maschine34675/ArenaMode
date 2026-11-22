@@ -51,6 +51,8 @@ var cases = new Dictionary<string, (string Id, Vector3 Position)[]>
         ("C", new Vector3(21.91f, 3.15f, -47.3f)) },
     // Chop Shop: the capture-point light root's own X/Y/Z, which GPU-2 accepted unchanged (12.11.2026).
     ["arena_autoservice"] = new[] { ("X", new Vector3(-369.29f, -3.8f, 499.49f)) },
+    // Block (arena_yard): the two capture-point light roots' own X/Y/Z (both y 6.1262), never lifted.
+    ["arena_yard"] = new[] { ("A", new Vector3(-29.3245f, 6.1262f, 71.6287f)), ("B", new Vector3(-62.5245f, 6.1262f, 72.1887f)) },
     ["factory4_day"] = new[] { ("A", new Vector3(-5.89f, .08f, -27.46f)), ("B", new Vector3(-6.77f, .17f, 10.01f)),
         ("C", new Vector3(-20.756f, .166f, 22.769f)) }
 };
@@ -185,7 +187,7 @@ foreach (string fault in new[] { "floor", "sample", "height", "path-false", "pat
         "failed final point leaves no partial markers or pickup authority");
     runtime.Dispose();
 }
-foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
 {
     Reset(); var (runtime, _, _) = Create(map);
     ArenaPickupGeometry.Place = (point, nearby) => (nearby, point + new Vector3(1,0,0));
@@ -644,7 +646,7 @@ foreach (var (map, slots, extra) in surveyedCases)
 // the server admits must have points to hold. The equivalence holds for every row below; no row is exempt.
 {
     string[] equivalenceMaps = { "factory4_day", "factory4_night", "arena_bay5", "arena_equator", "arena_airpit",
-        "arena_bowl", "arena_iceberg", "arena_autoservice", "laboratory", "labyrinth", "bigmap",
+        "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard", "laboratory", "labyrinth", "bigmap",
         "FACTORY4_DAY", "BIGMAP", "shoreline", "unknown-map" };
     string[] equivalenceAreas = { null, "", " ", "full-map", ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
         ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId,

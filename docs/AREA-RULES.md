@@ -301,7 +301,7 @@ without the component); a lookup that works is never replaced, and ordinary raid
 are untouched. The substitute is the live `Singleton<LevelSettings>` of the exact
 active raid or of its still-loading, server-armed local game and map; nothing is
 written into Graphics' scene table. Core owns the subsequent camera handoff. Only
-Factory and Labyrinth were run natively with Graphics; the six ArenaMapPort
+Factory and Labyrinth were run natively with Graphics; the seven ArenaMapPort
 maps are covered by code and offline checks only (`tools/AmandsGraphicsSceneChecks`,
 with mutants) and have not been run natively. Open point: Graphics treats an unknown
 scene like the hideout and writes its own sky, equator and ground colours into the
@@ -452,12 +452,12 @@ must not depend on the selected triple. Read docs/reviews/DOMINATION-OPTIONS-ROU
 Domination owns separate score/time preferences, frozen at match start. Bot
 approaches must be capture-valid and fully reachable; keep the last successfully
 owned route destination separate from any failed alternative for exact cleanup.
-The six ported maps use original anchors: Equator, Bay5 and Chop Shop one each, AirPit and
-Bowl two each (CapturePointEntity), Iceberg three, A/B/C. Chop Shop's "X" is the
+The seven ported maps use original anchors: Equator, Bay5 and Chop Shop one each, AirPit,
+Bowl and Block two each (CapturePointEntity for AirPit and Bowl, the YARD_CAPTURE_POINT_LIGHT roots for Block), Iceberg three, A/B/C. Chop Shop's "X" is the
 CAPTURE_POINT light root with all three of its own coordinates (GPU-2 accepted it exactly on
 2026-11-12 and the protected match verified (-369.290, -3.805, 499.490); nothing is substituted); keep the shared projection as it is, see
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md. Read docs/reviews/DOMINATION-PORTED-20261026.md.
-Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
+Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl/Block: it
 averages two distinct objectives (Iceberg's is null). Iceberg's A/B/C are the
 CheckPoint CAPTURE_POINT_LIGHT_02 trigger centres; A (in the pool) and B lie .5 m
 and .4 m below their floors. Never lift them, add a relocation or loosen the
@@ -554,7 +554,7 @@ elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIV
 before changing that order, the bridge contract, the lease teardown at every round end or the
 reward rule. The point applies wherever Tactical is admitted and the map has a fixed Domination layout (`Resolve`/`ControlPointCount`,
 not the surveyed layouts of The Lab, The Labyrinth and the Customs areas, which Domination alone uses): besides
-Factory, Bay 5, Air Pit and Bowl, on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
+Factory, Bay 5, Air Pit, Bowl and Block (A/B as on Air Pit and Bowl; solo ran natively on 2026-11-21, a PitFireTeam squad did not), on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
 since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor.
 In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no
 hold was run (the test timing ends each round when the point appears).
@@ -736,6 +736,18 @@ docs/reviews/ICEBERG-INTEGRATION-20261031.md. Chop Shop needs an ArenaMapPort bu
 (ArenaMapPort 0.6.0, which also carries the rows above; 0.5.0 does not offer the map); detect it by the live location, never by the MapPort version. See
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md (the 2026-11-12 state; its Tactical refusals, its two known
 limits and its default of six are superseded by the follow-up).
+Block (arena_yard, MapPort's id; Arena's name; not the Customs yard area) admits every mode, solo and with a
+PitFireTeam squad, in Tactical and Zombies, with no refusal and no picker hint: 18 Bot/BotPmc rows on a main
+walkable component of 4,548.2 m2 (survey read of the built mesh), at least 11 of them beyond the 25 m floor on
+every mesh cell outside the two pockets by MapPort's own coverage check (not run with ArenaMode's selector; the
+BLOCK-GRID pin in `MapModeAdmissionChecks` holds GridMinimum >= 5, and if it fails the PFT decision in
+`ArenaAreaCatalog` is to be re-taken, not the number re-pinned). Default eight participants. It needs an
+ArenaMapPort build that ships it (today the unreleased `feature/yard` build 0.6.0+1d8faa8; the published 0.6.0 has
+no Block and the same version string); detect it by the live location, never by the MapPort version. Native run
+on GPU-2 on 2026-11-21 (build 0.6.0+fb2b3af6): Deathmatch with eight participants, Team DM 4v4 and 10v10, Domination
+4v4, solo Zombies, solo Tactical (three rounds, five opponents each) and an ordinary PMC raid all ran without a
+warning or error line; not run: PitFireTeam squads on this map, Gun Game, Deathmatch above eight participants, a
+match played to its result. See docs/reviews/BLOCK-INTEGRATION-20261121.md.
 Zombies: a failed infected dispatch reported with its time (`ZombieWavePolicy.ReportFailedDispatch(ref
 state, now)`) holds the wave's next attempt for `FailedDispatchBackoffSeconds` (2 s); the slot is still
 retried. Found on Chop Shop with the seven-row data of 2026-11-12, where the yard centre had no Bot row
@@ -810,7 +822,7 @@ Area selection shares the existing F12 `ExperimentalArea` setting. Map/time/mode
 
 ## Spawns, team boxes and spawn gates
 
-Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl, Iceberg and Chop Shop)
+Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl, Iceberg, Chop Shop and Block)
 own finite exact-body spawn damage shields with first-attack release. Domination has the
 same scope (box maps only, Factory none) and reads its phase through `MatchPhase`: the Team DM
 kill policy `_rules` is null there, so a `_rules?.Phase` read in the shield code silently disables
@@ -881,7 +893,31 @@ pockets since 2026-11-12: "Chop Shop East Gate" (-340.5, -3.6, 485.0) in the eas
 West Gate" (-406.5, -3.7, 478.5) in the west one; the 2026-11-12 sentence that they lie outside the gate
 planes is history.
 
-Independent Equator, Bay5, AirPit, Bowl, Iceberg and Chop Shop Team DM use their original team boxes for initial
+**Block team boxes** (the paragraph starts with the Block map admission, docs/reviews/BLOCK-INTEGRATION-20261121.md):
+
+Block (`arena_yard`) is optional in every mode. Independent TDM and Domination use its two authored pockets, USEC
+south (the raised platform behind the rising gondola) / BEAR north (the room behind the two gate leaves), with
+twenty private `arena-yard-tdm-v1-` markers. The interiors are the authored world-aligned bounds inset .35 m on
+every horizontal face; no face is moved to a gate (the south inset face ends inside the gondola cube and the wall,
+and a gate-face clip at 15.849 would cut into the room's own mesh; the north leaves stand 13.25 m south of the
+box). The north top is cut at y 8.6, below a deck at 9.16 .. 9.72; the south keeps the authored band. Keep both.
+The north corridor (z 128.6 .. 142) counts as outside the box while the gate is held. Seven south points carry
+a measured height instead of the authored one: south-01, -02 and -05 to -08 stand at the collision floor 7.368
+(authored 7.2673, 7.2653 for one) and south-04 at 7.483 (authored 7.2693, on the entrance floor piece). The authored
+markers sit 0.10 m under their floor and `FloorAndClear`'s clearance capsule starts 0.10 m above the point, so with
+the authored heights the first native Team DM start (build c071cb81) found 0/10 safe places for USEC and refused;
+with the seven heights it found 10/10 (build fb2b3af6). Do not loosen `FloorAndClear`. The other three south
+points and the ten north points stand on or just above their floors as authored. Donor and outside destination is
+the installed arena_yard-bot-core-04; anchors are south-05 (Usec house (9)) and north-03 (Bear house (7)). The gate
+watchdog is 15 s, as for Chop Shop. The two exits stand inside the pockets ("Block South Gate", "Block North
+Gate"). Revision-7 migration, the face derivation and the GPU-2 pre-survey of 2026-11-21 are in the contract.
+Native Team DM 4v4 and 10v10 and Domination 4v4 on GPU-2 on 2026-11-21 passed: held gates with 25 NavMesh
+carvers, USEC 10/10 and BEAR 10/10 safe places, gates open 5.01 s (4v4, drive scale 0.5) and 8.03 s (10v10, drive
+scale 1.0) after the release, all twenty formation paths revalidated. Not run: a local player in the south
+pocket (the test profile is BEAR), a held gate walked into by a player, the north corridor walked during a hold,
+anything heard.
+
+Independent Equator, Bay5, AirPit, Bowl, Iceberg, Chop Shop and Block Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
 docs/reviews/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact
@@ -899,7 +935,7 @@ team-box opening must never replay deferred native extraction entries.
 Ordinary PMC/Scav extraction and manual Arena match exit remain native.
 Since ArenaMapPort's build of 2026-11-12 every port's two exits stand inside the team pockets (Equator's
 always did; Air Pit South Gate sits at the pocket mouth, its box edge 0.4 m and its centre 2.4 m outside the pocket bound); `Formation.BoothExits` names them
-for all six formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
+for all seven formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
 nothing reads the positions, and the flares only mark the pockets. A first spawn or a respawn can stand in an
 exit box (Iceberg's Bear house (9) does); that it never extracts is MapPort's observation in Team DM on Bowl
 and Iceberg. This repository's Team DM run on Chop Shop of 2026-11-13 spawned 0.4 m and respawned 0.9 m
@@ -991,7 +1027,7 @@ Bot pickup objectives (BigBrain companion): before changing them read PICKUP-OBJ
 
 *(handoff lines 2914-2917)*
 
-Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4 (an older preset of 2026-09-21, not derived from rows); Bay5/AirPit/Bowl/Iceberg/Chop Shop 8 (Chop Shop was 6 until 2026-11-13); Labs 16; Labyrinth 8; Factory and others 10.
+Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4 (an older preset of 2026-09-21, not derived from rows); Bay5/AirPit/Bowl/Iceberg/Chop Shop/Block 8 (Chop Shop was 6 until 2026-11-13); Labs 16; Labyrinth 8; Factory and others 10.
 
 *(handoff lines 2966-2969)*
 

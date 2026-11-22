@@ -192,7 +192,8 @@ internal static class GateProgram
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Iceberg);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AutoService);
-        BowlOpening();ChopShopOpening();CompletionSignal();Runtime.Shutdown();
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Yard);
+        BowlOpening();ChopShopOpening();BlockOpening();CompletionSignal();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
     private static void OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Formation selected)
@@ -258,6 +259,24 @@ internal static class GateProgram
         Check(Runtime.TryOpenForCombat(),"CHOPSHOP-LIVE: all real paths after the drive allow combat");
         Check(Gates.Releases==1,"CHOPSHOP-ONCE: no repeated release during the drive");
     }
+    // Block (arena_yard) takes Chop Shop's fifteen-second opening watchdog and its legacy minimum of 0
+    // (the same GateOpeningTimeoutSeconds as Chop Shop), so the same boundaries must hold: no abort at
+    // 10 s or 14.99 s, fail closed at 15 s, live once the paths are complete, one release only.
+    private static void BlockOpening()
+    {
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Yard;
+        Setup();SealedPaths();
+        Check(!Runtime.TryOpenForCombat(),"BLOCK-OPEN: own release starts once");
+        Time.time=10f;
+        Check(!Runtime.TryOpenForCombat(),"BLOCK-DRIVE: the ordinary ten-second watchdog cannot abort the gate drive");
+        Time.time=14.99f;Time.realtimeSinceStartup=300f;
+        Check(!Runtime.TryOpenForCombat(),"BLOCK-TIMEOUT: navigation receives the remaining settle budget");
+        Time.time=15f;Reject(()=>Runtime.TryOpenForCombat(),"BLOCK-TIMEOUT: disconnected formation fails closed");
+        Setup();SealedPaths();Runtime.TryOpenForCombat();Time.time=9f;NavMesh.Path=(a,b)=>true;
+        Check(Runtime.TryOpenForCombat(),"BLOCK-LIVE: all real paths after the drive allow combat");
+        Check(Gates.Releases==1,"BLOCK-ONCE: no repeated release during the drive");
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
+    }
     private static void BowlOpening()
     {
         Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl;
@@ -294,7 +313,7 @@ internal static class GateProgram
         foreach (var formation in new[] { ArenaMode.Shared.ArenaTeamBoxCatalog.Equator,
                      ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5, ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit,
                      ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl, ArenaMode.Shared.ArenaTeamBoxCatalog.Iceberg,
-                     ArenaMode.Shared.ArenaTeamBoxCatalog.AutoService })
+                     ArenaMode.Shared.ArenaTeamBoxCatalog.AutoService, ArenaMode.Shared.ArenaTeamBoxCatalog.Yard })
         {
             Program.Formation=formation;
             var lease=SetupCompletion();NavMesh.Path=(a,b)=>true;
@@ -302,6 +321,7 @@ internal static class GateProgram
             Check(!Runtime.TryOpenForCombat(),"SIGNAL-WAIT: complete paths cannot replace unfinished gate signal");
             // Iceberg: its longest drive at the default drive scale 0.5 (GATES_A leaf B).
             // Chop Shop: the big gate drives 4.0 s at 0.5 (8.0 s at 1.0), above this clock; its legacy minimum is 0, so the default 3.5 s holds.
+            // Block: legacy minimum 0 as well, so the default 3.5 s holds.
             Time.time=formation.MapId=="arena_bowl" ? 6.75f : formation.MapId=="arena_airpit" ? 1.5f
                 : formation.MapId=="arena_iceberg" ? 2.5f : 3.5f;
             Gates.Ready=true;

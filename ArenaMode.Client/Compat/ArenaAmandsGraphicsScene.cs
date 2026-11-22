@@ -56,7 +56,7 @@ namespace ArenaMode.Compat;
 /// from MapPort's own look while Graphics is on. Core's lease requires the same <c>LevelSettings</c> object at every
 /// re-activation; if the native lookup flipped between two activations (a named object appearing later) the lease would
 /// fault, which fails safe. The Debug lines name the branch taken ("native" or "Arena") so a log shows such a flip.
-/// The six ported maps are covered by code and offline checks only; they have not been run natively with Graphics.
+/// The seven ported maps are covered by code and offline checks only; they have not been run natively with Graphics.
 /// </para>
 /// </summary>
 internal static class ArenaAmandsGraphicsScene

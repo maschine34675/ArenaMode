@@ -8,7 +8,7 @@ internal static partial class Program
     // Solo Tactical is admitted on every ported map since ArenaMapPort's rows of 2026-11-12.
     // pftTactical=false: Chop Shop's yard centre has too few distant rows for the exact five of a
     // protected Tactical squad. pftZombie=false: Equator's and Chop Shop's main meshes are too small
-    // for the protected squad's Zombies.
+    // for the protected squad's Zombies. Block (arena_yard) keeps both defaults: no refusal.
     private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool pftTactical = true, bool pftZombie = true)
     {
         var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;

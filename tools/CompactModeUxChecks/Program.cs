@@ -60,7 +60,7 @@ Need(Text("zombie").Contains("Survive escalating waves") && Text("zombie").Conta
     "solo Zombies explains waves and resupply; the respawn row owns its life rule");
 Need(Text("zombie", team: true).Contains("Team wipe ends the match")
     && Text("zombie", team: true).Contains("each cleared wave"), "PFT Zombies never promises first-death termination");
-foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
 {
     int actualPoints = DominationMapLayout.Resolve(map).Points.Count;
     Need(Text("domination", points: actualPoints).Contains("Hold " + actualPoints + " point"),
@@ -71,7 +71,7 @@ foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator"
 // report 0 instead of reaching Resolve's exception.
 foreach (var (map, expected) in new (string, int)[] {
     ("factory4_day", 3), ("factory4_night", 3), ("arena_equator", 1), ("arena_bay5", 1),
-    ("arena_airpit", 2), ("arena_bowl", 2), ("arena_iceberg", 3), ("arena_autoservice", 1),
+    ("arena_airpit", 2), ("arena_bowl", 2), ("arena_iceberg", 3), ("arena_autoservice", 1), ("arena_yard", 2),
     ("bigmap", 0), ("laboratory", 0), ("labyrinth", 0), ("unknown", 0), (null, 0) })
 {
     int count = DominationMapLayout.ControlPointCount(map);
@@ -82,7 +82,7 @@ foreach (var (map, expected) in new (string, int)[] {
 // never promises a point on The Lab, The Labyrinth or Customs. Literals again, not computed by production.
 foreach (var (map, area, expected) in new (string, string, int)[] {
     ("laboratory", null, 3), ("labyrinth", null, 1), ("LABORATORY", "full-map", 3), ("labyrinth", "", 1),
-    ("factory4_day", null, 3), ("arena_equator", null, 1), ("arena_airpit", null, 2), ("arena_autoservice", null, 1),
+    ("factory4_day", null, 3), ("arena_equator", null, 1), ("arena_airpit", null, 2), ("arena_autoservice", null, 1), ("arena_yard", null, 2),
     ("bigmap", null, 0), ("bigmap", "full-map", 0), ("bigmap", "customs-yard-polygon-v1", 3),
     ("bigmap", "customs-factory-center-polygon-v2", 3), ("BIGMAP", "customs-factory-side-polygon-v2", 3),
     ("bigmap", "customs-factory-center-polygon-v1", 0), ("bigmap", "CUSTOMS-YARD-POLYGON-V1", 0), ("bigmap", "unknown-area", 0),
@@ -94,6 +94,8 @@ foreach (var (map, area, expected) in new (string, string, int)[] {
 }
 Need(Text("domination", points: DominationMapLayout.DominationPointCount("labyrinth", null)).Contains("Hold 1 point to"),
     "The Labyrinth's Domination copy says one point");
+Need(Text("domination", points: DominationMapLayout.DominationPointCount("arena_yard", null)).Contains("Hold 2 points to"),
+    "Block's Domination copy says two points");
 Need(Text("domination", points: DominationMapLayout.DominationPointCount("laboratory", null)).Contains("Hold 3 points to"),
     "The Lab's Domination copy says three points");
 Need(Text("domination", points: DominationMapLayout.DominationPointCount("bigmap", "customs-yard-polygon-v1")).Contains("Hold 3 points to"),

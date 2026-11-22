@@ -1,8 +1,9 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 1059 assertions; all 37 source mutants rejected by their
-intended behavioral assertions, followed by a clean baseline (2026-11-13, with the
+Current baseline: 1127 assertions (1059 before Block (arena_yard) joined the tables); all 38 source mutants
+rejected by their intended behavioral assertions, followed by a clean baseline (2026-11-21, with the
+Block row and its mutant `block-lifted-point`; before it 2026-11-13, with the
 world-letter pin and the surveyed-slot layout kind).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup
@@ -11,7 +12,7 @@ deployment targets. Unity/NavMesh, pickup geometry, point views, physical-player
 classification, bridge output and logging are explicit boundary doubles.
 
 The independent expected table preserves the authored X point on Equator/Bay5,
-individual A/B points on AirPit/Bowl, Iceberg's A/B/C points, Chop Shop's single X and Factory
+individual A/B points on AirPit/Bowl and Block, Iceberg's A/B/C points, Chop Shop's single X and Factory
 A/B/C day/night. It checks exact
 counts, coordinates and labels, rejects unknown maps and policy-count mismatch,
 and verifies immutable layout views. The recorded geometry calls must disable
@@ -39,13 +40,13 @@ separation, the abort of a slot without a passing candidate, determinism, the wh
 The three Customs areas (stage 3) add the nine rows against independent literals, the real area contours (every seed
 inside with the 0.5 m floor inset), the shared area ids, prepare inside each area, the team-start proof for both
 factions, a cut-off point aborting the match, the fallback and the single-candidate abort, and seven more mutants.
-An equivalence block at the end asserts, for 15 map ids times 13 area ids (the whole-map spellings, the three
+An equivalence block at the end asserts, for 16 map ids times 13 area ids (the whole-map spellings, the three
 Customs areas, the retired and unknown ids, other casing), that `ArenaAreaCatalog.TryResolve` admits Domination
 exactly where `DominationMapLayout.DominationPointCount` is above zero; one mutant (the catalogue loses its last
-whole-map exclusion, `AreaCatalogSource`) dies there. A layout-side fault is caught earlier by the row assertions.
+whole-map exclusion, now the Block link, `AreaCatalogSource`) dies there. A layout-side fault is caught earlier by the row assertions.
 
-Fifteen compiled-source mutants (the first group) target the Factory separation and repeat rules,
-the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port
+Sixteen compiled-source mutants (the first group) target the Factory separation and repeat rules,
+the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, a lifted Block point, lost X label, port
 relocation, count mismatch, missing return route, height drift, partial paths,
 missing BEAR routes, prematurely cached success, post-disposal authority and an inverted
 `showLetter` (ported maps must pass false, Factory true).

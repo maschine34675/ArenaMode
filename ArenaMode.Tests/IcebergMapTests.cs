@@ -18,8 +18,9 @@ public sealed class IcebergMapTests
     }
 
     // Revision 5 extended the exact Bowl default with Iceberg; revision 6 extends the
-    // exact Iceberg default with Chop Shop (ChopShopMapTests). Every earlier default
-    // keeps its own cutoff, and the AirPit default at revision 4 is a Bowl removal.
+    // exact Iceberg default with Chop Shop (ChopShopMapTests) and revision 7 the exact Chop Shop
+    // default with Block (BlockMapTests). Every earlier default keeps its own cutoff, and the
+    // AirPit default at revision 4 is a Bowl removal.
     [Theory]
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 4, true)]
     [InlineData(ArenaMapCatalog.AirPitDefaultClientAllowlist, 3, true)]
@@ -28,6 +29,7 @@ public sealed class IcebergMapTests
     [InlineData(ArenaMapCatalog.NativeDefaultClientAllowlist, 0, true)]
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 5, false)]
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 6, false)]
+    [InlineData(ArenaMapCatalog.AutoServiceDefaultClientAllowlist, 7, false)]  // Block removed at revision 7
     [InlineData(ArenaMapCatalog.AirPitDefaultClientAllowlist, 4, false)]
     [InlineData(ArenaMapCatalog.Bay5DefaultClientAllowlist, 3, false)]
     [InlineData(ArenaMapCatalog.EquatorDefaultClientAllowlist, 2, false)]
@@ -207,8 +209,10 @@ public sealed class IcebergMapTests
         Assert.Equal(ArenaMapCatalog.BowlDefaultClientAllowlist + "," + ArenaMapCatalog.IcebergId,
             ArenaMapCatalog.IcebergDefaultClientAllowlist);
         Assert.Equal(ArenaMapCatalog.IcebergDefaultClientAllowlist + "," + ArenaMapCatalog.AutoServiceId,
+            ArenaMapCatalog.AutoServiceDefaultClientAllowlist);
+        Assert.Equal(ArenaMapCatalog.AutoServiceDefaultClientAllowlist + "," + ArenaMapCatalog.YardId,
             ArenaMapCatalog.DefaultClientAllowlist);
-        Assert.Equal(6, ArenaMapCatalog.OptionalMapsRevision);
+        Assert.Equal(7, ArenaMapCatalog.OptionalMapsRevision);
         Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, new ArenaModeConfig().OptionalMapsRevision);
     }
 }

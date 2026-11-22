@@ -188,6 +188,8 @@ public static class ConfigStore
                 && ExactMapSet(ArenaMapCatalog.BowlDefaultClientAllowlist);
             bool icebergDefault = revision < 6
                 && ExactMapSet(ArenaMapCatalog.IcebergDefaultClientAllowlist);
+            bool autoServiceDefault = revision < 7
+                && ExactMapSet(ArenaMapCatalog.AutoServiceDefaultClientAllowlist);
 
             // Detached defaults retain per-map field repair for existing entries,
             // including explicitly disabled or customized optional entries.
@@ -212,6 +214,14 @@ public static class ConfigStore
             if (!maps.ContainsKey(ArenaMapCatalog.AutoServiceId) && !nativeDefault && !equatorDefault && !bay5Default
                 && !airPitDefault && !bowlDefault && !icebergDefault)
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.AutoServiceId);
+            // Revision 6 with exactly the Iceberg default (Chop Shop absent) is an
+            // intentional Chop Shop removal and gains neither Chop Shop nor Block; a
+            // revision-7 list without Block is an intentional Block removal. Only the
+            // exact Chop Shop default below revision 7, and the older exact defaults
+            // below their own cutoffs, gain Block (arena_yard) here.
+            if (!maps.ContainsKey(ArenaMapCatalog.YardId) && !nativeDefault && !equatorDefault && !bay5Default
+                && !airPitDefault && !bowlDefault && !icebergDefault && !autoServiceDefault)
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.YardId);
             if (revision < ArenaMapCatalog.OptionalMapsRevision)
             {
                 root["optionalMapsRevision"] = ArenaMapCatalog.OptionalMapsRevision;

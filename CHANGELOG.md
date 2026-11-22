@@ -22,6 +22,15 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   with the [documented native scope](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md).
 - Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
 
+- Added optional **Block** support through ArenaMapPort (Arena's own name for the map; ArenaMapPort id `arena_yard`) in
+  every mode: Gun Game, Deathmatch, Team Deathmatch, Domination, Tactical and Zombies, solo and with a PitFireTeam
+  squad (18 bot spawn points). Default is eight participants. Team DM and Domination use the map's original pockets,
+  USEC south / BEAR north, for 2v2-10v10, and Domination has its two capture points A and B. The map needs an
+  ArenaMapPort build that ships it (not yet released); the saved map list gains it once through optional-map
+  revision 7. Checked offline and in raids on one test host (Deathmatch, Team DM, Domination, Zombies and Tactical
+  solo); PitFireTeam squads on this map have not been run.
+  [Contract](docs/reviews/BLOCK-INTEGRATION-20261121.md)
+
 - Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
 
 - Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.

@@ -13,9 +13,10 @@ void Need(bool condition, string message)
 
 // Iceberg and Chop Shop join the matrix with ArenaMapPort's spawn rows of 2026-11-12: both carry
 // the same Tactical decisions as Equator now (see the TACTICAL-ROWS block and the installed-data
-// pins below).
+// pins below). Block (arena_yard, ArenaMapPort's seventh map) is admitted in every mode, solo and with
+// a PitFireTeam squad, so it is the one new row without an exception in the expectations below.
 string[] maps = { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.CustomsId,
-    ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId };
+    ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId };
 string[] modes = { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" };
 string[] areas = { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
     ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId };
@@ -43,7 +44,8 @@ foreach (string mode in modes)
     {
         bool expected = selectable && !(mode == "teamdeathmatch" && total > 20
             && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId
-                || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId));
+                || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId
+                || map == ArenaMapCatalog.YardId));
         Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out int? selected, out _)
             == expected && (!expected || selected == total), "PARTICIPANTS: exact frozen total " + map + "/" + mode);
     }
@@ -80,7 +82,8 @@ foreach (string mode in new[] { "tactical", "zombie" })
 {
     // Written out per map and mode on purpose: Customs has no whole-map raid; Equator and Chop Shop
     // are too small for the squad's infected wave (space, not rows); Chop Shop's yard centre has
-    // too few distant rows for a PitFireTeam Tactical squad (the pinned evidence is below).
+    // too few distant rows for a PitFireTeam Tactical squad (the pinned evidence is below). Block has no
+    // exception: Tactical and Zombies are admitted solo and with a squad (BLOCK-GRID is its evidence).
     bool squadAdmitted = map != ArenaMapCatalog.CustomsId
         && !(mode == "zombie" && (ArenaMapCatalog.IsEquator(map) || ArenaMapCatalog.IsAutoService(map)))
         && !(mode == "tactical" && ArenaMapCatalog.IsAutoService(map));
@@ -91,8 +94,10 @@ foreach (string mode in new[] { "tactical", "zombie" })
 
 // TACTICAL-ROWS: ArenaMapPort's rows of 2026-11-12 removed the row argument of the Equator, Iceberg
 // and Chop Shop Tactical refusals. Equator and Iceberg are admitted solo and with a squad; Chop Shop
-// solo only, with its own reason for the squad format.
-foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+// solo only, with its own reason for the squad format. Block never had a refusal and is admitted solo
+// and with a squad like Equator and Iceberg.
+foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId,
+    ArenaMapCatalog.YardId })
 foreach (string spelling in new[] { "tactical", "TACTICAL" })
 {
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, spelling, false, out var soloArea, out var soloReason)
@@ -161,13 +166,19 @@ foreach (string? legacy in new[] { null, "endless", "rounds", "future-mode" })
 // the Bot rows ArenaMapPort added on 2026-11-12. Older installed data cannot verify them; the pins that
 // follow would be red for that reason and not because of an ArenaMode defect, so say so.
 string SpawnRowsData(string map, string what)
-    => "SPAWN-ROWS-DATA: " + what + " for " + map + ". The installed ArenaMapPort data predates the spawn rows of "
+    => map == ArenaMapCatalog.YardId
+        ? "SPAWN-ROWS-DATA: " + what + " for " + map + " (Block). Install an ArenaMapPort build that ships arena_yard "
+            + "(the published 0.6.0 and the installed 0.6.0+1d8faa8 predate the map). The Block admission was decided on its "
+            + "18 Bot/BotPmc rows and four Player rows, so it cannot be verified on other data, and a red pin on older "
+            + "data is not an ArenaMode defect."
+        : "SPAWN-ROWS-DATA: " + what + " for " + map + ". The installed ArenaMapPort data predates the spawn rows of "
         + "2026-11-12 (build 0.5.0+160523d or a later release is needed; the published 0.5.0 has 10 and 9 rows and no "
         + "Chop Shop). The Tactical admissions of 2026-11-13 were decided on those rows, so they cannot be verified on "
         + "this data, and a red pin on older data is not an ArenaMode defect.";
 var minimumRows = new Dictionary<string, int>
 {
     [ArenaMapCatalog.EquatorId] = 16, [ArenaMapCatalog.IcebergId] = 17, [ArenaMapCatalog.AutoServiceId] = 16,
+    [ArenaMapCatalog.YardId] = 18,
 };
 
 // Minimum of the production selector's usable-row count over the bounding box of the zone's rows,
@@ -195,6 +206,9 @@ foreach (string map in maps)
         ? Path.Combine(sptRoot, "SPT_Runtime", "SPT_Data", "database", "locations", "bigmap", "base.json")
         : Path.Combine(sptRoot, "SPT_Runtime", "user", "mods", "ArenaMapPort", "db",
             map, "base.json");
+    if (map == ArenaMapCatalog.YardId)
+        Need(File.Exists(file), "DATA-FILE: Installed Block data is missing: " + file
+            + ". Install an ArenaMapPort build that ships arena_yard.");
     if (minimumRows.ContainsKey(map))
         Need(File.Exists(file), SpawnRowsData(map, "the file " + file + " is missing"));
     Need(File.Exists(file), "DATA-FILE: the installed file " + file + " is missing; this harness reads the installed maps");
@@ -281,6 +295,10 @@ foreach (string map in maps)
         if (map == ArenaMapCatalog.AutoServiceId)
             Need(gridMinimum >= 1 && gridMinimum < 5, "CHOPSHOP-GRID: the minimum over the bounding box is " + gridMinimum + " near " + cellText
                 + "; the PitFireTeam Tactical refusal rests on 1..4 (the yard centre is the pin beside it)");
+        else if (map == ArenaMapCatalog.YardId)
+            Need(gridMinimum >= 5, "BLOCK-GRID: the minimum over the bounding box is " + gridMinimum + " near " + cellText
+                + "; Block admits Tactical and Zombies with a PitFireTeam squad on five distant rows from every cell. "
+                + "If this fails, re-take that decision (a PitFireTeam refusal in ArenaAreaCatalog like Chop Shop's) instead of re-pinning the number");
         else
             Need(gridMinimum >= 5, (map == ArenaMapCatalog.EquatorId ? "EQUATOR-GRID" : "ICEBERG-GRID") + ": the minimum over the bounding box is "
                 + gridMinimum + " near " + cellText + "; Tactical with a squad needs five distant rows from every cell");
@@ -316,16 +334,36 @@ foreach (string map in maps)
         int yard = BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(-375f, -3.8f, 487f));
         Need(yard >= 1 && yard < 5, "CHOPSHOP-YARD-CENTER: the yard centre has " + yard + " distant rows; the PitFireTeam Tactical refusal rests on 1..4");
     }
+    if (map == ArenaMapCatalog.YardId)
+    {
+        // Block has four Player rows (two with Sides "All", one Usec, one Bear); the OPENING-SQUAD loop above covers
+        // all of them because its filter accepts "All". A solo survivor moved to any of them keeps five distant rows,
+        // and no Player row may go missing unnoticed (the team-box anchors and the opening rows rest on them).
+        Need(players.Length == 4, "BLOCK-PLAYER-ROWS: expected the four installed Player rows, found " + players.Length);
+        foreach (var player in players)
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), Position(player)) >= 5,
+                "BLOCK-PLAYER-ROWS: a solo survivor moved to a Player row has five distant rows for Tactical");
+        // BLOCK-GRID scans the bounding box of the Bot rows only (z 23.5 .. 116.9 on the installed data). A
+        // PitFireTeam leader can also stand in a pocket or in the corridor between the north leaves and the room,
+        // and RequestTeamEnemies demands exactly five there too: pin the twenty start points and that corridor.
+        foreach (var point in ArenaTeamBoxCatalog.Yard.Points)
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(point.X, point.Y, point.Z)) >= 5,
+                "BLOCK-POCKETS: the start point " + point.Id + " has five distant rows");
+        foreach (var spot in new[] { new Vector3(-9.6f, 6.15f, 129f), new Vector3(-9.6f, 6.15f, 135f), new Vector3(-9.6f, 6.15f, 141f) })
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), spot) >= 5,
+                "BLOCK-POCKETS: the north corridor at z " + spot.z + " has five distant rows");
+    }
     Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified." + gridLine);
 }
 
 // EXIT-NAMES: Formation.BoothExits is data without a reader, so only this pin notices a rename on MapPort's
-// side. It has its own loop over the six formations: Bowl has a formation and no row in the mode matrix above.
+// side. It has its own loop over the seven formations: Bowl has a formation and no row in the mode matrix above.
 foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId,
-    ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+    ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.YardId })
 {
     string file = Path.Combine(sptRoot, "SPT_Runtime", "user", "mods", "ArenaMapPort", "db", map, "base.json");
-    Need(File.Exists(file), "EXIT-NAMES: the installed file " + file + " is missing; install an ArenaMapPort build that ships " + map);
+    Need(File.Exists(file), "EXIT-NAMES: the installed file " + file + " is missing; install an ArenaMapPort build that ships " + map
+        + (map == ArenaMapCatalog.YardId ? " (Block)" : ""));
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     var booth = ArenaTeamBoxCatalog.Find(map) ?? throw new InvalidOperationException("EXIT-NAMES: no team-box formation for " + map);
     string[] installedExits = document.RootElement.TryGetProperty("exits", out var exits)

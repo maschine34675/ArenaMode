@@ -29,6 +29,12 @@ $pickupAutoService = Join-Path $SptPath 'SPT_Runtime/user/mods/ArenaMapPort/db/a
 if (!(Test-Path -LiteralPath $pickupAutoService)) {
     throw "Installed Chop Shop data missing: $pickupAutoService. ArenaPickupChecks requires an ArenaMapPort build that ships arena_autoservice (the unreleased feature/autoservice build 0.5.0+b7876d3 or a later release)."
 }
+# Block (arena_yard) likewise ships only in an ArenaMapPort build that carries it (the installed
+# 0.6.0+1d8faa8 has the same version string as the published 0.6.0, which has no Block): fail loudly, never skip.
+$pickupYard = Join-Path $SptPath 'SPT_Runtime/user/mods/ArenaMapPort/db/arena_yard/base.json'
+if (!(Test-Path -LiteralPath $pickupYard)) {
+    throw "Installed Block data missing: $pickupYard. ArenaPickupChecks requires an ArenaMapPort build that ships arena_yard."
+}
 $pickupInstalled = @{}
 foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',
@@ -36,7 +42,8 @@ foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Clien
     'SPT_Runtime/SPT_Data/database/locations/laboratory/base.json','SPT_Runtime/SPT_Data/database/locations/labyrinth/base.json',
     'SPT_Runtime/SPT_Data/database/locations/bigmap/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_equator/base.json',
     'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bay5/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_airpit/base.json',
-    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_autoservice/base.json')) {
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_autoservice/base.json',
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_yard/base.json')) {
     $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 # The pickup sources the project compiles from $(PickupSourceRoot); a fault copies all of them into its own

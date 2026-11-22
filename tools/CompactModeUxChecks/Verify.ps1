@@ -37,8 +37,8 @@ foreach ($fault in $faults) {
 $arenaLayoutPath = Join-Path $arenaRepo 'ArenaMode.Client/Modes/DominationMapLayout.cs'
 $arenaLayout = [IO.File]::ReadAllText($arenaLayoutPath).Replace("`r`n", "`n")
 $layoutFaults = @(
-    @('tactical-count-gains-lab', "|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;`n        return Resolve(map).Points.Count;",
-      "|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;",
+    @('tactical-count-gains-lab', "|| ArenaMapCatalog.IsYard(map))) return 0;`n        return Resolve(map).Points.Count;",
+      "|| ArenaMapCatalog.IsYard(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;",
       'menu objective count for laboratory: expected 0, got 3'),
     @('domination-count-lab-missing', 'return ResolveDomination(map, areaId).Points.Count;', 'return 0;',
       'Domination objective count for laboratory/whole map: expected 3, got 0'),

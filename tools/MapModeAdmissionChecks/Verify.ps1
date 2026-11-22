@@ -32,7 +32,12 @@ foreach ($fault in @(
     # A rename of an exit literal in the team-box catalogue no longer matches the installed exits.
     @{ Name='RenamedExitLiteral'; Box='Box'; From='"Iceberg West Gate", "Iceberg East Gate"'; To='"Iceberg West Gate", "Iceberg East Portal"'; Failure='EXIT-NAMES' },
     # Bowl has a formation and no row in the mode matrix; its exits are compared by the pin's own loop.
-    @{ Name='RenamedBowlExitLiteral'; Box='Box'; From='"Bowl BTR Gate", "Bowl Army Gate"'; To='"Bowl BTR Gate", "Bowl Army Portal"'; Failure='EXIT-NAMES' }
+    @{ Name='RenamedBowlExitLiteral'; Box='Box'; From='"Bowl BTR Gate", "Bowl Army Gate"'; To='"Bowl BTR Gate", "Bowl Army Portal"'; Failure='EXIT-NAMES' },
+    # Block (arena_yard) has no refusal; a refusal that Chop Shop's rule would give it (PFT Tactical) or that the
+    # solo path would (any Tactical) dies in the matrix. The Block exit literal is compared by the same pin as the others.
+    @{ Name='BlockPftTacticalRefused'; From='if (id == FullMapId)'; To='if (pitFireTeam && ArenaMapCatalog.IsYard(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)'; Failure='PFT-FULL' },
+    @{ Name='BlockSoloTacticalRefused'; From='if (id == FullMapId)'; To='if (ArenaMapCatalog.IsYard(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)'; Failure='FULL-MAP' },
+    @{ Name='RenamedBlockExitLiteral'; Box='Box'; From='"Block South Gate", "Block North Gate"'; To='"Block South Gate", "Block North Portal"'; Failure='EXIT-NAMES' }
 )) {
     $target = switch ($fault.Box) { 'Box' { @{ Text=$boxSource; Path=$boxPath; Property='ProductionTeamBoxCatalogSource' } }
         'Selector' { @{ Text=$selectorSource; Path=$selectorPath; Property='ProductionBurstSelectorSource' } }
@@ -55,4 +60,4 @@ foreach ($fault in @(
     Write-Output "Rejected compiled map admission fault: $($fault.Name)"
 }
 Write-Output "Evidence: $scratch"
-Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (15 compiled faults)'
+Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (18 compiled faults)'

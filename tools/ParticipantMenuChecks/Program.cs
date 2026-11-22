@@ -25,7 +25,7 @@ internal static class Program
             var config = new ConfigFile(path, false) { SaveOnConfigSet = autoSave };
             ArenaParticipantSettings.Init(config);
             foreach (var pair in new[] { (ArenaMapCatalog.EquatorId, 4), (ArenaMapCatalog.Bay5Id, 8), (ArenaMapCatalog.AirPitId, 8), (ArenaMapCatalog.BowlId, 8),
-                (ArenaMapCatalog.IcebergId, 8), (ArenaMapCatalog.AutoServiceId, 8),
+                (ArenaMapCatalog.IcebergId, 8), (ArenaMapCatalog.AutoServiceId, 8), (ArenaMapCatalog.YardId, 8),
                 (Day, 10), (ArenaMapCatalog.FactoryNightId, 10), (ArenaMapCatalog.LaboratoryId, 16), (ArenaMapCatalog.LabyrinthId, 8) })
             {
                 Need(ArenaParticipantSettings.Get(pair.Item1, "deathmatch") == pair.Item2, "map-specific default");
@@ -145,7 +145,8 @@ internal static class Program
                 bool expected = candidate.Available && mode != "tactical"
                     && count <= ((mode == "teamdeathmatch" || mode == "domination")
                         && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId || map == ArenaMapCatalog.BowlId
-                            || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId) ? 20 : 24)
+                            || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId
+                            || map == ArenaMapCatalog.YardId) ? 20 : 24)
                     && (!ArenaParticipantPolicy.IsTeam(mode) || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),

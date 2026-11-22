@@ -42,7 +42,18 @@ foreach ($fault in @(
     @{ Name = 'AutoServiceMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_autoservice", StringComparison.OrdinalIgnoreCase)'; After = '';
-       Failure = 'EMPTY-COVER arena_autoservicetactical' }
+       Failure = 'EMPTY-COVER arena_autoservicetactical' },
+    # Block (arena_yard) is the last link of both chains. Its link ends in ") return false;" and the
+    # Chop Shop anchors above stop before the newline, so each mutant stays compilable; the Block
+    # fixtures reach tactical first like the others (the map is admitted to PFT Tactical and Zombies).
+    @{ Name = 'YardMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
+       Property = 'PortedSource'; Harness = 'PftPortedMapChecks';
+       Before = '&& !string.Equals(map, "arena_yard", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'arena_yard/tactical/False' },
+    @{ Name = 'YardMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
+       Property = 'CombatSource'; Harness = 'PortedCoverChecks';
+       Before = '&& !string.Equals(world.LocationId, "arena_yard", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'EMPTY-COVER arena_yardtactical' }
 )) {
     $source = [IO.File]::ReadAllText((Join-Path $arenaRepo $fault.File))
     if (!$source.Contains($fault.Before)) { throw "Missing fault anchor: $($fault.Name)" }

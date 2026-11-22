@@ -1,0 +1,26 @@
+{
+  "name": "block-zombie",
+  "description": "Block solo Zombies under godmode (an idle player dies within half a minute). The player is placed on the installed arena_yard-player-usec row (south pocket) and later on the arena_yard-player-bear row (north pocket). The first wave has to fill (20 infected) without a dropped request (\"no usable spawn point\" must be absent), at the south row and again after the player moved north. No errors.",
+  "host": "host2",
+  "steps": [
+    {"step": "status", "name": "status"},
+    {"step": "raid", "name": "raid", "mode": "zombie", "map": "BLOCK", "mapFromMenu": true, "timeoutSeconds": 480},
+    {"step": "hook", "name": "godmode", "action": "godmode", "enabled": true},
+    {"step": "teleport", "name": "to-south", "x": -14.86, "y": 7.27, "z": 13.3, "reachable": false},
+    {"step": "sleep", "name": "first-wave", "seconds": 35},
+    {"step": "player", "name": "player-south"},
+    {"step": "bots", "name": "infected-south", "aliveOnly": true, "minCount": 20},
+    {"step": "expect", "name": "no-dropped-spawn", "what": "logAbsent", "contains": "no usable spawn point", "sinceStep": "raid"},
+    {"step": "teleport", "name": "to-north", "x": -10.83, "y": 6.18, "z": 145.09, "reachable": false},
+    {"step": "sleep", "name": "north", "seconds": 20},
+    {"step": "bots", "name": "infected-north", "aliveOnly": true, "minCount": 20, "onFail": "continue"},
+    {"step": "expect", "name": "no-dropped-spawn-north", "what": "logAbsent", "contains": "no usable spawn point", "sinceStep": "raid"},
+    {"step": "still", "name": "still", "id": "zombie-north"},
+    {"step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue"},
+    {"step": "log-export", "name": "export", "onFail": "continue"}
+  ],
+  "finally": [
+    {"step": "hook", "name": "godmode-off", "action": "godmode", "enabled": false, "onFail": "continue"},
+    {"step": "leave", "whenStepStarted": "raid"}
+  ]
+}

@@ -24,7 +24,7 @@ internal static partial class Program
         _game.Location.SpawnPointParams=Enumerable.Range(0,40).Select(i=>Seed("native-"+i,(i%8)*8,0,(i/8)*8)).ToArray();
         var original=_game.Location.SpawnPointParams;
         string snapshot=Newtonsoft.Json.JsonConvert.SerializeObject(original);
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice","arena_yard"})
         {
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"chosen-kit").Layouts.Single();
             Check(layout.Points.Count==6&&layout.Points.Select(p=>p.Kind).Distinct().Count()==6,"all supported full maps retain all six pickup types: "+map);
@@ -49,7 +49,7 @@ internal static partial class Program
             Seed("safe",20),Seed("duplicate",20),Seed("pmc",30,category:ESpawnCategoryMask.BotPmc)];
         var filtered=Pool(ArenaPickupMapLayout.Create(_game,"laboratory",null,"spartan").Layouts.Single());
         Check(filtered.Length==2&&filtered.All(p=>p.X==20||p.X==30),"sealed Labs gates, snipers, player entries and malformed seeds cannot become pickups");
-        foreach(var formation in new[]{ArenaTeamBoxCatalog.Equator,ArenaTeamBoxCatalog.Bay5,ArenaTeamBoxCatalog.AirPit,ArenaTeamBoxCatalog.Bowl,ArenaTeamBoxCatalog.Iceberg,ArenaTeamBoxCatalog.AutoService})
+        foreach(var formation in new[]{ArenaTeamBoxCatalog.Equator,ArenaTeamBoxCatalog.Bay5,ArenaTeamBoxCatalog.AirPit,ArenaTeamBoxCatalog.Bowl,ArenaTeamBoxCatalog.Iceberg,ArenaTeamBoxCatalog.AutoService,ArenaTeamBoxCatalog.Yard})
         {
             var booth=formation.Points[0];
             _game.Location.SpawnPointParams=[Seed(booth.Id,booth.X,booth.Y,booth.Z),Seed("generic-in-box",booth.X,booth.Y,booth.Z),
@@ -83,17 +83,20 @@ internal static partial class Program
                 (float)row["Position"]["y"],(float)row["Position"]["z"],(string)row["BotZoneName"],
                 row["Categories"].Aggregate(ESpawnCategoryMask.None,(mask,c)=>mask|Enum.Parse<ESpawnCategoryMask>((string)c)))).ToArray();
         }
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice","arena_yard"})
         {
             string path=map.StartsWith("arena_")?Path.Combine(root,"SPT_Runtime/user/mods/ArenaMapPort/db",map,"base.json")
                 :Path.Combine(root,"SPT_Runtime/SPT_Data/database/locations",map,"base.json");
-            // Iceberg and Chop Shop ship only in ArenaMapPort builds that carry them; the
-            // published 0.4.0 has no Iceberg and the published 0.5.0 no Chop Shop. Fail
+            // Iceberg, Chop Shop and Block ship only in ArenaMapPort builds that carry them; the
+            // published 0.4.0 has no Iceberg, the published 0.5.0 no Chop Shop and the published
+            // 0.6.0 no Block. Fail
             // loudly instead of skipping the map.
             if(!System.IO.File.Exists(path))throw new Exception(map=="arena_iceberg"
                 ?"Installed Iceberg data missing: "+path+". This run requires an ArenaMapPort build that ships arena_iceberg (the feature build 0.4.0+32fda33 or a later release)."
                 :map=="arena_autoservice"
                 ?"Installed Chop Shop data missing: "+path+". This run requires an ArenaMapPort build that ships arena_autoservice (the unreleased feature/autoservice build 0.5.0+b7876d3 or a later release)."
+                :map=="arena_yard"
+                ?"Installed Block data missing: "+path+". This run requires an ArenaMapPort build that ships arena_yard."
                 :"Native map fixture missing: "+path);
             Fixture();_game.Location.SpawnPointParams=Read(path);
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"spartan").Layouts.Single();

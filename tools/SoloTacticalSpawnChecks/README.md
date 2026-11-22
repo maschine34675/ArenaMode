@@ -23,8 +23,8 @@ it also links the production gate `SoloTacticalSquadDispatch`, the production
 `NativeDoubles.cs`) and checks that a round's squad request is held until the
 body move lands, released exactly once on every way the move can end, bound to
 its round and capped at the 45-second assembly window. `Program.DispatchOrder.cs`
-then simulates round starts on the installed ArenaMapPort rows of the six ports
-(`--spt-root`, default `D:\SPT41`; Chop Shop and Equator must be installed) and
+then simulates round starts on the installed ArenaMapPort rows of the seven ports
+(`--spt-root`, default `D:\SPT41`; Chop Shop and Equator must be installed, Block is simulated when installed) and
 asserts that every squad point is at least 25 m from the position the player
 landed on. Which order it simulates is read from the production `StartRound`:
 one that requests the squad itself is the order before 2026-11-13 and fails.

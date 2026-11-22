@@ -644,7 +644,7 @@ public static class Settings
             "General",
             "Maps",
             ArenaMapCatalog.DefaultClientAllowlist,
-            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, Customs, optional Equator/Bay5/AirPit/Bowl/Iceberg/ChopShop). " +
+            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, Customs, optional Equator/Bay5/AirPit/Bowl/Iceberg/ChopShop/Block). " +
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
@@ -659,7 +659,7 @@ public static class Settings
             if (!string.Equals(upgradedMaps, Maps.Value, StringComparison.Ordinal))
             {
                 Maps.Value = upgradedMaps;
-                Plugin.ModLogger?.LogInfo("Arena default map allowlist upgraded with optional Equator/Bay5/AirPit/Bowl/Iceberg/ChopShop.");
+                Plugin.ModLogger?.LogInfo("Arena default map allowlist upgraded with optional Equator/Bay5/AirPit/Bowl/Iceberg/ChopShop/Block.");
             }
             // Record even an edited list; deleting an optional map later must not
             // accidentally recreate an exact old default and re-enable it.
@@ -1556,7 +1556,7 @@ public static class Settings
             "Objective",
             true,
             "A capture point appears during the round on maps where Tactical is admitted and has a " +
-            "fixed layout (Factory, Bay 5, Air Pit, Bowl, Equator, Iceberg and Chop Shop; Chop Shop " +
+            "fixed layout (Factory, Bay 5, Air Pit, Bowl, Equator, Iceberg, Chop Shop and Block; Chop Shop " +
             "refuses Tactical with a PitFireTeam squad): hold it alone for the hold time to win the round; the enemy squad wins " +
             "it the same way. Elimination still ends a round first. With BigBrain installed the squad " +
             "spreads out across the middle of the arena until the point appears instead of rushing you. " +

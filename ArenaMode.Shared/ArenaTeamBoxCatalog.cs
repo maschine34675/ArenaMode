@@ -87,9 +87,12 @@ public static class ArenaTeamBoxCatalog
         // seconds would leave two polls after an eight-second drive, and a missed one ends
         // the protected match; fifteen leave seven. The watchdog still only catches a
         // formation that never reconnects, which is all it is for.
+        // Block (arena_yard) is the same case as Chop Shop: its south gondola is authored
+        // at 8.0 s (4.0 s at the default drive scale 0.5; the north leaves take 1.7 s), and
+        // every MapPort build that ships the map has GatesOpen. Fifteen seconds, no minimum.
         public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
         public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f
-            : MapId == "arena_autoservice" ? 15f : 10f;
+            : MapId == "arena_autoservice" || MapId == "arena_yard" ? 15f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,
             Point donor, Point destination, Point[] points, Bounds usecBounds, Bounds bearBounds,
             int usecAnchor, int bearAnchor, params string[] boothExits)
@@ -360,16 +363,113 @@ public static class ArenaTeamBoxCatalog
         new Bounds(-413.635f, -402.769f, -4.8f, -1f, 473.498f, 511.441f), 4, 11,
         "Chop Shop East Gate", "Chop Shop West Gate");
 
+    // Original Block TeamFight pockets (yard.modes.json, yard-native-v2; the map is
+    // arena_yard, ArenaMapPort's id, Arena's name is Block; unrelated to the Customs yard
+    // area). USEC = the south pocket (SPAWN_BOUND_FIGHTER, the ten "Usec house" markers on
+    // the raised platform behind the rising gondola), BEAR = the north pocket
+    // (SPAWN_BOUND_FIGHTER (1), the ten "Bear house" markers behind the two rotating gate
+    // leaves), as MapPort's player-usec/player-bear rows assign them. The twenty points keep
+    // their authored X/Z and yaws, each pocket in ascending marker order (5..14).
+    //
+    // Seven south heights are not the markers'. Arena authors the platform's markers 0.10 m
+    // under its floor: (5), (6), (9), (10), (11) and (12) at 7.2673 (7.2653 for (6)) on the
+    // floor piece Respawn_Flat, whose collision floor is 7.368, and (8) at 7.2693 on the
+    // entrance piece Respawn_entrance_indoor, whose floor is 7.483 (GPU-2, 2026-11-21, ordinary
+    // PMC raid, a ray down from the body standing on each marker;
+    // docs/reports/2026-11/GPU-BLOCK-20261121.md). FloorAndClear refuses that twice over: its
+    // clearance capsule starts 0.10 m above the point, so a floor 0.101 m above it is already
+    // inside the capsule, and its floor ray tolerates 0.15 m, which (8) misses by 0.064 m. The
+    // first Team DM start on the map failed for it ("Block team-box capacity: USEC 0/10 safe
+    // connected places": the anchor (9) is one of the six, and a held path needs a safe
+    // anchor). Those seven points therefore carry the measured floor, 7.368 and 7.483. The
+    // other three south points stand on their floors as authored ((7) 0.017 m above 7.483,
+    // (13) and (14) on 6.883). In the north room the floor was measured under three points
+    // ((5), (7), (8)): 6.134, 0.04 to 0.06 m below the markers; the other seven were not
+    // ray-measured and passed the live check. The height at which the NavMesh sample put the body on each point is within
+    // 0.07 m of the catalogue height (Connected allows 0.3 m). Do not loosen FloorAndClear
+    // for a point.
+    //
+    // Interiors. Both authored bounds have yaw 0, so the boxes are world-aligned (south
+    // x -25.4259 .. -4.9974, z 0.7234 .. 16.7244; north x -15.0885 .. 0.2525, z 141.1174 ..
+    // 155.6910). Every horizontal face is the authored AABB inset by the .35 m capsule radius
+    // FloorAndClear uses. No face is moved to a gate, unlike Iceberg and Chop Shop, because no
+    // walkable strip outside a closed gate lies inside either inset box:
+    // - South: the gondola's closing cube spans z 16.199 .. 17.065 over x -24.345 .. -18.25,
+    //   and the rest of that edge is the room's wall (z 16.2 .. 16.3). The inset face (16.374)
+    //   ends inside the cube and the wall; the yard starts at 17.065, beyond even the authored
+    //   face. The gate-face rule of the other ports (16.199 - .35 = 15.849) would cut into the
+    //   room's own mesh instead: the built NavMesh of the sealed room reaches z 15.875 along
+    //   that wall, and a held path's corner there must still count as inside.
+    // - North: the leaves stand at z 127.77 .. 127.864, 13.25 m south of the authored box. The
+    //   sealed pocket is the room (mesh x -14.38 .. -0.62, z 142 .. 154.6) plus a corridor
+    //   3.5 m wide (x -11.38 .. -7.88, z 128.6 .. 142) to those leaves. The box stays the
+    //   authored room and is NOT extended to the leaves: a world-aligned box from the leaves
+    //   to the room would take in the ground on both sides of the corridor. The corridor
+    //   therefore counts as outside the box while it is still sealed; every start point, both
+    //   anchors and the exit stand in the room, so a held path between them has no reason to
+    //   leave it.
+    //
+    // Height. Both authored bounds are 5.5884 m tall (south y 6.3275 .. 11.9159, north
+    // 5.3275 .. 10.9159). The south box keeps the authored band: read from the built NavMesh
+    // bundle, the platform and its ramp lie at 6.5 .. 8.65 (points 6.8833 .. 7.5003), the
+    // walled-off ground-level band of the outer ring (6.15 .. 6.20) ends 0.13 m below the
+    // band and the only roof island (12.12) 0.2 m above it. The north box is cut at 8.6: the
+    // room's floor is 6.15 .. 6.55 (markers 6.1773 .. 6.1923) and a separate deck at 9.16 ..
+    // 9.72 (x -13.75 .. -10.25, z 150.25 .. 154.75) lies inside the authored band; 8.6 is
+    // 2.05 m above the highest connected surface and 0.56 m below that deck. Two small
+    // islands inside the bands (south 7.4 .. 7.76 at x -12.25 .. -10.75, z 13.25 .. 14.25;
+    // north 7.04 .. 7.5 at x -6.25 .. -3.25, z 153.75 .. 154.25) are not connected to the
+    // pocket floors on the built mesh, so no held path and no formation point can use them.
+    // The north footprint's south-east corner (x -6.75 .. 0.25, z 141.25 .. 145.75) holds
+    // ground outside the room's wall on a separate, unreachable component.
+    //
+    // Donor and outside destination: the installed arena_yard-bot-core-04 row (-12.88, 6.17,
+    // 87.03), one of Arena's own AI core points, on open floor (5.2 m to the nearest mesh
+    // edge) between the pockets. Both exits stand inside the pockets ("Block South Gate" on
+    // the platform, "Block North Gate" in the room), listed USEC first. Anchors: Usec house
+    // (9) = MapPort player-usec (south-05) and Bear house (7) = MapPort player-bear
+    // (north-03). MapPort's two "All" Player rows are Usec house (10) and Bear house (6).
+    public static readonly Formation Yard = new Formation("arena_yard", "Block", "arena-yard-tdm-v1-",
+        "ArenaYard", "USEC south / BEAR north",
+        new Point("arena_yard-bot-core-04", false, -12.88f, 6.17f, 87.03f),
+        new Point("", false, -12.88f, 6.17f, 87.03f), new[]
+        {
+            new Point("arena-yard-tdm-v1-south-01", true, -14.2502f, 7.368f, 4.794f, 345.319f),
+            new Point("arena-yard-tdm-v1-south-02", true, -16.3742f, 7.368f, 9.801f, 28.2439f),
+            new Point("arena-yard-tdm-v1-south-03", true, -22.5742f, 7.5003f, 9.834f, 24.8881f),
+            new Point("arena-yard-tdm-v1-south-04", true, -19.4762f, 7.483f, 10.224f, 358.2441f),
+            new Point("arena-yard-tdm-v1-south-05", true, -14.8642f, 7.368f, 13.299f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-06", true, -12.6752f, 7.368f, 9.876f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-07", true, -8.3742f, 7.368f, 4.824f, 283.2444f),
+            new Point("arena-yard-tdm-v1-south-08", true, -11.7552f, 7.368f, 4.846f, 341.152f),
+            new Point("arena-yard-tdm-v1-south-09", true, -22.8812f, 6.8833f, 12.477f, 14.603f),
+            new Point("arena-yard-tdm-v1-south-10", true, -19.9562f, 6.8833f, 13.494f, 350.1978f),
+            new Point("arena-yard-tdm-v1-north-01", false, -5.6512f, 6.1873f, 144.096f, 255f),
+            new Point("arena-yard-tdm-v1-north-02", false, -7.2152f, 6.1923f, 146.586f, 204.3006f),
+            new Point("arena-yard-tdm-v1-north-03", false, -10.8252f, 6.1773f, 145.085f, 164.9995f),
+            new Point("arena-yard-tdm-v1-north-04", false, -12.6562f, 6.1773f, 148.057f, 172.1205f),
+            new Point("arena-yard-tdm-v1-north-05", false, -5.2152f, 6.1773f, 150.206f, 223.2587f),
+            new Point("arena-yard-tdm-v1-north-06", false, -8.2632f, 6.1773f, 149.683f, 178.2587f),
+            new Point("arena-yard-tdm-v1-north-07", false, -8.3852f, 6.1773f, 153.506f, 181.1123f),
+            new Point("arena-yard-tdm-v1-north-08", false, -2.0452f, 6.1773f, 152.166f, 227.7909f),
+            new Point("arena-yard-tdm-v1-north-09", false, -1.7652f, 6.1773f, 148.416f, 269.6875f),
+            new Point("arena-yard-tdm-v1-north-10", false, -9.7552f, 6.1773f, 142.836f, 179.6875f),
+        },
+        new Bounds(-25.076f, -5.347f, 6.3275f, 11.9159f, 1.073f, 16.374f),
+        new Bounds(-14.738f, -.098f, 5.3275f, 8.6f, 141.467f, 155.341f), 4, 12,
+        "Block South Gate", "Block North Gate");
+
     public static Formation? Find(string? map)
         => string.Equals(map, Equator.MapId, StringComparison.OrdinalIgnoreCase) ? Equator
             : string.Equals(map, Bay5.MapId, StringComparison.OrdinalIgnoreCase) ? Bay5
             : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit
             : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl
             : string.Equals(map, Iceberg.MapId, StringComparison.OrdinalIgnoreCase) ? Iceberg
-            : string.Equals(map, AutoService.MapId, StringComparison.OrdinalIgnoreCase) ? AutoService : null;
+            : string.Equals(map, AutoService.MapId, StringComparison.OrdinalIgnoreCase) ? AutoService
+            : string.Equals(map, Yard.MapId, StringComparison.OrdinalIgnoreCase) ? Yard : null;
     public static bool Applies(string? map, string? mode)
         => (string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase)
             || string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)) && Find(map) != null;
     public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id)
-        || Iceberg.Owns(id) || AutoService.Owns(id);
+        || Iceberg.Owns(id) || AutoService.Owns(id) || Yard.Owns(id);
 }

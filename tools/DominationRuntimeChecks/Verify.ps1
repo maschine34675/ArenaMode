@@ -20,6 +20,11 @@ $faults = @(
     @{ Name='chopshop-lifted-point'; Path=$layout; Property='LayoutSource';
        Find='private const float ChopShopControlPointY = -3.8f;'; Replace='private const float ChopShopControlPointY = -3.3f;';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
+    # Block's two points share one authored height; lifting it moves both, and the same per-point assertion
+    # (authored coordinates, exact) that rejects the lifted Chop Shop point rejects this one.
+    @{ Name='block-lifted-point'; Path=$layout; Property='LayoutSource';
+       Find='private const float BlockControlPointY = 6.1262f;'; Replace='private const float BlockControlPointY = 6.6262f;';
+       Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
     @{ Name='one-point-renamed'; Path=$layout; Property='LayoutSource';
        Find='new Point("X", 1.28f, .25f, 4.22f)'; Replace='new Point("A", 1.28f, .25f, 4.22f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
@@ -63,8 +68,8 @@ $faults = @(
        Find='"arena_autoservice" => ChopShop,'; Replace='"arena_autoservice" => ChopShop, "laboratory" => Laboratory,';
        Failure='Tactical''s layout resolver still refuses The Lab, The Labyrinth, Customs and unknown maps' },
     @{ Name='tactical-count-gains-lab'; Path=$layout; Property='LayoutSource';
-       Find="|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;`n        return Resolve(map).Points.Count;";
-       Replace="|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;";
+       Find="|| ArenaMapCatalog.IsYard(map))) return 0;`n        return Resolve(map).Points.Count;";
+       Replace="|| ArenaMapCatalog.IsYard(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;";
        Failure='Domination counts the surveyed slots while Tactical''s count stays 0' },
     @{ Name='domination-count-ignores-slots'; Path=$layout; Property='LayoutSource';
        Find='return ResolveDomination(map, areaId).Points.Count;'; Replace='return 0;';
@@ -120,10 +125,10 @@ $faults = @(
        Find='!string.Equals(_areaId, ActiveAreaId, StringComparison.Ordinal)'; Replace='false';
        Failure='bounded area cannot borrow a full map objective layout' },
     # Admission (ArenaAreaCatalog) and the layout (DominationMapLayout) answer one question from two files.
-    # Dropping the last whole-map exclusion admits maps for which the layout has no row. (An unconditional
+    # Dropping the last whole-map exclusion (the Block link now) admits maps for which the layout has no row. (An unconditional
     # `return true` in the same block dies earlier, at 'the shared catalogue admits the area under test'.)
     @{ Name='catalogue-admits-map-without-layout'; Path=$catalog; Property='AreaCatalogSource';
-       Find='&& !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)'; Replace='&& false';
+       Find='&& !string.Equals(map, ArenaMapCatalog.YardId, StringComparison.OrdinalIgnoreCase)'; Replace='&& false';
        Failure='the catalogue admits Domination exactly where the layout has points' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'DominationRuntimeChecks.csproj') -Token 'DOMINATION_RUNTIME_CHECKS_PASSED' -Properties @() -Faults $faults

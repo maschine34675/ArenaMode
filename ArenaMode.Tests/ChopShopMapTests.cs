@@ -7,9 +7,10 @@ using ArenaMode.Shared;
 namespace ArenaMode.Tests;
 
 /// <summary>
-/// Chop Shop (arena_autoservice) as an optional ArenaMapPort map: optional-map revision 6,
-/// the Tactical and PitFireTeam-Zombies refusals, the default of six participants and
-/// the live-location discovery. The team boxes and the one-point Domination come with their own commits.
+/// Chop Shop (arena_autoservice) as an optional ArenaMapPort map: introduced with optional-map
+/// revision 6 (revision 7 adds Block on top, see BlockMapTests), the Tactical and
+/// PitFireTeam-Zombies refusals, the default of eight participants and the live-location discovery.
+/// The team boxes and the one-point Domination come with their own commits.
 /// </summary>
 [Collection(ArenaContextSerialCollection.Name)]
 public sealed class ChopShopMapTests
@@ -24,8 +25,9 @@ public sealed class ChopShopMapTests
 
     // Revision 6 extends only the exact Iceberg default. A Bowl-only list at revision 5
     // is an Iceberg removal and stays; an Iceberg default at revision 6 without Chop Shop
-    // is a Chop Shop removal and stays; every earlier default keeps its own cutoff and
-    // gains the complete current default.
+    // is a Chop Shop removal and stays (revision 7, the current one, is where Block joins:
+    // the exact Chop Shop default below 7 is BlockMapTests' row); every earlier default
+    // keeps its own cutoff and gains the complete current default, Block included.
     [Theory]
     [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 5, true)]
     [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 4, true)]
@@ -39,7 +41,8 @@ public sealed class ChopShopMapTests
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 5, false)]     // Iceberg removed at revision 5
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 6, false)]
     [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 6, false)]  // Chop Shop removed at revision 6
-    [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 7, false)]  // future marker
+    [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 7, false)]  // Chop Shop still removed at 7
+    [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 8, false)]  // future marker (7 is current)
     [InlineData(ArenaMapCatalog.IcebergDefaultClientAllowlist, 99, false)]
     [InlineData(ArenaMapCatalog.DefaultClientAllowlist, 5, false)]         // already complete
     [InlineData(ArenaMapCatalog.AirPitDefaultClientAllowlist, 4, false)]
@@ -79,8 +82,8 @@ public sealed class ChopShopMapTests
         Assert.Equal(8, chopShop.BotMax);
         Assert.Equal(8, chopShop.MaxBotPerZone);
         Assert.Equal(4, chopShop.BurstMinAliveBots);
-        // Once upgraded, deleting Chop Shop must survive the next repair, even though
-        // the remaining map set again looks exactly like the Iceberg default.
+        // Once upgraded, deleting Chop Shop must survive the next repair (the remaining set is
+        // the Iceberg default plus Block, which no recognized default matches).
         maps.Remove(ArenaMapCatalog.AutoServiceId);
         Assert.False(ConfigStore.FillMissingKeys(saved, defaults));
         Assert.False(maps.ContainsKey(ArenaMapCatalog.AutoServiceId));
@@ -111,6 +114,7 @@ public sealed class ChopShopMapTests
         icebergDefault["optionalMapsRevision"] = "invalid";
         ConfigStore.FillMissingKeys(icebergDefault, JsonSerializer.SerializeToNode(new ArenaModeConfig()));
         Assert.Null(icebergDefault["maps"]![ArenaMapCatalog.AutoServiceId]);
+        Assert.Null(icebergDefault["maps"]![ArenaMapCatalog.YardId]);
         Assert.Equal("invalid", icebergDefault["optionalMapsRevision"]!.GetValue<string>());
     }
 
@@ -130,7 +134,9 @@ public sealed class ChopShopMapTests
             Assert.False(ArenaContext.Config.IsMapEnabled(ArenaMapCatalog.IcebergId));
             var saved = JsonNode.Parse(File.ReadAllText(ConfigStore.ConfigFile))!;
             Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, saved["optionalMapsRevision"]!.GetValue<int>());
-            Assert.Equal(6, saved["optionalMapsRevision"]!.GetValue<int>());
+            Assert.Equal(7, saved["optionalMapsRevision"]!.GetValue<int>());
+            // The same gain brings Block (an Iceberg default below revision 6 gains both maps).
+            Assert.True(ArenaContext.Config.IsMapEnabled(ArenaMapCatalog.YardId));
             saved["maps"]!.AsObject().Remove(ArenaMapCatalog.AutoServiceId);
             File.WriteAllText(ConfigStore.ConfigFile, saved.ToJsonString());
             Assert.Equal(ConfigResult.Success, ConfigStore.Reload(out _));
@@ -162,6 +168,7 @@ public sealed class ChopShopMapTests
         Assert.True(ArenaMapCatalog.CanSelectNativeLocation(map, ArenaMapCatalog.IsAutoService));
         Assert.True(ArenaMapCatalog.RequiresModeFilteredView(map));
         Assert.True(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.DefaultClientAllowlist, map));
+        Assert.True(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.AutoServiceDefaultClientAllowlist, map));
         Assert.False(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.IcebergDefaultClientAllowlist, map));
         foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie", "tactical" })
             Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _));
@@ -240,9 +247,11 @@ public sealed class ChopShopMapTests
         // current server default must therefore be the current client default.
         var keys = new ArenaModeConfig().Maps.Keys.OrderBy(x => x, StringComparer.Ordinal);
         Assert.Equal(ArenaMapCatalog.DefaultClientAllowlist.Split(',').OrderBy(x => x, StringComparer.Ordinal), keys);
+        // Chop Shop's own default (revision 6) is the Iceberg default plus Chop Shop; Block
+        // extends it to the current default at revision 7.
         Assert.Equal(ArenaMapCatalog.IcebergDefaultClientAllowlist + "," + ArenaMapCatalog.AutoServiceId,
-            ArenaMapCatalog.DefaultClientAllowlist);
-        Assert.Equal(6, ArenaMapCatalog.OptionalMapsRevision);
+            ArenaMapCatalog.AutoServiceDefaultClientAllowlist);
+        Assert.Equal(7, ArenaMapCatalog.OptionalMapsRevision);
         Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, new ArenaModeConfig().OptionalMapsRevision);
         var map = new ArenaModeConfig().Maps[ArenaMapCatalog.AutoServiceId];
         Assert.True(map.Enabled);
@@ -289,8 +298,9 @@ public sealed class ChopShopMapTests
             calls.Clear();
             using var view = JsonDocument.Parse(ArenaOptionalMapPolicy.ClientConfigJson(config));
             Assert.Equal(advertised, view.RootElement.GetProperty("maps").TryGetProperty(ArenaMapCatalog.AutoServiceId, out _));
-            // The lookup is repeated for each map in turn, Chop Shop last.
-            Assert.Equal(ArenaMapCatalog.AutoServiceId, calls[^1]);
+            // The lookup is repeated for each map in turn, Chop Shop last but one: Block follows.
+            Assert.Equal(ArenaMapCatalog.AutoServiceId, calls[^2]);
+            Assert.Equal(ArenaMapCatalog.YardId, calls[^1]);
             Assert.Equal(before, JsonSerializer.Serialize(config));
         }
         finally { ArenaOptionalMapPolicy.FindLocation = oldLookup; }

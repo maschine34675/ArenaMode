@@ -31,10 +31,12 @@ internal static partial class Program
 
     private const float Frame = 1f / 60f;
 
-    // The six ArenaMapPort locations Arena admits; Chop Shop and Equator were named in the review
-    // of 2026-11-13 and must be installed for this check to say anything.
+    // The seven ArenaMapPort locations Arena admits; Chop Shop and Equator were named in the review
+    // of 2026-11-13 and must be installed for this check to say anything. arena_yard (Block) is simulated
+    // when its file is installed and skipped otherwise, like Bay5, Air Pit, Bowl and Iceberg: it was not
+    // part of that review, and an ArenaMapPort build that predates the map must not turn this harness red.
     private static readonly string[] Ports =
-        ["arena_autoservice", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg"];
+        ["arena_autoservice", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_yard"];
 
     private static readonly string[] RequiredPorts = ["arena_autoservice", "arena_equator"];
 

@@ -41,6 +41,8 @@ ArenaUiAssetChecks
 ArenaWeaponPickupChecks
 BigBrainCompatibilityChecks
 BleedingCleanupChecks
+BlockChecks
+BlockTeamBoxChecks
 ChopShopChecks
 CompactMenuUxChecks
 CompactModeUxChecks

@@ -77,8 +77,9 @@ var realExits = new Dictionary<string, string[]>
     ["arena_bowl"] = new[] { "Bowl BTR Gate", "Bowl Army Gate" },
     ["arena_iceberg"] = new[] { "Iceberg East Gate", "Iceberg West Gate" },
     ["arena_autoservice"] = new[] { "Chop Shop East Gate", "Chop Shop West Gate" },
+    ["arena_yard"] = new[] { "Block South Gate", "Block North Gate" },
 };
-foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth", "bigmap", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth", "bigmap", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice", "arena_yard" })
 {
     f = Setup(map: mapName);
     foreach (var point in new ExfiltrationPoint[] { f.regular, f.scav, f.secret })
