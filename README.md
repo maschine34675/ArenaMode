@@ -1,11 +1,11 @@
 # ArenaMode
 
-**0.6.0 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
+**0.7.0 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
 equipment kits and six modes. Select **ARENA** beside PMC and Scav. Single-player;
 **Fika is not supported**.
 
-[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.6.0) ·
-[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.6.0.md) ·
+[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.7.0) ·
+[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.7.0.md) ·
 [Full feature inventory](docs/FEATURES.md)
 
 ## Modes
@@ -27,31 +27,37 @@ follow your selection; your saved PMC faction stays unchanged.
 - Factory day/night, Labs, Labyrinth and three bounded Customs areas support
   Gun Game, Deathmatch, Team DM, Domination, Tactical and Zombies.
 - [ArenaMapPort](https://github.com/maschine34675/ArenaMapPort/releases/latest)
-  adds Equator, Bay5, Air Pit, Bowl, Iceberg and Chop Shop. It requires your own
-  supported Arena installation. Equator excludes PitFireTeam Zombies. Team DM and
+  adds Equator, Bay5, Air Pit, Bowl, Iceberg, Chop Shop and Block. It requires your
+  own supported Arena installation. Equator excludes PitFireTeam Zombies. Team DM and
   Domination score/timer monitors need ArenaMapPort 0.4.0 or newer; 0.3.0 works
   without monitors.
-- ArenaMode 0.6.0 is made for **ArenaMapPort 0.6.0**, which adds Chop Shop and
-  more bot spawn points on every ported map. With ArenaMapPort 0.5.0 Chop Shop is
-  not offered; Equator, Bay5, Air Pit, Bowl and Iceberg keep working in Gun Game,
-  Deathmatch, Team DM, Domination and Zombies. Tactical on Equator and Iceberg is
-  offered, but 0.5.0 has too few distant spawn points there: a solo squad can
-  arrive short or late and a PitFireTeam match can end as No Contest. ArenaMode
-  does not check the ArenaMapPort version, so install 0.6.0.
+- ArenaMode 0.7.0 is made for **ArenaMapPort 0.7.0**, which adds Block (Arena's
+  own name for its map `Arena_Yard`). With ArenaMapPort 0.6.0 Block is not offered
+  and everything else works as before. With 0.5.0 Chop Shop is not offered either;
+  Equator, Bay5, Air Pit, Bowl and Iceberg keep working in Gun Game, Deathmatch,
+  Team DM, Domination and Zombies. Tactical on Equator and Iceberg is offered, but
+  0.5.0 has too few distant spawn points there: a solo squad can arrive short or
+  late and a PitFireTeam match can end as No Contest. ArenaMode offers each map
+  only when the game has it and does not check the ArenaMapPort version, so
+  install 0.7.0.
 - Iceberg needs ArenaMapPort 0.5.0 or newer; with 0.4.0 Arena does not offer the
   map. Its Team DM and Domination use the original USEC west / BEAR east pockets.
   The crowd reactions on ArenaMapPort maps need 0.5.0 or newer as well.
 - Tactical runs on Equator and Iceberg, solo and with PitFireTeam. Chop Shop
   supports Gun Game, Deathmatch, Team DM, Domination, solo Tactical and solo
-  Zombies, with eight participants by default; PitFireTeam Tactical and Zombies
-  are excluded there. Tactical's optional capture point exists on Factory and the
-  six ported maps only.
-- Domination supports Factory day/night, all six ported maps, Labs, Labyrinth and
-  the three Customs areas (Industrial Center, Industrial Side, Customs Yard);
+  Zombies, with six participants recommended; PitFireTeam Tactical and Zombies
+  are excluded there. Block supports every mode, solo and with PitFireTeam, with
+  eight participants by default; its Team DM and Domination use the original
+  USEC south / BEAR north pockets for 2v2 to 10v10. PitFireTeam squads on Block
+  have not been run in the game. Tactical's optional capture point exists on
+  Factory and the seven ported maps only.
+- Domination supports Factory day/night, all seven ported maps, Labs, Labyrinth
+  and the three Customs areas (Industrial Center, Industrial Side, Customs Yard);
   never with PitFireTeam and not on whole Customs. Factory picks three separated
   points each match; Equator/Bay5/Chop Shop use one original point each, Air
-  Pit/Bowl two and Iceberg three (A/B/C). Labs and each Customs area have three
-  points (A/B/C), Labyrinth one; the Customs areas use team sizes of 2 to 5.
+  Pit/Bowl/Block two (Block: A and B) and Iceberg three (A/B/C). Labs and each
+  Customs area have three points (A/B/C), Labyrinth one; the Customs areas use
+  team sizes of 2 to 5.
 
 ## Features
 
@@ -66,8 +72,12 @@ follow your selection; your saved PMC faction stays unchanged.
   useful pickups with BigBrain.
 - Scoreboard, killfeed, health/armor/ammo panels, hitmarkers, damage numbers and
   announcer audio. Domination objectives share the main score panel.
-- Optional Akimbo and Molotov mutators, both WIP. Molotov requires BigBrain;
-  neither is available in Zombies.
+- Bots fight at full strength from the first spawn. One difficulty step,
+  **Maximum** (default) or **Reduced**, is chosen on the Arena map screen; only
+  Gun Game still builds up over time.
+- Optional Akimbo and Molotov mutators, and an optional Translocator device
+  (disabled by default, Arena only), all WIP. Molotov requires BigBrain; Akimbo and
+  Molotov are not available in Zombies.
 - Optional integrations for AI, maps, replay and body/camera replacement.
   [Reviewed versions and limits](docs/DEPENDENCIES.md).
 
@@ -78,12 +88,13 @@ match HUD and session indicators stay within their own Arena contexts.
 ## Install or update
 
 1. Close EFT and SPT. Back up your profile and customized Arena files.
-2. Extract **ArenaMode-0.6.0.zip** into the SPT installation root, merging
+2. Extract **ArenaMode-0.7.0.zip** into the SPT installation root, merging
    `BepInEx/` and `SPT_Runtime/`.
-3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.24**. This shared
-   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.3
-   ships the same Core. ArenaMode 0.6.0 refuses to start with an older Core, and
-   you should never replace a newer Core with an older copy.
+3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.28**. This shared
+   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.4
+   ships the same Core. ArenaMode 0.7.0 refuses to start with an older Core
+   (1.0.27 or older), and you should never replace a newer Core with an older
+   copy.
 4. Start SPT and EFT, then select **ARENA**, or use the direct start below.
 
 The Arena client, companion and helper belong in
@@ -160,15 +171,18 @@ never deleted, and your reward choice is kept. [Reward details](docs/REWARDS-RUN
 
 Tarkova Cola **2.2.1+**, installed on both sides, can additionally transfer eligible
 Zombie progress and newly earned achievements through the same reward switch.
-Development builds include the **4.0.0** catalog and protect its deferred Tombstone
+ArenaMode includes the **4.0.0** catalog and protects its deferred Tombstone
 item returns; older reward records remain valid. [Scope](docs/TARKOVA-COLA-COMPAT.md).
 
-The development whitelist also records **Fontaine FOV Fix 5.0.1** and its
+The whitelist also records **Fontaine FOV Fix 5.0.1** and its
 **SPT Realism Common Lib 0.1.0** dependency. Bundled Core **1.0.28** handles their
 physical-player state during replacement. Standalone Redeploy and protected Arena
 body changes, aiming/firing and Cola offering protection passed the
-[bounded native checks](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md). These are
-changes after ArenaMode 0.6.0, not claims about its published bundle.
+[bounded native checks](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md).
+
+Fail-soft startup: a problem with reward data pauses rewards with a server-log
+Warning instead of stopping SPT, and a moved or copied installation starts as long
+as every earlier Arena session was finished.
 
 ## Verification and known limits
 

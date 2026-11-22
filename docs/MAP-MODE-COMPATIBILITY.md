@@ -1,11 +1,11 @@
-# Karten und Modi – Stand 21.11.2026
+# Karten und Modi – Stand 22.11.2026
 
 Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung und
 in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
 Grenzen der Spawn- und Arealverwaltung bleiben erhalten. Tabelle am 31.10.2026 um
 Bowl, Iceberg und Domination, am 12.11.2026 um Chop Shop ergänzt, am 13.11.2026 bei Tactical auf Equator, Iceberg
 und Chop Shop nach den neuen Botpunkten von ArenaMapPort (Stand 12.11.2026) neu entschieden, am 13.11.2026 bei Domination um Labs,
-Labyrinth und die drei Customs-Areale erweitert, am 14.11.2026 auf ArenaMapPort 0.6.0 bezogen, am 21.11.2026 um Block ergänzt; der übrige Text ist
+Labyrinth und die drei Customs-Areale erweitert, am 14.11.2026 auf ArenaMapPort 0.6.0 bezogen, am 21.11.2026 um Block ergänzt, am 22.11.2026 auf ArenaMapPort 0.7.0 bezogen; der übrige Text ist
 der Stand vom 17.10.2026, wo nicht anders vermerkt.
 
 | Karte | Deathmatch / Gun Game | Team DM | Domination | Tactical solo / PFT | Zombies solo / PFT |
@@ -16,7 +16,7 @@ der Stand vom 17.10.2026, wo nicht anders vermerkt.
 | Bowl | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte | Ja | Ja |
 | Iceberg (Karte seit ArenaMapPort 0.5.0; die 17 Botpunkte für Tactical ab ArenaMapPort 0.6.0) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, drei Punkte (A/B/C) | Ja / Ja: 17 Botpunkte, in der alten Kartenmitte mindestens neun über 25 m (bis 12.11.: Nein) | Ja / Ja |
 | Chop Shop (Karte und Botpunkte ab ArenaMapPort 0.6.0) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt (X) | Solo ja; PFT nein: in der Hofmitte nur drei bis fünf entfernte Botpunkte (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
-| Block (Karte aus dem noch nicht veröffentlichten ArenaMapPort-Build 0.6.0+1d8faa8) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte (A/B) | Ja / Ja: 18 Botpunkte, nach ArenaMapPorts Prüfung überall mindestens elf über 25 m; solo nativ gelaufen, PFT-Trupp nicht | Ja / Ja; solo nativ gelaufen, PFT-Trupp nicht |
+| Block (Karte seit ArenaMapPort 0.7.0) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte (A/B) | Ja / Ja: 18 Botpunkte, nach ArenaMapPorts Prüfung überall mindestens elf über 25 m; solo nativ gelaufen, PFT-Trupp nicht | Ja / Ja; solo nativ gelaufen, PFT-Trupp nicht |
 | Equator (Tactical: 16 Botpunkte ab ArenaMapPort 0.6.0) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt | Ja / Ja: 16 Botpunkte, neun über 25 m vom Atrium, überall mindestens sechs (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, je Areal drei Punkte (A/B/C), 2v2–5v5; ohne PitFireTeam | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
@@ -129,8 +129,9 @@ vom 13.11. war die Versetzung dann schon geschehen, der Code garantiert es nicht
 PFT-Anführer bleibt stehen, und fehlende Punkte beenden dort das ganze Match ohne Ergebnis.
 Zombies mit PFT sind gesperrt (die zusammenhängende Lauffläche hat nur 1.916 m², dazu
 1–2,4 m enge Gänge an den Toren); solo bleiben Zombies freigegeben. Team DM und Domination nutzen
-die ursprünglichen Taschen USEC Ost / BEAR West; Domination hat einen Punkt (X). Standard sind
-acht Teilnehmer (bis 12.11. sechs, als es sieben Botpunkte gab). Der native Lauf auf GPU-2 am 12.11.2026 (Menü, Deathmatch,
+die ursprünglichen Taschen USEC Ost / BEAR West; Domination hat einen Punkt (X). Empfohlen und
+Standard sind seit dem 22.11.2026 wieder sechs Teilnehmer (in 0.6.0 acht; bis 12.11. sechs, als es sieben Botpunkte gab);
+eine gespeicherte Zahl bleibt, eine frische Konfiguration beginnt bei sechs. Der native Lauf auf GPU-2 am 12.11.2026 (Menü, Deathmatch,
 Team DM 4v4 und 10v10 mit gehaltenen Toren, Domination, Zombies solo, PMC-Kontrolle) lief ohne Fehler;
 die Boxhöhe (−4,8 bis −1,0) und der Domination-Punkt (−369,290 / −3,805 / 499,490) haben gehalten. Der
 Tor-Watchdog beträgt 15 s. Die beiden bekannten Grenzen dieses Laufs (Domination setzte nur 5 von 6 Pickups,
@@ -144,10 +145,10 @@ liegen seit dem 12.11. in den Teamtaschen; ArenaMode deaktiviert die Extraktion,
 [Folgeentscheidung zu den neuen Botpunkten](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md).
 
 Block (ArenaMapPort-ID `arena_yard`, Arenas eigener Name; mit dem Customs-Areal Yard hat die Karte nichts zu tun)
-braucht einen ArenaMapPort-Build, der diese Karte mitbringt. Das ist heute der noch nicht veröffentlichte Build
-`0.6.0+1d8faa8` (`feature/yard`); das veröffentlichte ArenaMapPort 0.6.0 hat kein Block und trägt dieselbe
-Versionsnummer, deshalb erkennt ArenaMode die Karte nur an der vorhandenen, aktivierten Location, nie an der
-Version. Ohne einen solchen Build wird die Karte nicht angeboten. Alle Modi sind freigegeben, auch Tactical und
+braucht einen ArenaMapPort-Build, der diese Karte mitbringt. Das ist ArenaMapPort 0.7.0 (22.11.2026); ArenaMapPort
+0.6.0 hat kein Block. ArenaMode 0.7.0 ist für ArenaMapPort 0.7.0 gebaut; ArenaMode erkennt die Karte nur an der
+vorhandenen, aktivierten Location, nie an der Version. Ohne einen solchen Build wird die Karte nicht angeboten, alles
+andere läuft mit 0.6.0 wie mit ArenaMode 0.6.0. Alle Modi sind freigegeben, auch Tactical und
 Zombies mit PFT-Trupp: Die Karte hat 18 Botpunkte, und nach ArenaMapPorts eigener Prüfung auf dem gebauten Netz
 liegen von jeder Stelle außerhalb der beiden Taschen mindestens elf davon weiter als 25 m entfernt (mit ArenaModes
 Auswahlcode ist das nicht gelaufen). Team DM und Domination nutzen die ursprünglichen Taschen USEC Süd (erhöhte
@@ -158,8 +159,7 @@ solo und Tactical solo; dabei gab es keine Warnung und keinen Fehler im Log. Der
 davor wurde abgelehnt (USEC 0/10 sichere Plätze), weil die Startpunkte der Südplattform 0,10 m unter ihrem Boden
 liegen; sieben davon tragen seitdem den gemessenen Boden. Nicht gelaufen: PFT-Trupp auf dieser Karte, Gun Game,
 Deathmatch mit mehr als acht Teilnehmern, ein bis zum Ergebnis gespieltes Match, ein Spieler in der Südtasche,
-nichts davon gehört. README, Forge-Text und Whitelist nennen die Karte erst, wenn ein ArenaMapPort-Release sie
-ausliefert. Siehe [Block-Integration](reviews/BLOCK-INTEGRATION-20261121.md).
+nichts davon gehört. README, Forge-Text und Whitelist nennen die Karte seit ArenaMode 0.7.0 und ArenaMapPort 0.7.0. Siehe [Block-Integration](reviews/BLOCK-INTEGRATION-20261121.md).
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

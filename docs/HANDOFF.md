@@ -41,7 +41,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 - **Development, 2026-11-21: Block (arena_yard) admitted on feature/yard.** Block is ArenaMapPort's seventh map
   (location id `arena_yard`, Arena's own name "Block", unrelated to the Customs yard area). It is admitted as an
   optional map in every mode on the branch `feature/yard`, worktree `D:\SPT41\Development\ArenaMode-yard`, cut from
-  `master` `6b3ba6a4`. **The branch is not merged into `master` and not pushed.** It holds five commits:
+  `master` `6b3ba6a4`. **The branch was merged into `master` on 2026-11-22 (merge `a28d2a5a`); the branch and its worktree were deleted that day, and the push follows with the 0.7.0 release.** It held five commits:
   `30892f9a` (admission: catalogue, optional-map revision 7, team boxes, two-point Domination, tests and harnesses),
   `c071cb81` (the Amand's Graphics scene check pins the number of catalogue ids, now twelve; three comments that
   claimed more than was measured now give the numbers), `fb2b3af6` (seven south start heights carry the measured
@@ -121,6 +121,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   (the published 0.6.0 and the installed `feature/yard` build share the string `0.6.0`). `README.md`,
   `docs/FORGE-DESCRIPTION.md` and `assets/arena-whitelist.json` are untouched; the only player-facing line is the
   CHANGELOG "Unreleased" entry, which says the map needs an ArenaMapPort build that ships it (not yet released).
+  Superseded on 2026-11-22: ArenaMapPort 0.7.0 ships Block, and ArenaMode 0.7.0 names it in the README, the Forge
+  description and the whitelist.
 
 - **Development, 2026-11-21: WTT review.** The default policy now reviews
   Content Backport 2.0.7, CommonLib 3.0.8 and Armory 2.0.5 on both sides.
@@ -146,8 +148,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   retaining the old living body, real deaths, own-Scav, key events and shooting.
   Advanced Movement is not added to the default Arena whitelist by this work.
   The final candidate preserves the separately developed Domination fix by
-  fast-forwarding `fix/dynamicmaps-130` through `026d4c44`; that branch/worktree
-  remain. Exact accepted Core `1.0.26+5283c7c` and Arena `0.6.0+026d4c44`
+  fast-forwarding `fix/dynamicmaps-130` through `026d4c44`; that branch and its
+  worktrees were deleted on 2026-11-22. Exact accepted Core `1.0.26+5283c7c` and Arena `0.6.0+026d4c44`
   binaries are now installed on the VM and both GPU hosts (all ten hashes match).
   Temporary runtime files are removed, settings restored, synchronization active;
   both games/servers are stopped. Final Arena verification: 64 steps passed;
@@ -683,14 +685,14 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Block (`arena_yard`), 2026-11-21, `feature/yard` (not merged, not pushed; entry under "Released and installed",
+**Block (`arena_yard`), 2026-11-21, `feature/yard` (merged into `master` on 2026-11-22, `a28d2a5a`, branch and worktree deleted; push with the release; entry under "Released and installed",
 [contract](reviews/BLOCK-INTEGRATION-20261121.md)):** open are (1) the owner's decisions on the brief; (2) nothing offline: the final
 pass is green (result in the entry above); (3) the native runs not made: a PitFireTeam squad
 on Block, Gun Game, Deathmatch above eight participants, a match played to its result, the local player on a south
 formation point in Team DM or Domination, a held gate walked into by a player; (4) the ArenaMapPort side (`PENDING_DONOR_MAPS`) and the unpushed
 gpu-run commit `b3a469a` in UiBridge; (5) the harnesses that read installed MapPort data (`BlockChecks`, `BlockTeamBoxChecks`,
 `ArenaPickupChecks` and through it every full run) fail without an ArenaMapPort build that ships `arena_yard`;
-(6) merge and push only on the owner's word. README, FORGE-DESCRIPTION and the whitelist stay free of Block.
+(6) the merge is done (2026-11-22); the push follows with the 0.7.0 release. README, FORGE-DESCRIPTION and the whitelist name Block since 0.7.0 (ArenaMapPort 0.7.0 ships it).
 
 **Reward history conflict copies, 2026-11-20 (on `master` since the merge `bc1d912f` of `fix/reward-history-foreign-entry`,
 pushed the same day, not deployed; [report](reports/2026-11/REWARD-HISTORY-CONFLICT-20261120.md)):** the GPU-2 test
@@ -1217,7 +1219,7 @@ migrated to revision 5 with `arena_iceberg` in `General/Maps`.
   build `0.4.0+32fda33` or a later release); the published 0.4.0 is not enough.
   *Superseded 2026-11-13:* the published ArenaMapPort 0.5.0 ships `arena_iceberg`. `MapModeAdmissionChecks` and,
   through it, the three team-box harnesses also need the Bot rows of 0.5.0+160523d (`SPAWN-ROWS-DATA`), and
-  `ChopShopChecks` needs `arena_autoservice`, and `BlockChecks`/`BlockTeamBoxChecks` (and through `ArenaPickupChecks` every full run) need `arena_yard` (the unreleased `feature/yard` build `0.6.0+1d8faa8`; the published 0.6.0 has no Block).
+  `ChopShopChecks` needs `arena_autoservice`, and `BlockChecks`/`BlockTeamBoxChecks` (and through `ArenaPickupChecks` every full run) need `arena_yard` (the then unreleased `feature/yard` build `0.6.0+1d8faa8`; the published 0.6.0 has no Block). *Superseded 2026-11-22:* the published ArenaMapPort 0.7.0 ships `arena_yard`.
 - **The installed ArenaMapPort client is a harness dependency too** (branch
   `feature/crowd-reactions`): the real-surface stage of `tools/CrowdReactionChecks` loads
   `BepInEx/plugins/maschine-ArenaMapPort/maschine-ArenaMapPort.Client.dll` read-only and fails

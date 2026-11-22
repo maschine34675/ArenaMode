@@ -1,6 +1,6 @@
 # ArenaMode — complete feature inventory
 
-Source inventory of **ArenaMode 0.6.0 and marked unreleased additions** (2026-11-15; Block added 2026-11-21), including Block, Chop Shop, Iceberg, the crowd
+Source inventory of **ArenaMode 0.7.0** (2026-11-22; 0.6.0 inventory of 2026-11-15, Block added 2026-11-21), including Block, Chop Shop, Iceberg, the crowd
 reactions, Domination, direct session start, profile recovery and the current
 compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
@@ -427,7 +427,7 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   fire policy still apply.
 - No ordinary loot/trader supply and no conversion of vanilla RGD-5s.
 
-### Translocator (WIP, unreleased)
+### Translocator (WIP)
 
 - Optional selectable device, off by default and independent of Fast Movement.
 - Fire throws one disc or recalls it; aim teleports to it, including in flight.
@@ -649,7 +649,7 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
   `CrowdReactions`, default on, frozen at arm, off in Zombies. With ArenaMapPort 0.4.0 the
   spectator murmur gets louder in the final round, at match point and in the last minute or
   five kills. The reactions (own kills, awards, lead changes, own deaths, round start and
-  result) need an ArenaMapPort with the reaction contract, which is not released yet; that
+  result) need an ArenaMapPort with the reaction contract (0.5.0 or newer); that
   ArenaMapPort also roars (cheers) or boos from every stand with each reaction, so an Approve
   and a Disapprove within the same second give one reaction, the stronger. A
   complaint after a minute of live combat without a kill (Lull) needs a later ArenaMapPort that
@@ -720,7 +720,7 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   TDM (original pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point), solo Zombies and, since
   2026-11-13, solo Tactical, but no PitFireTeam Tactical (the yard centre has 3 to 5 distant rows, and a
   PitFireTeam leader who survives there would end the match as no contest) and no PFT Zombies (1,916 m2
-  main walkable component); it defaults to eight participants (sixteen Bot rows). It needs
+  main walkable component); it recommends six participants (sixteen Bot rows; eight in 0.6.0, a saved count stays, a fresh configuration starts at six). It needs
   ArenaMapPort 0.6.0 (which ships the map with the rows of 2026-11-12; 0.5.0 does not offer it) and is
   detected by the live location. It ran natively on
   GPU-2 on 2026-11-12 (menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, PMC control;
@@ -736,10 +736,9 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   every mode, solo and with a PitFireTeam squad in Tactical and Zombies, with no refusal: Team DM from its original
   pockets (USEC south, the raised platform behind the rising gondola / BEAR north, the room behind the two gate
   leaves, 2v2-10v10), Domination with two points (A and B), eight participants by default (18 Bot rows), a 15 s gate
-  watchdog. It needs an ArenaMapPort build that ships it (today the unreleased `feature/yard` build 0.6.0+1d8faa8;
-  the published 0.6.0 does not carry it and has the same version string), is detected by the live location, and is
-  not named in the README, the Forge text or the whitelist until ArenaMapPort releases it. Run natively on GPU-2 on
-  2026-11-21 (build 0.6.0+fb2b3af6): Deathmatch with eight participants, Team DM 4v4 and 10v10, Domination, solo
+  watchdog. It needs an ArenaMapPort build that ships it (ArenaMapPort 0.7.0; with 0.6.0 Block is not offered and everything
+  else works as with ArenaMode 0.6.0), is detected by the live location, never by version. Run natively on GPU-2 on
+  2026-11-21 (pre-release build 0.6.0+fb2b3af6): Deathmatch with eight participants, Team DM 4v4 and 10v10, Domination, solo
   Zombies and solo Tactical. Not run: PitFireTeam squads, Gun Game, a match played to its result
   ([contract](reviews/BLOCK-INTEGRATION-20261121.md)).
 - Labs excludes bot starts behind both locked extraction gates, preserving
@@ -993,17 +992,17 @@ See also [profile construction](reviews/PROFILE-BUILD-BUDGET-20261017.md) and
   old-body callbacks. Reviewed versions are 1.3.4 and 1.4.0. Better BepInEx 1.0.0
   is also admitted and keeps its stock ConfigurationManager dependency. Radar
   colors represent its faction/role rules, not Arena team hostility.
-- The bundled **Core 1.0.18** also includes ImpactCue/Enemy Markers telemetry and
+- The bundled **Core 1.0.28** also includes (since 1.0.18) ImpactCue/Enemy Markers telemetry and
   camera handovers, Quick Cancel old-body cleanup and PiP optic-cache ownership.
-  It is the same library shipped with standalone Redeploy 1.1.1.
+  It is the same library shipped with standalone Redeploy 1.1.4.
 - Use Items Anywhere's configured access/reload slots take precedence; Arena's
   magazine HUD uses the same query. Fast Grenade Throw keeps its selected grenade
   priority and respects Arena input locks. HUD Breakout follows the current body
   without a dedicated adapter; its own grenade/spectator semantics remain.
 - Reviewed-version drift is advisory in direct play and new private sessions,
   including UIFixes. Actual identity, deny/dependency and protection/API checks
-  still decide admission. The whitelist records ArenaMapPort 0.4.0 (published 2026-10-30;
-  0.3.0 then only produces a version advisory) and Redeploy 1.1.1.
+  still decide admission. The whitelist records ArenaMapPort 0.7.0 (published 2026-11-22;
+  an older version only produces a version advisory) and Redeploy 1.1.4.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**

@@ -1,4 +1,4 @@
-<!-- ArenaMode description draft of 0.6.0 (Redeploy.Core 1.0.24, identical to the copy in Redeploy 1.1.3). Post it only together with the 0.6.0 package. -->
+<!-- ArenaMode description draft of 0.7.0 (Redeploy.Core 1.0.28, identical to the copy in Redeploy 1.1.4). Post it only together with the 0.7.0 package. -->
 ## {.tabset}
 
 ### Overview
@@ -8,6 +8,8 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 
 - Six modes: Team DM (the default for new installations), Domination, Gun Game,
   Deathmatch, Tactical (WIP) and Zombies (WIP).
+- Bots fight at full strength from the first spawn; one difficulty step, **Maximum**
+  (default) or **Reduced**, is chosen on the Arena map screen.
 - Respawns or round/wave-based survival, depending on the mode.
 - Arena kits chosen in a KITS window, your own kits, a weapon ladder and own gear
   in Deathmatch, Team DM, Domination, Zombies and PitFireTeam Tactical.
@@ -34,8 +36,8 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - **Domination:** capture and hold control points for team score, with
   continuous team respawns, bot capture/defence assignments and separate score/time
   limits (300 points / ten minutes by default). Factory varies three points each
-  match; Equator, Bay5 and Chop Shop use one point, Air Pit and Bowl two, Iceberg
-  three; The Lab has three points, The Labyrinth one and each of the three Customs
+  match; Equator, Bay5 and Chop Shop use one point, Air Pit, Bowl and Block two,
+  Iceberg three; The Lab has three points, The Labyrinth one and each of the three Customs
   areas three (not with PitFireTeam). Optional
   DynamicMaps shows the live points in their ownership colours on the map and minimap. **Requires
   BigBrain 1.5.0 or newer** (separate download). Profile rewards pay eligible kills only.
@@ -44,7 +46,8 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
   1–4 companions against five opponents. Companions keep their own gear.
   Spectate after death and return next round with the selected entry loadout.
   An optional capture point, on by default, can decide a round on Factory,
-  Bay5, Air Pit, Bowl, Equator, Iceberg and (solo) Chop Shop.
+  Bay5, Air Pit, Bowl, Equator, Iceberg, Block and (solo) Chop Shop. Solo, the enemy
+  squad's gear is lighter in rounds 1 and 2 and full from round 3.
 - **Zombies (WIP):** increasing waves, with ammunition replenished between
   waves. Solo death ends the match. A PitFireTeam squad can keep fighting after
   your death; fallen members return after the wave is cleared. A wipe ends the
@@ -58,16 +61,21 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - Customs: Industrial Center, Industrial Side and Customs Yard. Only these bounded
   areas are available, in every mode including Domination (three points each, team
   size 2 to 5 per side, not with PitFireTeam). Whole Customs is not offered.
-- With ArenaMapPort: Bay5, Air Pit, Bowl and Iceberg in all modes; Equator in all
+- With ArenaMapPort: Bay5, Air Pit, Bowl, Iceberg and Block in all modes (Block
+  also with PitFireTeam, which has not been run in the game there); Equator in all
   modes except PitFireTeam Zombies; Chop Shop in Gun Game, Deathmatch, Team DM,
   Domination, solo Tactical and solo Zombies, not with PitFireTeam in Tactical or
   Zombies (Equator: no PitFireTeam Zombies).
 - Domination is offered on Factory day/night, Labs, Labyrinth, the three Customs
-  areas and the six ArenaMapPort maps, not on whole Customs. On the vanilla maps the
+  areas and the seven ArenaMapPort maps, not on whole Customs. On the vanilla maps the
   point letter is drawn readably from afar.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
 - Air Pit Team DM requires ArenaMapPort 0.2.2 or newer for its team-start boxes.
+- Block defaults to eight participants; Chop Shop recommends six. A count you
+  already saved stays as it is.
+- Block's Team DM and Domination use the map's original pockets, USEC south and
+  BEAR north, for 2v2 to 10v10; its Domination has two points, A and B.
 - Bowl defaults to eight participants in Deathmatch, Gun
   Game and Team DM. Independent Team DM uses its east/west team boxes for 2v2 to 10v10;
   combat waits for the spawn gates to open, and the gates stay open for respawns.
@@ -76,13 +84,14 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
   monitors and only produces a version advisory.
 - Iceberg and the crowd reactions need **ArenaMapPort 0.5.0 or newer** (0.5.0
   published 2026-11-07).
-- **Install ArenaMapPort 0.6.0**, the version this release is made for. It adds Chop Shop
-  and more bot spawn points on every ported map. With the older 0.5.0, Chop Shop is not
-  offered; the other ported maps keep working in Gun Game, Deathmatch, Team DM,
+- **Install ArenaMapPort 0.7.0**, the version this release is made for. It adds Block
+  (Arena's own name for its map). With ArenaMapPort 0.6.0, Block is not offered and
+  everything else works as before. With the older 0.5.0, Chop Shop is not
+  offered either; the other ported maps keep working in Gun Game, Deathmatch, Team DM,
   Domination and Zombies. Tactical on Equator and Iceberg is still offered, but 0.5.0 has
   too few distant spawn points there (Equator 10, Iceberg 9): a solo squad can arrive
-  short or late, and a PitFireTeam Tactical match can end as No Contest. Arena does not
-  check the ArenaMapPort version.
+  short or late, and a PitFireTeam Tactical match can end as No Contest. Arena offers
+  each map only when the game has it and does not check the ArenaMapPort version.
 
 #### Mutators
 
@@ -99,14 +108,16 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
   panels and a scoreboard with damage-share assists.
 - Team tracer/laser colors and friendly fire. Friendly fire defaults off for
   PFT Zombies, on for Team DM and PFT Tactical.
-- Akimbo pistols (WIP), additional Molotov (WIP), bot movement options.
+- Akimbo pistols (WIP), additional Molotov (WIP), an optional Translocator device (WIP;
+  disabled by default, Arena only: fire to throw or recall one disc, aim to teleport),
+  bot movement options.
 - Killcam replays with Killcam installed and DeathReplay enabled.
   PFT team spectating has a target-HP display and works without the replay mod.
 - Pickups on every supported Arena map in Deathmatch and Team DM: health,
   shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
   rotate during play, within the selected Customs area where applicable.
 - Visible bot spawn protection in Team DM and Domination in the fixed team boxes on
-  Equator, Bay5, Air Pit, Bowl, Iceberg and Chop Shop, default four seconds; firing,
+  Equator, Bay5, Air Pit, Bowl, Iceberg, Chop Shop and Block, default four seconds; firing,
   throwing a grenade or dealing damage ends it. Other maps retain player protection
   without bot spawn shields.
 - Narrow colored body contours identify bot spawn protection, Shield and Double
@@ -138,10 +149,10 @@ the post-raid XP page skipped.
 - To start without opening normal EFT, run the installed Session.exe and choose a
   profile; its picker can create a desktop shortcut. A short normal-server start and
   stop before the private server is expected, even with rewards off.
-- Use the supplied `maschine-Redeploy.Core.dll` (Core 1.0.24, identical to the copy
-  in Redeploy 1.1.3); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (Core 1.0.28, identical to the copy
+  in Redeploy 1.1.4); keep only one copy,
   directly in `BepInEx/plugins/`.
-  Arena requires at least the version its client was built against (1.0.24) and disables itself before initialization
+  Arena requires at least the version its client was built against (1.0.28) and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
   The full Redeploy mod is not required.
 - Install optional mods separately, with their own prerequisites.
@@ -180,8 +191,10 @@ Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, and
 since 0.6.0 Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0, Auto
 Shoulder Swap 1.1.1, Dynamic External Resolution Patch 1.1.2, Caliber Under Ammo
 Name 1.2.0, Compatibility Highlighter 1.3.2, Trader Modding and Improved Weapon
-Building 2.1.2 and Amand's Graphics 1.8.0, plus
-ArenaMapPort 0.6.0, PitFireTeam 1.1.1 and the standalone Redeploy 1.1.3.
+Building 2.1.2 and Amand's Graphics 1.8.0, and since 0.7.0 VisualAssist 1.2.0,
+WTT Armory 2.0.5 and SPT Realism Common Lib 0.1.0, plus
+ArenaMapPort 0.7.0, PitFireTeam 1.1.2, Tarkova Cola 4.0.0, DynamicMaps 1.3.0 and the
+standalone Redeploy 1.1.4.
 It denies ORBIT, Questing Bots,
 Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
 always allowed; a version that differs from the reviewed one only produces a warning.
@@ -235,18 +248,19 @@ runs: README and `docs/ARENA-SESSION-20261021.md` in the repository.
 Optional integration targets:
 
 - **PitFireTeam 0.10.3+**, client and server: 1–4 companions in Tactical
-  or Zombies; the default whitelist reviews 1.1.1.
+  or Zombies; the default whitelist reviews 1.1.2.
 - **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** required for Domination; also used for pickup pursuit and Molotov. Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain (only Domination is then locked). Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
-- **ArenaMapPort 0.6.0:** Bay5, Equator, Air Pit, Bowl, Iceberg and Chop Shop, with client/server and map assets.
-  Chop Shop and the added bot spawn points need 0.6.0; Iceberg and the crowd reactions need 0.5.0
+- **ArenaMapPort 0.7.0:** Bay5, Equator, Air Pit, Bowl, Iceberg, Chop Shop and Block, with client/server and map assets.
+  Block needs 0.7.0; Chop Shop and the added bot spawn points need 0.6.0; Iceberg and the crowd reactions need 0.5.0
   or newer (0.5.0 published 2026-11-07); score/timer monitors need 0.4.0 or newer; 0.3.0 works
   without them.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1+:** corpse-marker cleanup integration; live Domination objectives
   (ownership-coloured diamonds with their letter) on the map and minimap while a match is live.
+  Reviewed on 1.3.0, whose marker pack changes keep the diamonds.
 - **Continuous Healing 1.6.3+:** player-only healing continuation/cancellation
   does not affect Arena bots or retired player bodies. It remains enabled for
   the current living player.
@@ -255,9 +269,13 @@ Optional integration targets:
 - **SVM 2.2.3+:** SaveLoot/Ignore settings do not bypass Arena's protected raid end;
   ordinary raids retain those rules. Other SVM settings remain effective.
 - **Tarkova Cola 2.2.1+:** temporary perks and protected Zombie research/achievement
-  transfer; requires both parts and matching lifecycle/catalog contracts.
-- **Fontaine FOV Fix 4.1.0 / Manimal 2.0.0:** the shared Core handles camera and
-  ammo-loading visual ownership after player replacement.
+  transfer; requires both parts and matching lifecycle/catalog contracts. The 4.0.0
+  catalog is included and Arena-generated Tombstone offering mails are blocked.
+- **Fontaine FOV Fix 5.0.1 / SPT Realism Common Lib 0.1.0 / Manimal 2.0.0:** the shared
+  Core handles camera, controller and ammo-loading visual ownership after player replacement.
+- **VisualAssist 1.2.0 / WTT Armory 2.0.5:** the shared Core keeps VisualAssist's grenade
+  preview across body replacement and moves WTT Armory's AN-94 Hyperburst state to the
+  replacement player.
 - **Increase Look Direction 1.3.0:** tested through respawns. With FOV Fix present,
   FOV Fix's Free Look Angle controls armed free-look.
 - **Magazine Check Interrupt 1.1.1:** its floating panel follows the replacement
@@ -295,7 +313,7 @@ Optional integration targets:
   camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
-are provided by the bundled Redeploy.Core (1.0.24; they also apply to standalone Redeploy);
+are provided by the bundled Redeploy.Core (1.0.28; they also apply to standalone Redeploy);
 Arena keeps only its medical fallback for Arena bots.
 
 The newer targets (Fast Grenade Throw, Quick Cancel, HUD Breakout and PiP Disabler)
@@ -364,7 +382,8 @@ reward choice is kept.
 
 ### Notes and credits
 
-- ArenaMapPort 0.6.0 adds Chop Shop and more bot spawn points on every ported map (Chop
+- ArenaMapPort 0.7.0 adds Block (18 bot spawn points). ArenaMapPort 0.6.0 added Chop Shop
+  and more bot spawn points on every ported map (Chop
   Shop 16, Equator 16, Bay5 16, Iceberg 17, Air Pit 20, Bowl 21) and moves the two exits
   of each ported map into the team start areas.
 - ArenaMapPort 0.5.0 (Iceberg, the crowd reactions and their roar layer) was published on

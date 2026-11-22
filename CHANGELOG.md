@@ -8,48 +8,67 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## Unreleased
+## [0.7.0] - 2026-11-22
 
+ArenaMode 0.7.0 is made for **ArenaMapPort 0.7.0**, which adds the map Block. Block needs it. With
+the older ArenaMapPort 0.6.0 Block is not offered and everything else works as in ArenaMode 0.6.0;
+with 0.5.0 Chop Shop is not offered either, and Tactical on Equator and Iceberg has too few distant
+spawn points (as described under 0.6.0). ArenaMode does not detect the ArenaMapPort version; it
+offers each optional map when the map's own enabled location is live, so install 0.7.0. The package
+bundles shared **Core 1.0.28**, identical to the Core in Redeploy 1.1.4; this release and its
+drivers refuse Core 1.0.27 or older.
+
+### Maps
+
+- Added optional **Block** support through ArenaMapPort 0.7.0 (Arena's own name for the map; ArenaMapPort id
+  `arena_yard`) in every mode: Gun Game, Deathmatch, Team Deathmatch, Domination, Tactical and Zombies, solo and
+  with a PitFireTeam squad (18 bot spawn points). Default is eight participants. Team DM and Domination use the
+  map's original pockets, USEC south / BEAR north, for 2v2-10v10, and Domination has its two capture points A and
+  B. The map needs ArenaMapPort 0.7.0, which ships it; the saved map list gains it once through optional-map
+  revision 7 (only a list that equals the exact previous default; an edited list stays as it is). Checked offline
+  and in raids on one test host with a pre-release ArenaMapPort build (Deathmatch, Team DM, Domination, Zombies
+  and Tactical solo); PitFireTeam squads on this map have not been run.
+  [Contract](docs/reviews/BLOCK-INTEGRATION-20261121.md)
 - Chop Shop recommends **six** participants again (eight since 0.6.0). A count you
   already saved for the map stays as it is; the map screen shows the new recommendation
   beside it, and a fresh configuration starts at six.
 
+### Difficulty
+
 - Choose **Maximum** or **Reduced** directly on the Arena map screen. The Combat
   mutator list now leaves room for the full **TRANSLOCATOR (WIP)** label on narrow screens.
+- Bots now fight at full strength from the first spawn. Deathmatch, Team Deathmatch, Domination and Tactical no longer start easy and get harder with time, with the length of the match or with your kill streak; Scavs spawn at hard and PMCs at impossible, and the bot equipment level is the map's top level (66 by default) from the first bot (except in PitFireTeam Tactical, where opponent gear stays relative to your profile, and in the first two rounds of solo Tactical, see below).
+- New setting **Difficulty > Step** with **Maximum** (default) and **Reduced**. Reduced lowers everything one step: PMCs at hard and Scavs at normal, bot equipment at about 60 % of the top level, two instead of four extra PMCs on top of the PMC floor, a slower refill, half of the extra bot speed (the default 1.5x becomes 1.25x) and position reports to the bots 1.5 times less often. The step is fixed when the raid starts; changing it during a raid takes effect with the next one. The F9 panel shows it read-only. Client and server must be updated together.
+- Gun Game is the one mode that still builds up, on a single ramp over the map's ramp time (15 minutes by default): bot equipment climbs from level 1 to the step's level, PMCs switch to the step's level at 80 % of the ramp and Scavs at 50 %, and the extra PMCs grow with it. Your kills and a finished ladder no longer change anything.
+- In Gun Game, enemy PMCs now follow the gear build-up more closely: pooled PMC bot profiles that fell more than 5 levels behind it are replaced by freshly generated ones, instead of lagging minutes behind (Scavs are not affected).
+- Team Deathmatch and Domination bot requests no longer carry a match clock, and the pooled PMC profiles are warmed only for the level the step asks for at the start (hard in Gun Game).
+- Removed the settings Scale Difficulty, Pressure Ramp Minutes, Pressure Streak Percent, Pressure PMC Bonus and Max Bot Difficulty, with their menu rows and the F9 toggle. When the game starts, a saved Scale Difficulty of off, or a Max Bot Difficulty below impossible, selects Reduced once; nothing else in your configuration changes.
 
-- Add Tarkova Cola 4.0.0's research and achievement catalog while preserving older
-  reward records. Block Arena-generated Tombstone offering mails and preserve
-  pending ordinary offerings. [Protection details](docs/reviews/TARKOVA-COLA-4-20261122.md).
-- Record Tarkova Cola 4.0.0, Fontaine FOV Fix 5.0.1 and SPT Realism Common Lib 0.1.0
-  in the development whitelist. Core 1.0.28 adds Common Lib controller handoff and
-  selective Cola body-state cleanup. Verified standalone and in protected Arena
-  with the [documented native scope](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md).
-- Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
+### Tactical
 
-- Added optional **Block** support through ArenaMapPort (Arena's own name for the map; ArenaMapPort id `arena_yard`) in
-  every mode: Gun Game, Deathmatch, Team Deathmatch, Domination, Tactical and Zombies, solo and with a PitFireTeam
-  squad (18 bot spawn points). Default is eight participants. Team DM and Domination use the map's original pockets,
-  USEC south / BEAR north, for 2v2-10v10, and Domination has its two capture points A and B. The map needs an
-  ArenaMapPort build that ships it (not yet released); the saved map list gains it once through optional-map
-  revision 7. Checked offline and in raids on one test host (Deathmatch, Team DM, Domination, Zombies and Tactical
-  solo); PitFireTeam squads on this map have not been run.
-  [Contract](docs/reviews/BLOCK-INTEGRATION-20261121.md)
+- Solo Tactical: the enemy squad's gear is lighter in the first two rounds and full from round 3, so the first rounds are not decided by what a starting budget cannot afford. On the default map the bot equipment level is about 25 in round 1 and 45 in round 2 at Maximum (15 and 27 at Reduced), then the map's top level; a map whose top level is less than a gear tier above an opening level simply plays that round at the top level. The buy screen says what applies, in its own line: "Enemy squad this round: light gear" (round 1), "...medium gear" (round 2) and, once, "Enemy squad from now on: full gear" (round 3). The client reports the round to the server, which is why client and server must be updated together (an old server simply keeps the full level). Pooled PMC profiles that lie outside the round's gear band are replaced by freshly generated ones, with a budget of two purges per level. Scav squads get the lighter band from the server too, but no pool purge and no buy-screen line. Protected PitFireTeam Tactical and every other mode are unchanged.
+- The Tactical start money setting now describes the real kit prices (about 180k to 670k; 250k buys one of the five cheapest) instead of 180k to 590k.
 
-- Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
+### Zombies
 
-- Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.
+- Zombies follow the step through their composition, not their number: at Maximum the horde keeps the configured number alive from wave one, the share of slow walkers fades by 5 points per wave from wave 4 (none left in waves 8 and 9, 5 % once more in wave 10, none from wave 11) and the shooter share grows by a tenth of the setting per wave from wave 2, up to twice the setting and never above 100 % (0 % and 100 % stay exact); every fifth wave is then replaced by a special wave (next entry). At Reduced the mix stays as before with a flat shooter share and at most 24 infected alive at once. Position reports to the bots are not slowed in Zombies.
+- Zombie waves no longer stall in the later waves of a long raid: the game stored reloaded bot profiles twice and the second copy could not be used, so spawn requests came back empty. In the test raid (Zombies, 32 alive, no kills) waves 5 to 12 filled at 2.4 to 2.7 infected per second, where waves 5 to 7 had stalled at 0.6 to 0.7. The correction applies to every Arena mode; only Zombies were measured.
+- Zombies: the game could put an infected's sound container back into its pool twice when that infected died, after which two infected shared one sound container for the rest of the raid and, rarely, the game's audio failed every frame (`Can't handle not proposed occlusion test : Combined` in the log, with some shots and impacts silent) until one infected died. In an Arena raid a container that is already in the pool is no longer put in a second time; normal raids are unchanged.
+- Zombies at Maximum get a landmark every fifth wave from wave 5: waves 5, 15, 25, ... are ALL RUNNERS (no shooters and no slow infected, everything runs at you) and waves 10, 20, ... are ALL SHOOTERS (every infected is a shooter). The screen says NEXT: ALL RUNNERS (or SHOOTERS) when the break before the wave starts, WAVE 5: ALL RUNNERS when it starts, and the status line names the wave. A shooter share of exactly 0 never gets ALL SHOOTERS, and at exactly 100 there are no special waves (every wave is already all shooters). Reduced has no special waves. The log (Debug) gets one line per wave with the number of slow, fast and shooting infected it sent.
+- The Zombie menu row ALIVE AT ONCE now shows what the raid will use at the Reduced step: with a setting above 24 it reads `24 (setting 32, Reduced)`; otherwise it shows the setting as before. The slider and the saved value stay the setting.
+- Zombies can recover individual confirmed stuck enemies without awarding kills or losing the replacement slot.
+- Zombie pursuit and melee share a fair budget of two native planning jobs per frame, preserving attacks and existing movement.
+- Zombie waves vary the mix of native slow and fast melee enemies while preserving the configured shooter chance and population limits.
 
-- Restore Domination objective markers with DynamicMaps 1.3.0 while retaining
-  1.2.1 support. Changing DynamicMaps' marker pack keeps the objective diamonds.
-  [Integration details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md).
-- Review DynamicMaps 1.3.0 in the default client/server whitelist and corpse-marker advisory. The 1.2.1 minimum remains unchanged. Core 1.0.26 refreshes active map quest/key subscriptions after respawn.
+### Movement and devices
 
-- Review PitFireTeam 1.1.2 and TarkovaCola 3.0.1 for the default whitelist, with
-  updated squad lifecycle/persistence contracts and protected new Cola state.
-  Older supported PFT versions and Cola reward receipts retain their behavior.
-- Add VisualAssist 1.2.0 to the default whitelist. Core 1.0.25 preserves its
-  preview through body replacement; Arena guards quick throws from stale
-  prediction data. [Integration details](docs/reviews/MOD-REFRESH-20261120.md).
+- Optional Translocator device: select it, fire to throw/recall one disc, aim to teleport to a clear ground or airborne destination. Disabled by default; Arena only.
+- Translocator throws and flight ignore invisible spawn helpers and broad movement volumes, fixing false blocks on Factory while preserving physical walls and destination clearance.
+- Improved jump input around ledges and slide transitions, while preserving native collision and separate double-jump credit.
+- Landing slides retain collision-reduced momentum; slide jumps keep their direction without adding a second movement impulse.
+- Sprint jumps restore the normal hip-fire weapon position. Aiming down sights remains disabled in the air.
+
+### Sessions and rewards
 
 - Entering Arena, returning from it and the end of an Arena raid now work when a mod such as Pack A Punch changes what is written to your profile file (before, Arena declined the start with "save-not-confirmed" or could not finish the raid end). Arena checks the save against what the game's own write produced; without such a mod nothing changes.
 - Arena's startup profile writes no longer make Pack A Punch set its data aside as a ".stale" file at the next start. If your Pack A Punch data went missing after Arena 0.6.0, see the recovery steps in docs/PACK-A-PUNCH-COMPAT.md.
@@ -60,28 +79,33 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - SPT now starts after the installation was moved or copied to another folder or drive, as long as every earlier Arena session was finished. If one was not, the message names the folder that can finish it (start SPT from there once, or move the folder back). The startup error now also shows the reason in parentheses.
 - The first Arena start after the SPT folder was moved no longer stops on the old private session folder. If the earlier Arena session was finished, Arena starts as usual; if it was not, the message says that this folder was moved, which folder to move it back to, and that deleting the leftover Arena folder is the last resort (unreturned Arena results of that session are then lost).
 - The session helper's dialogs now say in plain words what happened, whether your profile was changed (only where that is certain), what to do next and where the logs are, and end with a short code you can quote in a report. A declined start (for example "preflight-save/save-not-confirmed") now names its reason and what usually causes it instead of "Arena startup could not finish".
-- Bots now fight at full strength from the first spawn. Deathmatch, Team Deathmatch, Domination and Tactical no longer start easy and get harder with time, with the length of the match or with your kill streak; Scavs spawn at hard and PMCs at impossible, and the bot equipment level is the map's top level (66 by default) from the first bot (except in PitFireTeam Tactical, where opponent gear stays relative to your profile, and in the first two rounds of solo Tactical, see below).
-- New setting **Difficulty > Step** with **Maximum** (default) and **Reduced**. Reduced lowers everything one step: PMCs at hard and Scavs at normal, bot equipment at about 60 % of the top level, two instead of four extra PMCs on top of the PMC floor, a slower refill, half of the extra bot speed (the default 1.5x becomes 1.25x) and position reports to the bots 1.5 times less often. The step is fixed when the raid starts; changing it during a raid takes effect with the next one. The F9 panel shows it read-only. Client and server must be updated together.
-- Gun Game is the one mode that still builds up, on a single ramp over the map's ramp time (15 minutes by default): bot equipment climbs from level 1 to the step's level, PMCs switch to the step's level at 80 % of the ramp and Scavs at 50 %, and the extra PMCs grow with it. Your kills and a finished ladder no longer change anything.
-- Solo Tactical: the enemy squad's gear is lighter in the first two rounds and full from round 3, so the first rounds are not decided by what a starting budget cannot afford. On the default map the bot equipment level is about 25 in round 1 and 45 in round 2 at Maximum (15 and 27 at Reduced), then the map's top level; a map whose top level is less than a gear tier above an opening level simply plays that round at the top level. The buy screen says what applies, in its own line: "Enemy squad this round: light gear" (round 1), "...medium gear" (round 2) and, once, "Enemy squad from now on: full gear" (round 3). The client reports the round to the server, which is why client and server must be updated together (an old server simply keeps the full level). Pooled PMC profiles that lie outside the round's gear band are replaced by freshly generated ones, with a budget of two purges per level. Scav squads get the lighter band from the server too, but no pool purge and no buy-screen line. Protected PitFireTeam Tactical and every other mode are unchanged.
-- The Tactical start money setting now describes the real kit prices (about 180k to 670k; 250k buys one of the five cheapest) instead of 180k to 590k.
-- In Gun Game, enemy PMCs now follow the gear build-up more closely: pooled PMC bot profiles that fell more than 5 levels behind it are replaced by freshly generated ones, instead of lagging minutes behind (Scavs are not affected).
-- Team Deathmatch and Domination bot requests no longer carry a match clock, and the pooled PMC profiles are warmed only for the level the step asks for at the start (hard in Gun Game).
-- Zombies follow the step through their composition, not their number: at Maximum the horde keeps the configured number alive from wave one, the share of slow walkers fades by 5 points per wave from wave 4 (none left in waves 8 and 9, 5 % once more in wave 10, none from wave 11) and the shooter share grows by a tenth of the setting per wave from wave 2, up to twice the setting and never above 100 % (0 % and 100 % stay exact); every fifth wave is then replaced by a special wave (next entry). At Reduced the mix stays as before with a flat shooter share and at most 24 infected alive at once. Position reports to the bots are not slowed in Zombies.
-- Zombie waves no longer stall in the later waves of a long raid: the game stored reloaded bot profiles twice and the second copy could not be used, so spawn requests came back empty. In the test raid (Zombies, 32 alive, no kills) waves 5 to 12 filled at 2.4 to 2.7 infected per second, where waves 5 to 7 had stalled at 0.6 to 0.7. The correction applies to every Arena mode; only Zombies were measured.
-- Zombies: the game could put an infected's sound container back into its pool twice when that infected died, after which two infected shared one sound container for the rest of the raid and, rarely, the game's audio failed every frame (`Can't handle not proposed occlusion test : Combined` in the log, with some shots and impacts silent) until one infected died. In an Arena raid a container that is already in the pool is no longer put in a second time; normal raids are unchanged.
-- Zombies at Maximum get a landmark every fifth wave from wave 5: waves 5, 15, 25, ... are ALL RUNNERS (no shooters and no slow infected, everything runs at you) and waves 10, 20, ... are ALL SHOOTERS (every infected is a shooter). The screen says NEXT: ALL RUNNERS (or SHOOTERS) when the break before the wave starts, WAVE 5: ALL RUNNERS when it starts, and the status line names the wave. A shooter share of exactly 0 never gets ALL SHOOTERS, and at exactly 100 there are no special waves (every wave is already all shooters). Reduced has no special waves. The log (Debug) gets one line per wave with the number of slow, fast and shooting infected it sent.
-- The Zombie menu row ALIVE AT ONCE now shows what the raid will use at the Reduced step: with a setting above 24 it reads `24 (setting 32, Reduced)`; otherwise it shows the setting as before. The slider and the saved value stay the setting.
+
+### Compatibility
+
+- Add Tarkova Cola 4.0.0's research and achievement catalog while preserving older
+  reward records. Block Arena-generated Tombstone offering mails and preserve
+  pending ordinary offerings. [Protection details](docs/reviews/TARKOVA-COLA-4-20261122.md).
+- Record Tarkova Cola 4.0.0, Fontaine FOV Fix 5.0.1 and SPT Realism Common Lib 0.1.0
+  in the development whitelist. Core 1.0.28 adds Common Lib controller handoff and
+  selective Cola body-state cleanup. Verified standalone and in protected Arena
+  with the [documented native scope](docs/reports/2026-11/COLA-FOV-NATIVE-20261122.md).
+- Refresh the reviewed whitelist versions for StashFilter 1.1.0, UIFixes 6.0.4, give-ui 5.0.1, Better BepInEx 1.0.4, HUD Breakout 1.4.1, WebOverlay 1.12.0 and ArmorClassIcon 1.1.1 after reviewing current Forge releases. [Complete audit](docs/reports/2026-11/WHITELIST-FORGE-AUDIT-20261121.md).
+- Add WTT Armory's installed 2.0.5 client/server identities to the default whitelist. Core 1.0.27 repairs its retained-player Hyperburst state after respawn; the distribution is labelled 3.0.0 upstream.
+- Review the installed WTT Content Backport 2.0.7 and CommonLib 3.0.8 versions in the default client/server whitelist.
+- Restore Domination objective markers with DynamicMaps 1.3.0 while retaining
+  1.2.1 support. Changing DynamicMaps' marker pack keeps the objective diamonds.
+  [Integration details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md).
+- Review DynamicMaps 1.3.0 in the default client/server whitelist and corpse-marker advisory. The 1.2.1 minimum remains unchanged. Core 1.0.26 refreshes active map quest/key subscriptions after respawn.
+- Review PitFireTeam 1.1.2 and TarkovaCola 3.0.1 for the default whitelist, with
+  updated squad lifecycle/persistence contracts and protected new Cola state.
+  Older supported PFT versions and Cola reward receipts retain their behavior.
+- Add VisualAssist 1.2.0 to the default whitelist. Core 1.0.25 preserves its
+  preview through body replacement; Arena guards quick throws from stale
+  prediction data. [Integration details](docs/reviews/MOD-REFRESH-20261120.md).
+
+### Upgrade notes
+
 - Upgrade note for edited server configurations: `botTierEndLevel` of a map is now the bot equipment level from the first bot in every mode but Gun Game (Maximum), and, from round 3, in solo Tactical (rounds 1 and 2 are lighter), and `botTierStartLevel` / `botTierRampMinutes` act only in Gun Game (start level and ramp length; at Reduced the start level is also the floor), the start level also being the floor of the Tactical opening rounds. Lower `botTierEndLevel` if you want softer bots than the default 66.
-- Removed the settings Scale Difficulty, Pressure Ramp Minutes, Pressure Streak Percent, Pressure PMC Bonus and Max Bot Difficulty, with their menu rows and the F9 toggle. When the game starts, a saved Scale Difficulty of off, or a Max Bot Difficulty below impossible, selects Reduced once; nothing else in your configuration changes.
-- Optional Translocator device: select it, fire to throw/recall one disc, aim to teleport to a clear ground or airborne destination. Disabled by default; Arena only.
-- Translocator throws and flight ignore invisible spawn helpers and broad movement volumes, fixing false blocks on Factory while preserving physical walls and destination clearance.
-- Zombies can recover individual confirmed stuck enemies without awarding kills or losing the replacement slot.
-- Zombie pursuit and melee share a fair budget of two native planning jobs per frame, preserving attacks and existing movement.
-- Zombie waves vary the mix of native slow and fast melee enemies while preserving the configured shooter chance and population limits.
-- Improved jump input around ledges and slide transitions, while preserving native collision and separate double-jump credit.
-- Landing slides retain collision-reduced momentum; slide jumps keep their direction without adding a second movement impulse.
-- Sprint jumps restore the normal hip-fire weapon position. Aiming down sights remains disabled in the air.
 
 ## [0.6.0] - 2026-11-14
 

@@ -1,6 +1,6 @@
 # Tarkova Cola compatibility — updated 2026-11-22
 
-Development after ArenaMode 0.6.0 includes **4.0.0** with separate 2.2.1, 3.0.1 and
+ArenaMode 0.7.0 includes **4.0.0** with separate 2.2.1, 3.0.1 and
 4.0.0 catalogs, so old receipts and plans keep their meaning. V4's six added perk
 trees and changed goals are covered; removed synergy state remains intact without
 creating new v4 rewards. Tombstone's deferred item offering is excluded from Arena,

@@ -34,11 +34,11 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Traps: the pitfalls that recur, with symptom, cause and remedy](TRAPS.md)
 - [Complete implemented feature inventory and mutator list](FEATURES.md)
 - [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
-- [Maps and modes: current admission matrix (as of 2026-10-17)](MAP-MODE-COMPATIBILITY.md)
+- [Maps and modes: current admission matrix (as of 2026-11-22; German)](MAP-MODE-COMPATIBILITY.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
 - [Zombie recovery, planning and native wave tests](reports/2026-11/GPU-ZOMBIE-FLOW-20261115.md)
 - [Deferred Arena design work](FUTURE-WORK.md)
-- [Forge description, eight tabs (draft of 0.6.0)](FORGE-DESCRIPTION.md)
+- [Forge description, eight tabs (draft of 0.7.0)](FORGE-DESCRIPTION.md)
 
 ### Specifications and contracts
 
@@ -64,6 +64,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Release notes
 
+- [ArenaMode 0.7.0 release notes](RELEASE-0.7.0.md)
 - [ArenaMode 0.6.0 release notes](RELEASE-0.6.0.md)
 - [ArenaMode 0.5.0 release notes](RELEASE-0.5.0.md)
 - [ArenaMode 0.4.1 release notes (hotfix for 0.4.0)](RELEASE-0.4.1.md)
@@ -263,7 +264,7 @@ Sorted by file name.
 - [Bounded solo population: reservation, capacity and Labyrinth bosses](reviews/SOLO-POPULATION-REVIEW.md)
 - [Solo Tactical opponent-start timing and lease contract](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md)
 - [Spawn-gate completion: MapPort GatesOpen contract and verification status](reviews/SPAWN-GATE-COMPLETION-20261024.md)
-- [Spawn rows follow-up: Tactical on Equator, Iceberg and solo Chop Shop, Chop Shop default of eight, pocket exits, pins on decisions](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)
+- [Spawn rows follow-up: Tactical on Equator, Iceberg and solo Chop Shop, Chop Shop default of eight (six again since 0.7.0), pocket exits, pins on decisions](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)
 - [Slow walking during surgical treatment and leg splinting](reviews/SURGICAL-WALK-REVIEW.md)
 - [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
 - [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)
@@ -299,12 +300,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (308)
+## Reports (309)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Branch and worktree collection, 2026-11-22: feature/yard (Block) merged, two branches and nine ArenaMode worktrees plus one Redeploy worktree removed (Fika left out), their ignored files archived, Chop Shop's recommendation back to six](reports/2026-11/WORKTREE-CLEANUP-20261122.md)
 - [Block native acceptance on GPU-2, 2026-11-21: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, solo Tactical and a PMC control; the first Team DM start refused with USEC 0/10 (seven south start heights) and the fixed build](reports/2026-11/GPU-BLOCK-20261121.md)
 - [Branch and worktree collection, 2026-11-20: the reward-history branch merged, fourteen branches and four worktrees removed (Fika left out), their ignored files archived, one stale installed-PitFireTeam test repaired, offline run and read-only review of the merged master, push](reports/2026-11/WORKTREE-CLEANUP-20261120.md)
 - [PitFireTeam 1.1.2, TarkovaCola 3.0.1 and VisualAssist 1.2.0: scoped native tests, regular installation and restoration](reports/2026-11/GPU-MOD-REFRESH-20261120.md)

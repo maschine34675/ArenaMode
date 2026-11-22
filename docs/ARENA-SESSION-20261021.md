@@ -76,15 +76,15 @@ warning, and a mod that exists on one side only simply is not installed on the o
 
 | Group | Unit (GUID) | Client | Server |
 |---|---|---|---|
-| mod | Tarkova Cola (`com.tarkovacola.server`) | 3.0.1 | 3.0.1 |
+| mod | Tarkova Cola (`com.tarkovacola.server`) | 4.0.0 | 4.0.0 |
 | mod | SAIN (`me.sol.sain`) | 4.5.1 | 4.5.1 |
 | mod | APBS (`com.acidphantasm.progressivebotsystem`) | - | 2.4.1 |
 | mod | ABPS (`com.acidphantasm.botplacementsystem`) | 2.1.0 | 2.1.0 |
 | mod | BigBrain (`xyz.drakia.bigbrain`) | 1.5.0 | - |
 | mod | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
-| mod | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.6.0 | 0.6.0 |
+| mod | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.7.0 | 0.7.0 |
 | mod | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
-| mod | Redeploy (`com.maschine.Redeploy`) | 1.1.3 | 1.1.3 |
+| mod | Redeploy (`com.maschine.Redeploy`) | 1.1.4 | 1.1.4 |
 | mod | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
 | mod | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
 | mod | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |

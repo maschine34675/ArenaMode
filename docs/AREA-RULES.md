@@ -293,7 +293,7 @@ The explicitly requested follow-up integrations are documented in
 docs/reviews/ITEMS-HUD-COMPAT-20261025.md and docs/reviews/REMAINING-MOD-COMPAT-20261026.md:
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
-and camera lifetimes remain in Redeploy.Core (development build minimum 1.0.22).
+and camera lifetimes remain in Redeploy.Core (minimum Core 1.0.28 since 0.7.0).
 Amand's Graphics 1.8.0 is reviewed for Arena. On every Arena map Arena repairs
 Graphics' startup lookup of the level settings for the local FPS camera, but only
 when Graphics' own lookup finds no `LevelSettings` (missing object, or an object
@@ -708,7 +708,7 @@ Playtest: solo Tactical, RandomKit on, survive round 1 without buying; round 2 m
 
 ## Maps and areas
 
-Tactical admissions on the ported maps (2026-11-13, measured with the then installed build 0.5.0+160523d, now ArenaMapPort 0.6.0; contract
+Tactical admissions on the ported maps (2026-11-13, measured with the then installed build 0.5.0+160523d, now ArenaMapPort 0.6.0 or newer; contract
 docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md): **Equator and Iceberg admit Tactical, solo and with a
 PitFireTeam squad**: their refusals rested on the number of Bot/BotPmc rows beyond the 25 m floor, and
 MapPort's rows of 2026-11-12 gave Equator 16 rows (9 beyond 25 m from the atrium, at least 6 on every
@@ -735,16 +735,15 @@ MapPort version. See
 docs/reviews/ICEBERG-INTEGRATION-20261031.md. Chop Shop needs an ArenaMapPort build that ships it
 (ArenaMapPort 0.6.0, which also carries the rows above; 0.5.0 does not offer the map); detect it by the live location, never by the MapPort version. See
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md (the 2026-11-12 state; its Tactical refusals, its two known
-limits and its default of six are superseded by the follow-up).
+limits are superseded by the follow-up; its default of six was eight in 0.6.0 and is six again since 0.7.0).
 Block (arena_yard, MapPort's id; Arena's name; not the Customs yard area) admits every mode, solo and with a
 PitFireTeam squad, in Tactical and Zombies, with no refusal and no picker hint: 18 Bot/BotPmc rows on a main
 walkable component of 4,548.2 m2 (survey read of the built mesh), at least 11 of them beyond the 25 m floor on
 every mesh cell outside the two pockets by MapPort's own coverage check (not run with ArenaMode's selector; the
 BLOCK-GRID pin in `MapModeAdmissionChecks` holds GridMinimum >= 5, and if it fails the PFT decision in
 `ArenaAreaCatalog` is to be re-taken, not the number re-pinned). Default eight participants. It needs an
-ArenaMapPort build that ships it (today the unreleased `feature/yard` build 0.6.0+1d8faa8; the published 0.6.0 has
-no Block and the same version string); detect it by the live location, never by the MapPort version. Native run
-on GPU-2 on 2026-11-21 (build 0.6.0+fb2b3af6): Deathmatch with eight participants, Team DM 4v4 and 10v10, Domination
+ArenaMapPort build that ships it (ArenaMapPort 0.7.0; 0.6.0 has no Block, and then Block is simply not offered); detect it by the live location, never by the MapPort version. Native run
+on GPU-2 on 2026-11-21 (pre-release build 0.6.0+fb2b3af6): Deathmatch with eight participants, Team DM 4v4 and 10v10, Domination
 4v4, solo Zombies, solo Tactical (three rounds, five opponents each) and an ordinary PMC raid all ran without a
 warning or error line; not run: PitFireTeam squads on this map, Gun Game, Deathmatch above eight participants, a
 match played to its result. See docs/reviews/BLOCK-INTEGRATION-20261121.md.
@@ -1760,8 +1759,8 @@ separate optic-icon and SAIN unload NREs do not establish a mantle connection.
 ## Build, deploy and release
 
 Core admission: both clients fail closed before runtime initialization when the loaded
-Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (1.0.24 in the
-source and in the 0.6.0 package; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (1.0.28 in the
+source and in the 0.7.0 package; 1.0.24 in 0.6.0; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 
 ### From the handoff (snapshot of 2026-10-29)
@@ -1782,7 +1781,7 @@ Publish the final verified Core source
 
 *(handoff lines 302-304)*
 
-Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.6.0.
+Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.7.0.
 
 *(handoff lines 546-549)*
 
